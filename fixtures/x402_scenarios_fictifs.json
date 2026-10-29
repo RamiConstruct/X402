@@ -1,0 +1,80 @@
+{
+  "_meta": {
+    "fictif": true,
+    "avertissement": "Scénarios ENTIÈREMENT FICTIFS pour simuler hors ligne un parcours x402. Réseau, actif, montants et adresses sont inventés. Les noms « accepts », « scheme », « network » et l'en-tête PAYMENT-REQUIRED sont cités dans le README de github.com/x402-foundation/x402 (consulté le 2026-10-29) ; les autres champs sont propres à l'atelier. Aucune compatibilité de version n'est revendiquée."
+  },
+  "testnets_simules": ["testnet-fictif"],
+  "budget_hypothetique": {
+    "per_call_cap": "0.05",
+    "session_cap": "1.00",
+    "currency": "JETONTEST",
+    "note": "budget HYPOTHÉTIQUE de simulation, distinct du budget annoncé de 17 (devise non confirmée)"
+  },
+  "scenarios": {
+    "ok": {
+      "service": {"provider": "Fournisseur Fictif Alpha", "name": "alpha-texte-demo"},
+      "response": {
+        "status": 402,
+        "headers": {"payment-required": "<objet encodé fictif>"},
+        "body": {"accepts": [{"scheme": "exact", "network": "testnet-fictif",
+                               "amount_atomic": "2000", "asset_symbol": "JETONTEST",
+                               "asset_decimals": 6, "unit": "per_request",
+                               "pay_to": "adresse-fictive-0001"}]}
+      }
+    },
+    "prix_inconnu": {
+      "service": {"provider": "Fournisseur Fictif Beta", "name": "beta-texte-demo"},
+      "response": {
+        "status": 402,
+        "headers": {},
+        "body": {"accepts": [{"scheme": "exact", "network": "testnet-fictif",
+                               "amount_atomic": "2000", "asset_symbol": "JETONTEST",
+                               "unit": "per_request"}]}
+      }
+    },
+    "devise_inconnue": {
+      "service": {"provider": "Fournisseur Fictif Gamma", "name": "gamma-code-demo"},
+      "response": {
+        "status": 402,
+        "headers": {},
+        "body": {"accepts": [{"scheme": "exact", "network": "testnet-fictif",
+                               "amount_atomic": "10000", "asset_decimals": 6,
+                               "unit": "per_request"}]}
+      }
+    },
+    "reseau_non_testnet": {
+      "service": {"provider": "Fournisseur Fictif Alpha", "name": "alpha-texte-demo"},
+      "response": {
+        "status": 402,
+        "headers": {},
+        "body": {"accepts": [{"scheme": "exact", "network": "reseau-principal-fictif",
+                               "amount_atomic": "2000", "asset_symbol": "JETONTEST",
+                               "asset_decimals": 6, "unit": "per_request"}]}
+      }
+    },
+    "depasse_plafond": {
+      "service": {"provider": "Fournisseur Fictif Alpha", "name": "alpha-texte-demo"},
+      "response": {
+        "status": 402,
+        "headers": {},
+        "body": {"accepts": [{"scheme": "exact", "network": "testnet-fictif",
+                               "amount_atomic": "5000000", "asset_symbol": "JETONTEST",
+                               "asset_decimals": 6, "unit": "per_request"}]}
+      }
+    },
+    "schema_inconnu": {
+      "service": {"provider": "Fournisseur Fictif Alpha", "name": "alpha-texte-demo"},
+      "response": {
+        "status": 402,
+        "headers": {},
+        "body": {"accepts": [{"scheme": "inconnu-fictif", "network": "testnet-fictif",
+                               "amount_atomic": "2000", "asset_symbol": "JETONTEST",
+                               "asset_decimals": 6, "unit": "per_request"}]}
+      }
+    },
+    "pas_de_402": {
+      "service": {"provider": "Fournisseur Fictif Alpha", "name": "alpha-texte-demo"},
+      "response": {"status": 200, "headers": {}, "body": {}}
+    }
+  }
+}

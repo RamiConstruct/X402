@@ -1,0 +1,68 @@
+{
+  "_meta": {
+    "fictif": true,
+    "avertissement": "DONNÉES ENTIÈREMENT FICTIVES pour l'atelier hors ligne. Aucun fournisseur, prix, réseau ou service ci-dessous n'existe. Ne pas utiliser comme référence commerciale.",
+    "format": "format propre à l'atelier, sans lien revendiqué avec une API de découverte x402"
+  },
+  "services": [
+    {
+      "provider": "Fournisseur Fictif Alpha",
+      "name": "alpha-texte-demo",
+      "capability": "text",
+      "observed_at": "2026-10-01T12:00:00Z",
+      "price": {"amount": "0.002", "currency": "JETONTEST", "unit": "per_request"},
+      "payment": {"protocol": "x402", "network": "testnet-fictif"}
+    },
+    {
+      "provider": "Fournisseur Fictif Beta",
+      "name": "beta-texte-demo",
+      "capability": "texte",
+      "observed_at": "2026-10-02T08:30:00+02:00",
+      "price": {"amount": 0.0015, "currency": "JETONTEST", "unit": "par_requete"},
+      "payment": {"protocol": "x402", "network": "testnet-fictif"}
+    },
+    {
+      "provider": "Fournisseur Fictif Gamma",
+      "name": "gamma-code-demo",
+      "capability": "code",
+      "observed_at": "2026-10-03T10:00:00Z",
+      "price": {"amount": "$0.01", "unit": "per_request"},
+      "payment": {"protocol": "x402"}
+    },
+    {
+      "provider": "Fournisseur Fictif Delta",
+      "name": "delta-recherche-demo",
+      "capability": "search",
+      "price": {"amount": "0.004", "currency": "JETONTEST"},
+      "status": "verified"
+    },
+    {
+      "name": "image-sans-fournisseur-demo",
+      "capability": "image_generation",
+      "observed_at": "2026-10-04 09:00:00",
+      "price": {"amount": "0.03", "currency": "JETONTEST", "unit": "per_image"}
+    },
+    {
+      "provider": "Fournisseur Fictif Epsilon",
+      "name": "epsilon-audio-demo",
+      "capability": "transcription",
+      "observed_at": "2026-10-05T14:00:00Z",
+      "price": {"amount": "0.006", "currency": "JETONTEST", "unit": "per_audio_minute"},
+      "payment": {"protocol": "x402", "network": "testnet-fictif"}
+    },
+    {
+      "provider": "Fournisseur Fictif Zeta",
+      "name": "zeta-embeddings-demo",
+      "capability": "embeddings",
+      "observed_at": "2026-10-06T16:00:00Z",
+      "price": {"amount": "0.02", "currency": "AUTREJETON", "unit": "per_1m_tokens"}
+    },
+    {
+      "provider": "Fournisseur Fictif Eta",
+      "name": "eta-capacite-exotique-demo",
+      "capability": "holographie",
+      "observed_at": "2026-10-07T07:00:00Z",
+      "price": {"amount": "gratuit?", "currency": "JETONTEST", "unit": "par_lune"}
+    }
+  ]
+}
