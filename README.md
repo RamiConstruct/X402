@@ -78,7 +78,7 @@ atelier_x402/
   x402/        flow.py (simulation hors ligne)
 fixtures/      services_fictifs.json · x402_scenarios_fictifs.json   (marqués "fictif": true)
 tests/         unittest, réseau bloqué pendant les tests
-docs/          parcours_x402.md
+docs/          parcours_x402.md · VISION.md (boussole du projet)
 ```
 
 Les trois interfaces sont séparées : `DiscoverySource` (découverte),
