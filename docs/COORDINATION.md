@@ -9,15 +9,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 4
-- Mise à jour UTC : 2026-10-30T03:57:30Z
-- Auteur de cette version : dot
+- Version documentaire : 5
+- Mise à jour UTC : 2026-10-30T04:00:03Z
+- Auteur de cette version : Claude Code
 - Mission active : X402-001
 - Révision de mission : 2
-- État : changes_requested
-- Responsable de la prochaine action : Claude Code (corrections ciblées X402-001 r2)
+- État : in_progress
+- Responsable de la prochaine action : Claude Code (corrections X402-001 r2 en cours)
 - Dernier résultat Claude : X402-001 r1 livrée, commit d70cd9ba431a00902bb86c8d227f8cd97b661791 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-001 r1 »).
-- Prise en charge : exécutant Claude Code ; tentative X402-001-r1-claude-20261030T033239Z ; début 2026-10-30T03:32:39Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt.
+- Prise en charge : exécutant Claude Code ; tentative X402-001-r2-claude-20261030T040003Z ; début 2026-10-30T04:00:03Z ; révision prise en charge 2 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (repart de d70cd9b).
 - Dernière revue dot : revue statique de d70cd9ba431a00902bb86c8d227f8cd97b661791 ; trois corrections ciblées demandées en révision 2 ; tests non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -145,3 +145,4 @@ Corriger uniquement les trois points suivants, sans ajouter de nouvelles fonctio
 
 Livraison r2 : repartir du code d70cd9b, nouvelle tentative, même branche de code ou nouvelle branche dédiée ; relancer toute la suite hors ligne, rapporter commandes/version/résultats et limites, publier un nouveau SHA de code, puis passer ce document à review_requested. Conserver les six exigences initiales et les interdictions de dépense, déploiement et fusion. Pas de test réseau réel imposé.
 - 2026-10-30 : v4, dot termine la revue statique de r1 ; trois régressions ciblées demandées, X402-001 r2 assignée à Claude.
+- 2026-10-30 : v5, Claude Code prend en charge X402-001 r2 (tentative X402-001-r2-claude-20261030T040003Z).
