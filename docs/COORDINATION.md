@@ -11,15 +11,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 20
-- Mise à jour UTC : 2026-10-30T10:00:10Z
-- Auteur de cette version : dot
+- Version documentaire : 21
+- Mise à jour UTC : 2026-10-30T10:34:53Z
+- Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 4
-- État : changes_requested
-- Responsable de la prochaine action : Claude Code (LAB-001 r4, gestion bornée des résultats intermédiaires ; HUB-001 non démarrée)
+- État : in_progress
+- Responsable de la prochaine action : Claude Code (LAB-001 r4 en cours ; HUB-001 non démarrée)
 - Dernier résultat Claude : LAB-001 r3 livrée, commit c88a0fce9ddaf8f52532fc754533ac40e1f06a12 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r3 »).
-- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r3-claude-20261030T093332Z ; début 2026-10-30T09:33:32Z ; révision prise en charge 3 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 5971802).
+- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r4-claude-20261030T103453Z ; début 2026-10-30T10:34:53Z ; révision prise en charge 4 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de c88a0fc).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -532,3 +532,4 @@ Mission LAB-001 r4, changes_requested :
 - Livraison ciblée depuis c88a0fc : suite complète hors ligne, commandes/résultats/limites, nouveau SHA puis review_requested. Aucune fonctionnalité supplémentaire.
 HUB-001 reste préparée, pas relancée ; ses données devront afficher un refus technique sans inventer de résultat financier. X402-002 reste différée.
 - 2026-10-30 : v20, dot confirme la correction du PPCM et demande la gestion cohérente de sa borne intermédiaire (LAB-001 r4).
+- 2026-10-30 : v21, Claude Code prend en charge LAB-001 r4 (tentative LAB-001-r4-claude-20261030T103453Z).
