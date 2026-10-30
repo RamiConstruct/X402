@@ -9,14 +9,14 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 8
-- Mise à jour UTC : 2026-10-30T05:33:09Z
+- Version documentaire : 9
+- Mise à jour UTC : 2026-10-30T06:16:30Z
 - Auteur de cette version : Claude Code
 - Mission active : X402-002
 - Révision de mission : 1
-- État : in_progress
-- Responsable de la prochaine action : Claude Code (X402-002 r1 en cours)
-- Dernier résultat Claude : X402-001 r2 livrée, commit 3657c34bafec4e8f3349dcb637989855612f7d3d sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-001 r2 »).
+- État : review_requested
+- Responsable de la prochaine action : dot (revue de X402-002 r1)
+- Dernier résultat Claude : X402-002 r1 livrée, commit 9e4092d74a9d42c610ac913d8b0d43d7e74fae68 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-002 r1 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative X402-002-r1-claude-20261030T053309Z ; début 2026-10-30T05:33:09Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (repart de 3657c34).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
@@ -160,6 +160,45 @@ dot : revue du diff `9745576..d70cd9b` et des preuves ci-dessus ; `accepted` ou 
 ### Prochaine action
 dot : revue de `git diff d70cd9b 3657c34` et des preuves ci-dessus ; `accepted` ou `changes_requested` avec révision 3.
 
+## Compte rendu Claude — X402-002 r1
+- Mission / révision : X402-002, révision 1 (adaptateurs Bazaar hors ligne).
+- Tentative : X402-002-r1-claude-20261030T053309Z (livraison 2026-10-30T06:16:30Z).
+- Branche : claude/x402-service-discovery-workshop-xjjmjt, repartie de 3657c34.
+- Commit de code livré : 9e4092d74a9d42c610ac913d8b0d43d7e74fae68. Diff : `git diff 3657c34 9e4092d` (15 fichiers).
+- Aucune fusion, dépense, portefeuille, paiement, appel fournisseur, déploiement ni GitHub Actions.
+
+### Sources
+- Récupération réelle : `git clone --depth 1 https://github.com/x402-foundation/x402` le 2026-10-30T05:32:51Z, commit immuable 14bc0fbf784914a6eb24bf87cdcd8d827e2b3ff3 (licence Apache-2.0).
+- Fichiers lus (blobs notés dans `fixtures/bazaar/MANIFEST.json`) : `specs/extensions/bazaar.md`, `typescript/packages/extensions/src/bazaar/facilitatorClient.ts`, `specs/x402-specification-v2.md`, plus `docs/extensions/bazaar.mdx` (source de la page docs.x402.org).
+- **docs.x402.org non consultée directement** : connexion refusée par le proxy de l'environnement (`connect_rejected`). Les sources du dépôt ont été utilisées à la place.
+
+### Changements
+- `atelier_x402/bazaar.py` (fonctions pures) : `parse_list_response` (items, pagination{limit, offset, total}) et `parse_search_response` (resources, partialResults, pagination objet/null) ; `parse_response` détecte l'enveloppe et rejette items+resources ; la variante « limit/cursor à la racine » (citée par docs/extensions/bazaar.mdx comme dépendant du facilitateur) est reconnue et signalée `racine` ; une pagination absente ou null n'est jamais inventée (couverture `unknown`) ; couverture complete/partial/unknown dégradée par les éléments invalides et par une version ≠ 2.
+- Offres : toutes conservées dans l'ordre ; `amount` en chaîne d'entier exacte (entier JSON accepté avec avertissement 2^53) ; montant absent → inconnu, jamais zéro ; `upto` non comparable ; aucune décimale d'actif ni conversion USD ; comparaison seulement entre offres `exact` de même réseau et même actif, en entiers ; `offer_cost_estimate` renvoie toujours un prix inconnu (refus de CostGuard, y compris pour amount "0").
+- HTTP / MCP : clé HTTP = resource ; clé MCP = (resource, toolName) ; deux outils d'une même ressource non fusionnés ; toolName manquant → élément invalide et diagnostic ; `mcp://` signalé comme identifiant non appelable ; type contradictoire (élément vs extension) → invalide.
+- Schémas : `info`, `schema` et `inputSchema` conservés comme données ; `$ref`/`$id` non locaux listés dans `schema_external_refs`, jamais résolus.
+- Métadonnées : règles d'écartement de la spécification pour serviceName, tags et iconUrl (l'icône n'est jamais chargée).
+- Provenance et données brutes expurgées conservées (`fictif` pour les fixtures, `declaration_commerciale` par défaut).
+- Fixtures : 10 fichiers **synthétiques** dans `fixtures/bazaar/` (structure documentée, valeurs inventées : hôtes exemple-fictif.org, adresses et actifs factices). Aucune ne reproduit une réponse réelle de facilitateur ni un exemple officiel mot pour mot. `MANIFEST.json` : dépôt, commit, blobs, date réelle de récupération, méthode, fichiers sources par fixture, SHA-256, endpoint et couverture attendus. Le chargeur refuse un fichier hors manifeste ou modifié.
+- CLI : nouvelle commande `bazaar --fixture|--all [--out]` (code 0 si couverture complete, 3 sinon) ; `discover` et `compare` (format historique) inchangées.
+
+### Tests exécutés par Claude
+- Python 3.13.17, Linux ; réseau bloqué pendant les tests.
+- `python3 -m unittest discover -s tests -t .` → code retour 0, `Ran 158 tests`, `OK` (125 existants + 33 nouveaux dans `tests/test_x402_002.py`). `tests.test_x402_002` relancé 2 fois → OK.
+- Couverts : liste et recherche, pagination absente/null/objet/racine/contradictoire, partialResults, offset/total, enveloppe contradictoire ou mal typée, offres multiples conservées, entier au-delà de 2^53 (chaîne et nombre JSON), montants invalides, upto, comparaison par réseau et actif, coût inconnu jamais zéro (CostGuard), MCP partagé, mcp://, toolName manquant, $ref externe jamais chargé, type contradictoire, métadonnées écartées, expurgation, manifeste (liste exhaustive, empreintes, source épinglée), fixture modifiée ou hors manifeste refusée, CLI sans aucun appel (urlopen et HTTPConnection.request piégés), mode historique inchangé.
+- CLI : `discover` → 0 ; `compare` → 0 ; `simulate-x402 --all` → 0 ; `check-cost --price NaN` → 0 (refus attendu) ; `bazaar --all` → 3 (attendu : plusieurs fixtures volontairement partielles ou inconnues) ; `bazaar --fixture fixtures/bazaar/liste_complete.json` → 0.
+
+### Non exécuté / limites
+- Aucun appel à un facilitateur réel : aucune réponse réelle n'a été observée. La forme réelle des réponses de facilitateurs particuliers n'est pas vérifiée.
+- Pas d'exemple officiel reproduit à l'identique : les fixtures sont synthétiques, seule leur structure est sourcée.
+- Pas de validation JSON Schema de `info` contre `schema` (aucune dépendance ajoutée) ; seuls les `$ref`/`$id` externes sont détectés.
+- Couverture « complete » d'une recherche fondée sur la déclaration `partialResults=false` du facilitateur, non vérifiable hors ligne.
+- Seule x402Version 2 est couverte ; v1 (`outputSchema`) non prise en charge.
+- Aucune revendication universelle Bazaar/MCP ; `discover --enable-http` garde le format propre à l'atelier.
+
+### Prochaine action
+dot : revue de `git diff 3657c34 9e4092d` et des preuves ci-dessus ; `accepted` ou `changes_requested` avec révision 2.
+
 ## Journal
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
 - 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
@@ -214,3 +253,4 @@ Livrables :
 Arrêt du lot : démonstration et tests hors ligne terminés. Aucun portefeuille, paiement, appel fournisseur, déploiement, fusion ni lancement GitHub Actions. Si les sources officielles restent inaccessibles, consigner le blocage précis et ne pas deviner un format.
 - 2026-10-30 : v7, dot accepte X402-001 r2 dans le périmètre statique/hors ligne et prépare X402-002 r1.
 - 2026-10-30 : v8, Claude Code prend en charge X402-002 r1 (tentative X402-002-r1-claude-20261030T053309Z).
+- 2026-10-30 : v9, Claude Code livre X402-002 r1 (commit 9e4092d) ; état review_requested.
