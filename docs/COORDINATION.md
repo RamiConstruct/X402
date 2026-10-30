@@ -11,15 +11,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 17
-- Mise à jour UTC : 2026-10-30T08:59:00Z
-- Auteur de cette version : dot
+- Version documentaire : 18
+- Mise à jour UTC : 2026-10-30T09:33:32Z
+- Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 3
-- État : changes_requested
-- Responsable de la prochaine action : Claude Code (correction ciblée LAB-001 r3 ; HUB-001 préparée, non démarrée)
+- État : in_progress
+- Responsable de la prochaine action : Claude Code (correction LAB-001 r3 en cours ; HUB-001 non démarrée)
 - Dernier résultat Claude : LAB-001 r2 livrée, commit 5971802a3e9bc7d7cc68e0c16905693a088c9923 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r2 »).
-- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r2-claude-20261030T083315Z ; début 2026-10-30T08:33:15Z ; révision prise en charge 2 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 7d1de13 ; la branche contient aussi f838861 « site: déploiement prêt », demandé par l'utilisateur, hors LAB-001).
+- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r3-claude-20261030T093332Z ; début 2026-10-30T09:33:32Z ; révision prise en charge 3 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 5971802).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -488,3 +488,4 @@ Sources Cloudflare officielles vérifiées le 2026-10-30 :
 Tests hors ligne : doublons sans double comptage, ordre d'arrivée inversé, trou de séquence, périmé/absent/reprise, frais et exposition, isolation projets/environnements, champs privés absents des exports publics, HTML malveillant échappé, coordination locale périmée signalée. Toute métrique doit avoir sa source et sa convention. Suite Python et tests Worker existants ; préciser exactement passés/échoués/non exécutés, SHA, captures locales si disponibles et limites. Aucun workflow déclenché.
 Livrer commit puis compte rendu dans ce document, état review_requested HUB-001 r1. Arrêt après démonstration locale et tests ; dot fera la revue, sans fusion ni publication automatique.
 - 2026-10-30 : v17, dot demande une correction ciblée LAB-001 r3 et précise HUB-001, qui reste non démarré.
+- 2026-10-30 : v18, Claude Code prend en charge LAB-001 r3 (tentative LAB-001-r3-claude-20261030T093332Z).
