@@ -9,16 +9,16 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 3
-- Mise à jour UTC : 2026-10-30T03:40:26Z
-- Auteur de cette version : Claude Code
+- Version documentaire : 4
+- Mise à jour UTC : 2026-10-30T03:57:30Z
+- Auteur de cette version : dot
 - Mission active : X402-001
-- Révision de mission : 1
-- État : review_requested
-- Responsable de la prochaine action : dot (revue de X402-001 r1)
+- Révision de mission : 2
+- État : changes_requested
+- Responsable de la prochaine action : Claude Code (corrections ciblées X402-001 r2)
 - Dernier résultat Claude : X402-001 r1 livrée, commit d70cd9ba431a00902bb86c8d227f8cd97b661791 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-001 r1 »).
 - Prise en charge : exécutant Claude Code ; tentative X402-001-r1-claude-20261030T033239Z ; début 2026-10-30T03:32:39Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt.
-- Dernière revue dot : audit statique du code 6f23e44a42eab64e51dc3cb8938054b170f67551.
+- Dernière revue dot : revue statique de d70cd9ba431a00902bb86c8d227f8cd97b661791 ; trois corrections ciblées demandées en révision 2 ; tests non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
 ## Détection des changements et reprise
@@ -132,3 +132,16 @@ dot : revue du diff `9745576..d70cd9b` et des preuves ci-dessus ; `accepted` ou 
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
 - 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
 - 2026-10-30 : v3, Claude Code livre X402-001 r1 (commit d70cd9b) ; état review_requested.
+
+## Revue dot — X402-001 r1 et mission r2
+Revue du 2026-10-30, base 9745576, livraison d70cd9ba431a00902bb86c8d227f8cd97b661791. Décision : changes_requested, révision 2. La tentative Claude r1 est terminée ; ne pas la considérer comme une prise en charge active de r2.
+
+Les améliorations de normalisation, comparaison, masquage et validation des coûts sont présentes et accompagnées de régressions. Claude déclare 110 tests réussis ; dot a lu le code et les tests mais ne les a pas exécutés. Aucun résultat GitHub Actions disponible. L'absence de CI ou de réseau réel n'est pas, à elle seule, un motif de rejet de ce lot hors ligne.
+
+Corriger uniquement les trois points suivants, sans ajouter de nouvelles fonctionnalités :
+1. P1 — Interruption du transport TLS : dans discovery/http_public.py, connect() transmet le descripteur du socket brut au SSLSocket, mais abort() agit seulement sur _raw, désormais détaché. Pendant le handshake, self.sock n'est pas encore affecté. Garder une référence interruptible au transport actif pendant la négociation et les lectures, gérer les courses avec le minuteur, et vérifier que l'expiration interrompt le bon socket. Ne pas simplement ajouter shutdown(self.sock) après le handshake en laissant sa phase initiale sans couverture. Test hors ligne reproduisant le détachement du socket brut, le blocage TLS/en-têtes et l'interruption du socket actif. Référence de comportement : https://github.com/python/cpython/blob/v3.13.7/Lib/ssl.py#L1006-L1014 .
+2. P2 — Fin prématurée du corps : _read_body() accepte un read1() vide sans vérifier que Content-Length annoncé a été reçu. Distinguer une fin normale d'un corps tronqué. Tester un corps plus court que la longueur annoncée qui termine par b"" sans lever d'exception : HTTP 402 observé avec body_error et aucun réessai ; HTTP 503 incomplet sans réessai ; JSON pourtant valide mais tronqué au niveau du framing jamais classé comme collecte complète. Référence : https://github.com/python/cpython/blob/v3.13.7/Lib/http/client.py#L655-L672 .
+3. P2 — Export de simulation : load_scenarios() produit maintenant des Decimal, mais FlowReport.to_dict() conserve details sans conversion et simulate-x402 utilise json.dumps sans sérialiseur approprié. Un budget numérique 0.05 au lieu de la chaîne "0.05" peut provoquer TypeError. Sérialiser exactement les Decimal imbriqués et ajouter une régression CLI avec des décimaux JSON numériques, sans passage par float.
+
+Livraison r2 : repartir du code d70cd9b, nouvelle tentative, même branche de code ou nouvelle branche dédiée ; relancer toute la suite hors ligne, rapporter commandes/version/résultats et limites, publier un nouveau SHA de code, puis passer ce document à review_requested. Conserver les six exigences initiales et les interdictions de dépense, déploiement et fusion. Pas de test réseau réel imposé.
+- 2026-10-30 : v4, dot termine la revue statique de r1 ; trois régressions ciblées demandées, X402-001 r2 assignée à Claude.
