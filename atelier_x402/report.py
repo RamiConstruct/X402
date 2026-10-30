@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
-from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from .discovery.base import DiscoveryResult
-from .models import ServiceRecord, utc_now_iso
+from .models import ServiceRecord, to_plain, utc_now_iso
 from .redact import redact
 
 AVERTISSEMENT = (
@@ -27,17 +26,6 @@ _COVERAGE_NOTES = {
     "echec": "aucun service lu: erreurs ou 402 seulement",
     "vide": "aucune donnée et aucune erreur: ce n'est PAS une réussite",
 }
-
-
-def _plain(value: Any) -> Any:
-    """Rend l'export sérialisable : Decimal -> texte exact (jamais de float)."""
-    if isinstance(value, dict):
-        return {k: _plain(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_plain(v) for v in value]
-    if isinstance(value, Decimal):
-        return str(value)
-    return value
 
 
 def coverage(result: DiscoveryResult) -> dict[str, Any]:
@@ -59,7 +47,7 @@ def coverage(result: DiscoveryResult) -> dict[str, Any]:
 
 def comparison_report(result: DiscoveryResult) -> dict[str, Any]:
     """Comparaison accompagnée de tout ce qui en limite la portée."""
-    return _plain(redact({
+    return to_plain(redact({
         "couverture": coverage(result),
         "comparaison": compare(result.records),
         "erreurs": result.errors,
@@ -68,7 +56,7 @@ def comparison_report(result: DiscoveryResult) -> dict[str, Any]:
 
 
 def result_to_dict(result: DiscoveryResult) -> dict[str, Any]:
-    return _plain(redact({
+    return to_plain(redact({
         "genere_le_utc": utc_now_iso(),
         "avertissement": AVERTISSEMENT,
         "couverture": coverage(result),

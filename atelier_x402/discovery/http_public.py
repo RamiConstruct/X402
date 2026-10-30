@@ -151,22 +151,49 @@ def resolve_within(resolver: Resolver, host: str, port: int, deadline: Deadline)
 
 
 class _PinnedHTTPSConnection(http.client.HTTPSConnection):
-    """Connexion TLS vers l'adresse déjà validée, avec SNI/vérification sur l'hôte."""
+    """Connexion TLS vers l'adresse déjà validée, avec SNI/vérification sur l'hôte.
 
-    def __init__(self, target: ValidatedTarget, timeout: float):
+    ``abort()`` (appelé par le minuteur depuis un autre fil) doit interrompre le
+    socket réellement utilisé. ``SSLContext.wrap_socket`` DÉTACHE le socket brut
+    (son descripteur passe au ``SSLSocket``) : un ``shutdown`` sur l'objet brut
+    n'aurait plus d'effet. On enregistre donc le socket actif à chaque étape,
+    sous verrou, et la négociation TLS est lancée seulement APRÈS
+    l'enregistrement du ``SSLSocket`` (``do_handshake_on_connect=False``), pour
+    qu'elle soit interruptible elle aussi.
+    """
+
+    def __init__(self, target: ValidatedTarget, timeout: float,
+                 context: ssl.SSLContext | None = None):
         super().__init__(target.host, target.port, timeout=timeout,
-                         context=ssl.create_default_context())
+                         context=context or ssl.create_default_context())
         self._address = target.address
-        self._raw: socket.socket | None = None
-        self._aborted = threading.Event()
+        self._lock = threading.Lock()
+        self._active: socket.socket | None = None
+        self._aborted = False
 
-    def connect(self) -> None:
-        sock = socket.create_connection((self._address, self.port), self.timeout)
-        self._raw = sock
-        if self._aborted.is_set():
+    def _open_raw(self) -> socket.socket:
+        return socket.create_connection((self._address, self.port), self.timeout)
+
+    def _register(self, sock: socket.socket) -> None:
+        """Enregistre le socket actif ; refuse si l'abandon a déjà eu lieu."""
+        with self._lock:
+            aborted = self._aborted
+            if not aborted:
+                self._active = sock
+        if aborted:
             sock.close()
             raise TimeoutError("connexion abandonnée à l'échéance")
-        self.sock = self._context.wrap_socket(sock, server_hostname=self.host)
+
+    def connect(self) -> None:
+        if self._aborted:
+            raise TimeoutError("connexion abandonnée à l'échéance")
+        raw = self._open_raw()
+        self._register(raw)
+        tls = self._context.wrap_socket(raw, server_hostname=self.host,
+                                        do_handshake_on_connect=False)
+        self._register(tls)  # le socket brut est détaché à partir d'ici
+        self.sock = tls
+        tls.do_handshake()
 
     def set_timeout(self, seconds: float) -> None:
         self.timeout = seconds
@@ -174,12 +201,17 @@ class _PinnedHTTPSConnection(http.client.HTTPSConnection):
             self.sock.settimeout(seconds)
 
     def abort(self) -> None:
-        """Appelé par le minuteur : débloque toute lecture ou poignée de main en cours."""
-        self._aborted.set()
-        raw = self._raw
-        if raw is not None:
+        """Appelé par le minuteur : interrompt le socket actif, TLS compris.
+
+        ``socket.socket.shutdown`` agit sur le descripteur sans modifier l'état
+        interne de ``SSLSocket`` utilisé par l'autre fil.
+        """
+        with self._lock:
+            self._aborted = True
+            active = self._active
+        if active is not None:
             try:
-                raw.shutdown(socket.SHUT_RDWR)
+                socket.socket.shutdown(active, socket.SHUT_RDWR)
             except OSError:
                 pass
 
@@ -215,8 +247,11 @@ class HttpsTransport:
 
     def _read_body(self, conn: Any, resp: Any, status: int, headers: dict[str, str],
                    deadline: Deadline, max_bytes: int) -> bytes:
-        length = headers.get("content-length", "")
-        if length.isdigit() and int(length) > max_bytes:
+        """Lit le corps. ``read1()`` peut renvoyer ``b""`` sur une fin prématurée
+        sans lever d'exception : la longueur annoncée est donc vérifiée ici."""
+        length = headers.get("content-length", "").strip()
+        expected = int(length) if length.isdigit() else None
+        if expected is not None and expected > max_bytes:
             raise ResponseTooLarge(status, headers, f"Content-Length {length} > {max_bytes} octets")
         read = getattr(resp, "read1", None) or resp.read
         chunks: list[bytes] = []
@@ -232,6 +267,10 @@ class HttpsTransport:
                 cause = "échéance atteinte" if deadline.expired() else type(exc).__name__
                 raise PartialResponse(status, headers, f"corps interrompu: {cause}") from exc
             if not chunk:
+                if expected is not None and total != expected:
+                    raise PartialResponse(
+                        status, headers, f"corps tronqué: {total}/{expected} octets reçus"
+                    )
                 return b"".join(chunks)
             total += len(chunk)
             chunks.append(chunk)

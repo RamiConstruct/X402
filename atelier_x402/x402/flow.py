@@ -24,7 +24,7 @@ from typing import Any
 
 from ..costs import BudgetPolicy, CostEstimate, CostGuard
 from ..discovery.fixtures import FIXTURES_DIR
-from ..models import Category
+from ..models import Category, to_plain
 from ..normalize import normalize_currency, normalize_unit
 from ..providers import ProviderRequest, SimulatedProvider
 from ..redact import redact
@@ -54,7 +54,7 @@ class FlowReport:
         return self.steps[-1].status if self.steps else "vide"
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        return to_plain({
             "scenario": self.scenario,
             "simulation": self.simulation,
             "paiement_reel_effectue": self.paiement_reel_effectue,
@@ -63,7 +63,7 @@ class FlowReport:
             "issue": self.outcome,
             "etapes": [{"etape": s.name, "statut": s.status, "details": s.details}
                        for s in self.steps],
-        }
+        })
 
 
 def load_scenarios(path: Path | str = DEFAULT_SCENARIOS) -> dict[str, Any]:

@@ -148,7 +148,12 @@ reçu, aucune nouvelle tentative n'est faite si le corps est incomplet.
 **Budget de temps, ce qui est garanti et ce qui ne l'est pas :**
 - le corps est lu par blocs, avec un délai de socket recalculé avant chaque
   lecture, et un minuteur ferme la connexion à l'échéance (connexion, TLS,
-  en-têtes, corps) ;
+  en-têtes, corps). Le minuteur agit sur le socket **actif** : `wrap_socket`
+  détache le socket brut, donc la connexion enregistre le socket TLS avant de
+  lancer la négociation, sous verrou, pour qu'elle soit interruptible ;
+- un corps plus court que le `Content-Length` annoncé est un corps **tronqué**
+  (`read1()` peut renvoyer une fin vide sans erreur) : il n'est jamais classé
+  comme complet, et aucune nouvelle tentative n'est faite ;
 - les pauses entre tentatives ne dépassent jamais l'échéance : une pause trop
   longue arrête les tentatives ;
 - la résolution DNS (`getaddrinfo`) ne peut pas être interrompue en Python :
@@ -174,8 +179,12 @@ volontairement large.
 - Le transport HTTP réel (`HttpsTransport`) est testé avec des doubles de
   connexion contrôlés (corps coupé, lecture lente, minuteur, taille), mais
   **jamais contre un vrai serveur** : le réseau est bloqué pendant les tests. La
-  classe `_PinnedHTTPSConnection` (socket, TLS) n'est donc pas exécutée. Elle se
-  connecte en direct, sans proxy HTTP(S).
+  classe `_PinnedHTTPSConnection` est testée sur une paire de sockets locale
+  (vraie négociation TLS bloquée puis interrompue), mais sa connexion TCP réelle
+  (`socket.create_connection`) n'est jamais exécutée. Elle se connecte en
+  direct, sans proxy HTTP(S).
+- Sans `Content-Length` (lecture jusqu'à la fermeture), une troncature côté
+  serveur ne peut pas être distinguée d'une fin normale.
 - Les détections de secrets sont heuristiques : un secret au format inattendu
   sous une clé neutre peut passer.
 - Le schéma de découverte HTTP est propre à l'atelier, sans format x402 vérifié.

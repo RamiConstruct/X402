@@ -50,6 +50,22 @@ class BillingUnit(str, Enum):
     PAR_SECONDE = "par_seconde"
 
 
+def to_plain(value: Any) -> Any:
+    """Rend une structure sérialisable en JSON : ``Decimal`` -> texte exact.
+
+    Jamais de passage par ``float``. Les ``Enum`` deviennent leur valeur.
+    """
+    if isinstance(value, dict):
+        return {key: to_plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [to_plain(item) for item in value]
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, Enum):
+        return value.value
+    return value
+
+
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
