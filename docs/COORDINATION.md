@@ -11,13 +11,13 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 16
-- Mise à jour UTC : 2026-10-30T08:36:36Z
-- Auteur de cette version : Claude Code
+- Version documentaire : 17
+- Mise à jour UTC : 2026-10-30T08:59:00Z
+- Auteur de cette version : dot
 - Mission active : LAB-001
-- Révision de mission : 2
-- État : review_requested
-- Responsable de la prochaine action : dot (revue de LAB-001 r2 ; X402-002 r1 toujours en attente ; HUB-001 non démarré)
+- Révision de mission : 3
+- État : changes_requested
+- Responsable de la prochaine action : Claude Code (correction ciblée LAB-001 r3 ; HUB-001 préparée, non démarrée)
 - Dernier résultat Claude : LAB-001 r2 livrée, commit 5971802a3e9bc7d7cc68e0c16905693a088c9923 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r2 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r2-claude-20261030T083315Z ; début 2026-10-30T08:33:15Z ; révision prise en charge 2 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 7d1de13 ; la branche contient aussi f838861 « site: déploiement prêt », demandé par l'utilisateur, hors LAB-001).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
@@ -451,3 +451,40 @@ Priorité de réalisation après corrections LAB-001, sauf session site déjà p
 - 2026-10-30 : v14, dot demande LAB-001 r2 sur quatre défauts vérifiables et cadre le hub commun demandé, sans déploiement ni modification de code.
 - 2026-10-30 : v15, Claude Code prend en charge LAB-001 r2 (tentative LAB-001-r2-claude-20261030T083315Z).
 - 2026-10-30 : v16, Claude Code livre LAB-001 r2 (commit 5971802) ; état review_requested.
+
+## Revue dot — LAB-001 r2, correction ciblée r3
+2026-10-30 : revue statique de 5971802a3e9bc7d7cc68e0c16905693a088c9923 et des tests de régression, comparée à 7d1de13 sur le périmètre LAB-001. La réserve d'achat au pire prix limite avec frais arrondis, le refus des invariants violés, le graphe des révisions borné et le consensus ex ante répondent aux corrections demandées. Les 206 tests réussis et contre-épreuves sont rapportés par Claude, non exécutés indépendamment par dot. Aucun workflow Actions disponible.
+
+Un défaut P2 demeure dans common_lot_step, labtrading/arbitrage.py : int(lot * scale) arrondit d'abord sous le contexte Decimal ambiant, et la division finale peut arrondir aussi. La validation répète le produit déjà arrondi. Analyse statique sous précision 28 : common_lot_step(Decimal("1.0000000000000000000000000001"), Decimal("1")) peut retourner 1 au lieu du PPCM exact 10000000000000000000000000001. Variante de petit pas : 0.0010000000000000000000000000001 contre 0.001. Ces entrées ne sont pas explicitement exclues. Le résultat peut accepter une quantité hors pas malgré l'annonce de calcul exact. Référence officielle sur précision/contexte et construction exacte : https://docs.python.org/3/library/decimal.html (consultée le 2026-10-30).
+
+Mission LAB-001 révision 3, changes_requested, responsable Claude Code :
+- Construire les coefficients entiers depuis les chiffres/exposants exacts (as_tuple) et reconstruire le résultat sans arrondi contextuel, ou refuser explicitement les précisions/tailles non supportées avant les calculs.
+- Vérifier les opérations connexes de quantité commune (_floor_to_step, borne de dichotomie, multiplication par nombre de lots) pour ne pas réintroduire cet arrondi. Borner tailles/exposants admissibles pour éviter des allocations démesurées.
+- Tests : longues mantisses ci-dessus, deux ordres des lots, contexte de précision réduit, plus grand multiple commun <= cible et rejet explicite hors domaine pris en charge. Préserver les régressions de solvabilité et les 12 scénarios.
+- Livraison bornée : nouvelle tentative depuis 5971802, suite complète hors ligne et résultats/limites, nouveau SHA puis review_requested. Aucune nouvelle fonction produit, dépendance, clé, transaction, déploiement ou fusion.
+Pas d'acceptation générale de LAB-001 avant cette correction. X402-002 r1 reste différée. HUB-001 reste préparée, ne pas démarrer simultanément sur la même branche.
+
+## Mission HUB-001 r1 — Hub vérifiable hors ligne
+État proposé, non démarré ; responsable prévu Claude Code ; base 5971802a3e9bc7d7cc68e0c16905693a088c9923. Réutiliser le site existant et le commit f838861, sans duplication. La présente mission précise le lot local proposé précédemment, pas une publication. Identifier toute autre tentative site en cours avant de prendre la mission ; ne pas lancer deux sessions sur les mêmes fichiers.
+
+### But et périmètre
+Rendre la page existante fiable pour suivre tous les projets, puis démontrer localement le contrat de télémétrie avec des événements synthétiques. Zéro dépense, aucun réseau d'exécution, compte, clé, DNS, déploiement, courtier ou abonnement. Ne pas développer maintenant un serveur de trading ou une authentification réelle.
+1. Provenance du tableau : version/SHA de code, SHA du document de coordination et origine de sa copie, date de récupération si connue, date de génération distincte. Sans récupération vérifiée : « copie locale, fraîcheur distante inconnue ». Ne pas convertir origin/main local en preuve d'état distant actuel.
+2. Catalogue des projets et pages existantes conservés ; documentation, état de mission et activité technique séparés. Aucun statut « bot actif » dérivé d'un simple commit ou d'une page ouverte. Résultats de tests liés au SHA testé ; tests non exécutés restent marqués comme tels.
+3. Contrat de télémétrie versionné décrit plus haut, avec import/rejeu de fixtures locales uniquement. Afficher nom/type/version/run du bot, environnement, dernière activité et âge des données ; séparer jamais connecté, arrêté, données périmées et erreur. L'animation locale éventuelle porte « replay synthétique », jamais « données de marché en direct ».
+4. Résultats distincts : net planifié, P&L simulé apparié, exposition ouverte et coûts hypothétiques non débités. Pas de faux zéro pour les valeurs inconnues ; ni somme entre USD/USDC/USDT ni mélange simulation/réel. Ne pas inventer de valorisation latente ou rendement quand la base est indisponible. Aucune promesse de bot rentable.
+5. Sortie publique préparée depuis une liste explicite de champs autorisés. Ne pas exporter automatiquement les journaux privés, titres bruts de tous les commits, instructions internes de coordination ou futures positions réelles. Démontrer localement que les champs privés sont absents du fichier public, pas seulement masqués dans le HTML. La future vue propriétaire authentifiée reste une architecture séparée, non activée ici.
+6. Retirer les dépendances externes de l'aperçu hors ligne, dont Google Fonts, sans nouvelle dépense. Échapper les textes non fiables, vérifier mobile/erreurs/absence de données. Garder le site en lecture seule, sans bouton opérationnel d'ordre/transfert.
+7. Corriger le guide de déploiement : ne pas demander de supprimer un CNAME sans inventaire de son usage, autorisation ciblée et plan de retour arrière. Ne pas créer/configurer un jeton dans ce lot. Ne pas présenter l'offre gratuite comme une garantie de coût nul pour tout futur trafic. Signaler que les modifications de DNS et nouveaux accès requièrent l'autorisation applicable.
+
+### Domaine et publication : informations rapportées, pas action
+site/projets.json et le compte rendu Claude indiquent laboratory.site et une préférence publique ; dot a lu ces éléments, sans vérifier la propriété du domaine, son état DNS ni la décision dans une conversation authentifiée de l'utilisateur. Les sous-domaines proposés restent des configurations, pas des sites vérifiés accessibles. Pas de nouvelle demande répétée du domaine pendant ce lot local ; aucun droit supplémentaire déduit du fichier.
+
+Sources Cloudflare officielles vérifiées le 2026-10-30 :
+- https://developers.cloudflare.com/workers/configuration/routing/custom-domains/ : un Custom Domain ne peut pas être créé sur un hôte ayant déjà un CNAME ; cette contrainte technique ne justifie pas de supprimer un service existant sans contrôle.
+- https://developers.cloudflare.com/workers/static-assets/headers/ : _headers s'applique aux réponses des assets ; vérifier séparément les réponses produites par le Worker (par exemple 405), ne pas présumer une couverture universelle.
+
+### Tests et livraison
+Tests hors ligne : doublons sans double comptage, ordre d'arrivée inversé, trou de séquence, périmé/absent/reprise, frais et exposition, isolation projets/environnements, champs privés absents des exports publics, HTML malveillant échappé, coordination locale périmée signalée. Toute métrique doit avoir sa source et sa convention. Suite Python et tests Worker existants ; préciser exactement passés/échoués/non exécutés, SHA, captures locales si disponibles et limites. Aucun workflow déclenché.
+Livrer commit puis compte rendu dans ce document, état review_requested HUB-001 r1. Arrêt après démonstration locale et tests ; dot fera la revue, sans fusion ni publication automatique.
+- 2026-10-30 : v17, dot demande une correction ciblée LAB-001 r3 et précise HUB-001, qui reste non démarré.
