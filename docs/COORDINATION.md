@@ -11,14 +11,14 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 12
-- Mise à jour UTC : 2026-10-30T06:58:15Z
-- Auteur de cette version : dot
+- Version documentaire : 13
+- Mise à jour UTC : 2026-10-30T07:54:48Z
+- Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 1
-- État : in_progress
-- Responsable de la prochaine action : Claude Code (LAB-001 r1 en cours)
-- Dernier résultat Claude : X402-002 r1 livrée, commit 9e4092d74a9d42c610ac913d8b0d43d7e74fae68 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-002 r1 »).
+- État : review_requested
+- Responsable de la prochaine action : dot (revue de LAB-001 r1 ; X402-002 r1 toujours en attente)
+- Dernier résultat Claude : LAB-001 r1 livrée, commit 7d1de1309d92582ee551b391815fed8b3434545d sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r1 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r1-claude-20261030T065720Z ; début 2026-10-30T06:57:20Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (branche de travail imposée à Claude par sa session ; module séparé labtrading/, repart de 9e4092d). X402-002 r1 reste en attente de revue, non relancée.
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
@@ -201,6 +201,46 @@ dot : revue de `git diff d70cd9b 3657c34` et des preuves ci-dessus ; `accepted` 
 ### Prochaine action
 dot : revue de `git diff 3657c34 9e4092d` et des preuves ci-dessus ; `accepted` ou `changes_requested` avec révision 2.
 
+## Compte rendu Claude — LAB-001 r1
+- Mission / révision : LAB-001, révision 1 (laboratoire de trading et d'arbitrage hors ligne).
+- Tentative : LAB-001-r1-claude-20261030T065720Z (livraison 2026-10-30T07:54:48Z). La v12 de dot (feuille de route) a été lue pendant la tentative ; elle ne modifiait pas LAB-001.
+- Branche : claude/x402-service-discovery-workshop-xjjmjt (branche imposée à Claude par sa session ; module séparé `labtrading/`, sans dépendance au code Bazaar), repartie de 9e4092d.
+- Commit de code livré : 7d1de1309d92582ee551b391815fed8b3434545d. Diff : `git diff 9e4092d 7d1de13` (27 fichiers).
+- Aucune fusion, dépense, clé, compte, ordre réel, réseau ni déploiement.
+
+### Sources
+- docs.cdp.coinbase.com et docs.kraken.com **non consultés** : hôtes bloqués par le réseau de l'environnement. Les deux formats de messages sont donc seulement « inspirés » (style level2 snapshot/l2update ; style book v2 snapshot/update avec data[].bids/asks price/qty). Aucune compatibilité revendiquée ; **aucun contrôle de checksum implémenté** (un champ checksum est signalé « NON vérifié »).
+
+### Livré (périmètre « premier lot »)
+1. Carnets synthétiques de deux plateformes fictives (A style level2, B style book v2), même actif XFIC et même devise USD ; USD/USDC/USDT jamais assimilés. Decimal partout (float, NaN refusés) ; pas de cotation, pas de lot, minimum de quantité, minimum de valeur, précision de devise paramétrés par scénario. Frais = hypothèses de scénario, signalées comme telles dans chaque rapport.
+2. Rejeu : heure de marché, réception locale, décision séparées. `visible_book(t)` = événements reçus avant t ; `true_book(t)` = état réel, utilisé seulement pour simuler l'exécution après la décision. Refus : carnet périmé, désynchronisé, invalide (croisé, hors pas, niveau négatif), trou de séquence, mise à jour sans snapshot, horloges incohérentes ; un snapshot réinitialise le carnet. Snapshots et mises à jour testés.
+3. Net = produit de vente net − coût d'achat net − rééquilibrage simulé (par unité). Frais des deux jambes, prix moyens par profondeur, arrondis prudents (coûts et frais vers le haut, produits vers le bas). Aucun glissement ajouté au carnet (testé : coût = marche exacte du carnet).
+4. Soldes prépositionnés, aucun transfert instantané. Exécution simulée : ordres à cours limité immédiats arrivant après la latence de chaque plateforme ; remplissages partiels ; une seule jambe → statut `une_jambe`, exposition ouverte affichée, aucun P&L réalisé. Contrôles : conservation de l'actif, soldes non négatifs, rapprochement du P&L avec la variation de trésorerie.
+5. CLI `python3 -m labtrading list | run --scenario NOM | run --all [--json] [--out DIR]` ; rapports JSON et Markdown déterministes : hypothèses, écart brut par unité, brut/frais/rééquilibrage/net planifié, quantités, inventaire avant/après, exposition, motifs de refus. Bannière « SIMULATION SYNTHÉTIQUE — PAS UNE PREUVE DE RENTABILITÉ » sur toutes les sorties.
+6. Parcours `docs/lab/PARCOURS.md` : bid/ask, spread, maker/taker, liquidité, frais, devises, fraîcheur, latence, look-ahead, exposition, arbitrage vs signal directionnel ; drawdown et surapprentissage expliqués comme notions des lots suivants (non simulés). Exercices liés aux scénarios ; aucune recommandation d'achat ou de vente.
+- Informations quotidiennes : schéma point-dans-le-temps seulement (`labtrading/events.py` + 4 événements FICTIFS, sans valeurs réelles) : available_at ≥ published_at et first_seen_at, calendrier sans valeur, révisions non rétroactives, surprise refusée sans consensus horodaté disponible. Aucun collecteur.
+- 12 scénarios dans `fixtures/lab/` (tous marqués fictif) : net_positif_complet, brut_positif_net_negatif, carnet_perime, profondeur_insuffisante, devise_incompatible, arrondi_minimum, donnee_future, une_seule_jambe, solde_insuffisant, latence_detruit_ecart, trou_sequence, carnets_desynchronises.
+
+### Tests exécutés par Claude
+- Python 3.13.17, Linux ; réseau bloqué pendant les tests.
+- `python3 -m unittest discover -s tests -t .` → code retour 0, `Ran 186 tests`, `OK` (158 existants + 28 dans `tests/test_lab_001.py`).
+- Tests obligatoires couverts : brut positif/net négatif ; carnet ancien donnant un faux gain ; profondeur insuffisante ; devise incompatible (USDT et USDC) ; arrondi au lot, lots sans multiple commun, minimum de quantité et de valeur ; donnée future inaccessible (la vérité existe mais n'est pas vue ; décision plus tardive → exécution) ; une seule jambe ; solde insuffisant (devise et actif) ; latence détruisant l'écart ; conservation et rapprochement du P&L (complet et partiel apparié) ; reproductibilité (deux exécutions identiques) ; absence d'import réseau dans `labtrading/` ; aucun classement de stratégie dans les sorties.
+- CLI : `labtrading list` → 0 ; `labtrading run --all --out …` → 0 ; `atelier_x402 compare` → 0 ; `atelier_x402 bazaar --fixture fixtures/bazaar/liste_complete.json` → 0.
+
+### Hors mission, demandé par l'utilisateur
+- `site/build_site.py` génère une page HTML statique de suivi (coordination, registre `site/projets.json` avec un sous-domaine prévu par projet, scénarios rejoués, derniers commits, résultat des tests). Sortie `site/dist/` ignorée par git. **Aucun déploiement** : un aperçu privé est publié sur claude.ai pour l'utilisateur. Le déploiement Cloudflare demandé reste bloqué (api.cloudflare.com refusé par le réseau, pas de jeton, nom de domaine non communiqué) et demandera une décision explicite ; à cadrer en mission si dot le juge utile.
+
+### Non exécuté / limites
+- Formats Coinbase/Kraken non vérifiés ; aucun checksum ; aucune donnée réelle.
+- Latence modélisée comme un délai fixe par plateforme ; pas de file d'attente, pas de priorité temps, pas d'impact de marché de nos propres ordres au-delà du carnet consommé.
+- Rééquilibrage = coût forfaitaire par unité (hypothèse), sans délai ni frais de retrait réels.
+- Exposition d'une jambe non valorisée (seulement signalée) ; pas de stratégie de dénouement.
+- Aucune mesure de drawdown, de walk-forward ni d'apprentissage dans ce lot.
+- Pas de levier, crédit, dérivés ni intérêts ; critères religieux à examiner séparément, sans certification.
+
+### Prochaine action
+dot : revue de `git diff 9e4092d 7d1de13` et des preuves ci-dessus ; `accepted` ou `changes_requested` avec révision 2. X402-002 r1 attend toujours sa revue.
+
 ## Journal
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
 - 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
@@ -345,3 +385,4 @@ Sources d'architecture Cloudflare vérifiées le 2026-10-30 :
 ### Ordre de validation
 Terminer LAB-001 → référence quantitative et tests chronologiques → inventaire sourcé des canaux d'information → classement expérimental sur données autorisées → simulation prospective → étude commerciale/licences. Ne pas coder tous ces modules simultanément. Les prochaines missions seront bornées après revue ; cette feuille de route ne lance aucun connecteur, serveur, ordre ou abonnement.
 - 2026-10-30 : v12, architecture à trois axes et distinction vérité/diffusion/réaction ajoutées ; LAB-001 r1 reste inchangée.
+- 2026-10-30 : v13, Claude Code livre LAB-001 r1 (commit 7d1de13) ; état review_requested.
