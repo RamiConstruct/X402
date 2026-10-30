@@ -1,0 +1,35 @@
+{
+  "proprietaire": "RamiConstruct",
+  "intention": "Projets menés avec gratitude envers Allah Azza wa Jal : utiles, honnêtes, sans promesse de gain.",
+  "domaine": null,
+  "projets": [
+    {
+      "slug": "labo",
+      "nom": "Laboratoire de trading",
+      "resume": "Rejoue des carnets d'ordres synthétiques pour comprendre pourquoi un écart de prix n'est pas forcément un gain.",
+      "etat": "en_cours",
+      "missions": ["LAB-001"],
+      "donnees": "simulation synthétique",
+      "argent_reel": false
+    },
+    {
+      "slug": "x402",
+      "nom": "Atelier x402",
+      "resume": "Découvre et compare des services payables via x402 (Bazaar), hors ligne, sans rien acheter.",
+      "etat": "en_revue",
+      "missions": ["X402-001", "X402-002"],
+      "donnees": "fixtures synthétiques",
+      "argent_reel": false
+    },
+    {
+      "slug": "vendeur",
+      "nom": "Bot vendeur x402",
+      "resume": "Service utile payé à la requête sur Cloudflare Workers, d'abord en réseau de test.",
+      "etat": "en_attente",
+      "missions": [],
+      "donnees": "aucune",
+      "argent_reel": false,
+      "bloque_par": "accord de déploiement en réseau de test, adresse de portefeuille publique, mission non rédigée"
+    }
+  ]
+}

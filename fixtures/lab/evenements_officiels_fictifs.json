@@ -1,0 +1,59 @@
+{
+  "fictif": true,
+  "avertissement": "Événements FICTIFS illustrant le schéma point-dans-le-temps. Aucune valeur réelle ; URL de source génériques, aucun contenu archivé (sha256 null).",
+  "events": [
+    {
+      "id": "cal-emploi-2026-11",
+      "source": "BLS",
+      "kind": "calendrier",
+      "url": "https://www.bls.gov/newsroom/",
+      "sha256": null,
+      "period": "2026-10",
+      "published_at": "2026-10-01T12:00:00Z",
+      "first_seen_at": "2026-10-01T12:05:00Z",
+      "available_at": "2026-10-01T12:05:00Z",
+      "version": 1,
+      "value": null
+    },
+    {
+      "id": "pub-emploi-2026-10",
+      "source": "BLS",
+      "kind": "publication",
+      "url": "https://www.bls.gov/newsroom/",
+      "sha256": null,
+      "period": "2026-10",
+      "published_at": "2026-11-06T13:30:00Z",
+      "first_seen_at": "2026-11-06T13:30:20Z",
+      "available_at": "2026-11-06T13:30:20Z",
+      "version": 1,
+      "value": 100
+    },
+    {
+      "id": "rev-emploi-2026-10",
+      "source": "BLS",
+      "kind": "revision",
+      "url": "https://www.bls.gov/newsroom/",
+      "sha256": null,
+      "period": "2026-10",
+      "published_at": "2026-12-04T13:30:00Z",
+      "first_seen_at": "2026-12-04T13:31:00Z",
+      "available_at": "2026-12-04T13:31:00Z",
+      "version": 2,
+      "corrects": "pub-emploi-2026-10",
+      "value": 80
+    },
+    {
+      "id": "cal-fomc-2026-12",
+      "source": "Fed",
+      "kind": "calendrier",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "sha256": null,
+      "period": null,
+      "published_at": "2026-06-01T18:00:00Z",
+      "first_seen_at": "2026-06-02T08:00:00Z",
+      "available_at": "2026-06-02T08:00:00Z",
+      "version": 1,
+      "value": null
+    }
+  ]
+}

@@ -86,6 +86,35 @@ commit `14bc0fb` (voir `fixtures/bazaar/MANIFEST.json`) :
 La commande `bazaar` est séparée : `discover` et `compare` (format historique de
 l'atelier) restent inchangées.
 
+## Laboratoire de trading (LAB-001), hors ligne
+
+> SIMULATION SYNTHÉTIQUE — PAS UNE PREUVE DE RENTABILITÉ.
+
+Le module séparé `labtrading/` rejoue des carnets d'ordres **synthétiques** de
+deux plateformes fictives, dans deux formats inspirés de flux publics (non
+vérifiés contre la documentation officielle). Il montre pourquoi un écart de
+prix apparent n'est pas forcément un gain exécutable : frais, profondeur,
+arrondis et minimums, fraîcheur des carnets, latence, remplissages partiels,
+soldes prépositionnés et exposition d'une seule jambe. Aucun compte, aucune
+clé, aucun ordre réel, aucun réseau. Aucun contrôle de checksum n'est
+implémenté.
+
+```bash
+python3 -m labtrading list
+python3 -m labtrading run --all --out sorties/labo
+```
+
+Parcours pédagogique : `docs/lab/PARCOURS.md`. Schéma d'événements officiels
+« point dans le temps » (sans collecteur) : `labtrading/events.py`.
+
+## Page de suivi des projets
+
+`python3 site/build_site.py [--domaine exemple.com] [--avec-tests]` génère
+`site/dist/index.html` à partir de l'état réel du dépôt : coordination, registre
+`site/projets.json` (un sous-domaine prévu par projet), scénarios du laboratoire
+rejoués et derniers commits. La page ne contient aucun secret. **Aucun
+déploiement n'est fait par ce script.**
+
 ## Modèle normalisé
 
 Chaque service devient un enregistrement avec : `provider`, `service_name`,

@@ -1,0 +1,112 @@
+{
+  "fictif": true,
+  "markets": [
+    {
+      "venue": "A",
+      "style": "cb",
+      "symbol": "XFIC-USD",
+      "base": "XFIC",
+      "quote": "USD",
+      "tick_size": "0.01",
+      "lot_size": "0.001",
+      "min_qty": "0.001",
+      "min_notional": "1",
+      "taker_fee": "0.001",
+      "quote_precision": "0.01"
+    },
+    {
+      "venue": "B",
+      "style": "kr",
+      "symbol": "XFIC/USD",
+      "base": "XFIC",
+      "quote": "USD",
+      "tick_size": "0.01",
+      "lot_size": "0.001",
+      "min_qty": "0.001",
+      "min_notional": "1",
+      "taker_fee": "0.001",
+      "quote_precision": "0.01"
+    }
+  ],
+  "params": {
+    "decision_time": 10000,
+    "target_qty": "0.5",
+    "latency_ms": {
+      "A": 50,
+      "B": 50
+    },
+    "max_staleness_ms": 2000,
+    "max_skew_ms": 1000,
+    "rebalance_cost_per_unit": "0.10"
+  },
+  "inventory": {
+    "A": {
+      "XFIC": "0",
+      "USD": "0.05"
+    },
+    "B": {
+      "XFIC": "1",
+      "USD": "0"
+    }
+  },
+  "events": [
+    {
+      "venue": "A",
+      "market_time": 9000,
+      "received_at": 9020,
+      "seq": 1,
+      "message": {
+        "type": "snapshot",
+        "product_id": "XFIC-USD",
+        "bids": [
+          [
+            "99.50",
+            "1"
+          ]
+        ],
+        "asks": [
+          [
+            "100.00",
+            "1"
+          ],
+          [
+            "100.10",
+            "2"
+          ]
+        ]
+      }
+    },
+    {
+      "venue": "B",
+      "market_time": 9000,
+      "received_at": 9030,
+      "seq": 1,
+      "message": {
+        "channel": "book",
+        "type": "snapshot",
+        "data": [
+          {
+            "symbol": "XFIC/USD",
+            "bids": [
+              {
+                "price": "101.00",
+                "qty": "1"
+              },
+              {
+                "price": "100.90",
+                "qty": "2"
+              }
+            ],
+            "asks": [
+              {
+                "price": "101.50",
+                "qty": "1"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "description": "Seulement 0,05 USD sur A : impossible d'acheter le minimum."
+}
