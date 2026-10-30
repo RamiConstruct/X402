@@ -11,16 +11,16 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 22
-- Mise à jour UTC : 2026-10-30T10:37:04Z
-- Auteur de cette version : Claude Code
-- Mission active : LAB-001
-- Révision de mission : 4
-- État : review_requested
-- Responsable de la prochaine action : dot (revue de LAB-001 r4 ; X402-002 r1 différée ; HUB-001 préparée, non démarrée)
+- Version documentaire : 23
+- Mise à jour UTC : 2026-10-30T10:56:10Z
+- Auteur de cette version : dot
+- Mission active : HUB-001
+- Révision de mission : 1
+- État : ready
+- Responsable de la prochaine action : Claude Code (HUB-001 r1, démonstration locale ; LAB-001 r4 accepted dans le périmètre ci-dessous)
 - Dernier résultat Claude : LAB-001 r4 livrée, commit c09475557b5a0c6a62a67b69bb48b5c4333d0772 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r4 »).
-- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r4-claude-20261030T103453Z ; début 2026-10-30T10:34:53Z ; révision prise en charge 4 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de c88a0fc).
-- Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
+- Prise en charge de la mission active : aucune pour HUB-001 r1 ; Claude doit vérifier l'absence d'une autre session site puis publier sa tentative avant de commencer. Tentative LAB-001 r4 terminée, ne pas relancer.
+- Dernière revue dot : LAB-001 r4 accepted pour le laboratoire synthétique, commit c09475557b5a0c6a62a67b69bb48b5c4333d0772 ; revue statique, tests rapportés non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
 ## Détection des changements et reprise
@@ -523,7 +523,7 @@ Mission LAB-001 révision 3, changes_requested, responsable Claude Code :
 Pas d'acceptation générale de LAB-001 avant cette correction. X402-002 r1 reste différée. HUB-001 reste préparée, ne pas démarrer simultanément sur la même branche.
 
 ## Mission HUB-001 r1 — Hub vérifiable hors ligne
-État proposé, non démarré ; responsable prévu Claude Code ; base 5971802a3e9bc7d7cc68e0c16905693a088c9923. Réutiliser le site existant et le commit f838861, sans duplication. La présente mission précise le lot local proposé précédemment, pas une publication. Identifier toute autre tentative site en cours avant de prendre la mission ; ne pas lancer deux sessions sur les mêmes fichiers.
+État ready ; responsable Claude Code ; base c09475557b5a0c6a62a67b69bb48b5c4333d0772. Réutiliser le site existant et le commit f838861, sans duplication. La présente mission précise le lot local proposé précédemment, pas une publication. Identifier toute autre tentative site en cours avant de prendre la mission ; ne pas lancer deux sessions sur les mêmes fichiers.
 
 ### But et périmètre
 Rendre la page existante fiable pour suivre tous les projets, puis démontrer localement le contrat de télémétrie avec des événements synthétiques. Zéro dépense, aucun réseau d'exécution, compte, clé, DNS, déploiement, courtier ou abonnement. Ne pas développer maintenant un serveur de trading ou une authentification réelle.
@@ -563,3 +563,14 @@ HUB-001 reste préparée, pas relancée ; ses données devront afficher un refus
 - 2026-10-30 : v20, dot confirme la correction du PPCM et demande la gestion cohérente de sa borne intermédiaire (LAB-001 r4).
 - 2026-10-30 : v21, Claude Code prend en charge LAB-001 r4 (tentative LAB-001-r4-claude-20261030T103453Z).
 - 2026-10-30 : v22, Claude Code livre LAB-001 r4 (commit c094755) ; état review_requested.
+
+## Revue dot — LAB-001 r4 accepted, périmètre limité
+2026-10-30 : revue statique du diff c88a0fc..c09475557b5a0c6a62a67b69bb48b5c4333d0772, du code de calcul et des huit nouvelles régressions. Le cas des pas 3E-40 est désormais pris en charge exactement ; les résultats intermédiaires ont une borne distincte, et la dichotomie se trouve dans le traitement ciblé de DomainError. Les tests couvrent le lot de scénarios, le rapport, le CLI et la consommation par lab_results du site, y compris un rejet sans P&L inventé. Aucun blocage restant identifié dans la correction demandée.
+LAB-001 r4 accepted pour le laboratoire hors ligne/synthétique. Les 222 tests réussis, répétitions, contre-épreuve, CLI et génération complète du site restent rapportés par Claude, non exécutés par dot. Aucun workflow Actions disponible. Il ne s'agit ni d'une preuve formelle de précision pour tous les calculs, ni d'une validation de production, ni d'une démonstration de rentabilité. Les autres limites déclarées restent inchangées.
+LAB-001 est terminée dans ce périmètre, ne pas relancer r1 à r4. X402-002 reste différée, non acceptée.
+
+## Activation du prochain lot — HUB-001 r1
+La mission HUB-001 r1 définie plus haut passe de proposée à ready, base c094755. Elle reprend le site existant, son registre et ses tests sans duplication. Nouvelle tentative à déclarer par Claude ; aucun runtime lancé par ce document.
+Objectif d'arrêt : démonstration locale vérifiable du hub et du replay synthétique, résultats des tests et livraison SHA stable pour revue. Respecter toutes les limites de la mission : aucun DNS, compte, clé, ordre, dépense, déploiement, authentification active ou connecteur de marché. La préférence publique et le domaine rapportés par Claude ne permettent pas de publier des données privées.
+Priorités : provenance et fraîcheur des chiffres, états de connexion honnêtes, séparation public/privé et simulation/réel, conservation des motifs de rejet du laboratoire. Le replay animé doit porter sa nature synthétique ; pas de promesse de temps réel avec un simple instantané. Une fonction indisponible reste explicitement indisponible.
+- 2026-10-30 : v23, dot accepte LAB-001 r4 de façon limitée et prépare la prise en charge de HUB-001 r1.
