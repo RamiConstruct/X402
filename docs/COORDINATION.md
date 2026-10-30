@@ -1,6 +1,8 @@
 # Coordination dot ↔ Claude Code
 
 ## Objectif
+Priorité demandée par l'utilisateur le 2026-10-30 : recherche et apprentissage de bots de trading, informations quotidiennes, surveillance comparative des plateformes et arbitrage, puis éventuel abonnement à des instances séparées. Commencer par la simulation sans capital réel ; aucune rentabilité présumée. La préparation commerciale ne constitue pas un lancement.
+
 Construire et valider un service IA utile susceptible de générer des revenus, avec une architecture multi-IA mesurée par qualité, coût et rapidité. x402 est un moyen possible de paiement, pas une preuve de demande. Ne jamais confondre simulation, tests réussis, paiement reçu et rentabilité.
 
 Ce document est le point de passage entre dot (recherche, opportunités, architecture, revue) et Claude Code (ingénierie). Il ne crée ni accès, ni budget, ni permission supplémentaires.
@@ -9,15 +11,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 9
-- Mise à jour UTC : 2026-10-30T06:16:30Z
-- Auteur de cette version : Claude Code
-- Mission active : X402-002
+- Version documentaire : 10
+- Mise à jour UTC : 2026-10-30T06:48:00Z
+- Auteur de cette version : dot
+- Mission active : LAB-001
 - Révision de mission : 1
-- État : review_requested
-- Responsable de la prochaine action : dot (revue de X402-002 r1)
+- État : ready
+- Responsable de la prochaine action : Claude Code (LAB-001 r1, laboratoire trading hors ligne)
 - Dernier résultat Claude : X402-002 r1 livrée, commit 9e4092d74a9d42c610ac913d8b0d43d7e74fae68 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-002 r1 »).
-- Prise en charge de la mission active : exécutant Claude Code ; tentative X402-002-r1-claude-20261030T053309Z ; début 2026-10-30T05:33:09Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (repart de 3657c34).
+- Prise en charge de la mission active : aucune ; X402-002 livrée, revue conservée en attente et non acceptée.
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -254,3 +256,46 @@ Arrêt du lot : démonstration et tests hors ligne terminés. Aucun portefeuille
 - 2026-10-30 : v7, dot accepte X402-001 r2 dans le périmètre statique/hors ligne et prépare X402-002 r1.
 - 2026-10-30 : v8, Claude Code prend en charge X402-002 r1 (tentative X402-002-r1-claude-20261030T053309Z).
 - 2026-10-30 : v9, Claude Code livre X402-002 r1 (commit 9e4092d) ; état review_requested.
+
+## Changement de priorité utilisateur — 2026-10-30
+L'utilisateur demande d'orienter le projet vers des bots de trading, l'apprentissage, les informations quotidiennes influençant les marchés, la comparaison/surveillance des plateformes, l'arbitrage et, à terme, un abonnement permettant de dupliquer les bots.
+X402 reste une brique optionnelle. La livraison X402-002 r1 (9e4092d74a9d42c610ac913d8b0d43d7e74fae68) est conservée en attente de revue, pas acceptée ni à réécrire. Ne pas relancer sa tentative. LAB-001 peut être isolée dans un module séparé sans dépendre du nouvel adaptateur Bazaar.
+
+## Mission LAB-001 r1 — Laboratoire de trading et arbitrage hors ligne
+Responsable Claude Code ; ready ; zéro dépense ; aucune clé, aucun compte, aucun ordre réel, aucun appel réseau d'exécution. Branche dédiée recommandée à partir du code actuel conservé. Ne pas fusionner main automatiquement.
+
+### Objectif immédiat
+Créer une démonstration reproductible permettant d'apprendre pourquoi un écart apparent de prix n'est pas nécessairement un gain exécutable. Ne pas construire maintenant un service de trading réel, un abonnement ni un modèle IA entraîné sur des données non obtenues.
+
+### Premier lot à coder
+1. Carnets synthétiques de deux plateformes au format inspiré de Coinbase Exchange et Kraken spot. Même actif et même devise de cotation ; ne jamais assimiler USD, USDC et USDT. Calculs Decimal, profondeur et quantités disponibles, règles d'arrondi et minimums explicitement paramétrés. Les frais sont des hypothèses de scénario, pas des tarifs actuels vérifiés.
+2. Rejeu événementiel distinguant heure de marché, réception locale et décision. Aucun accès à une donnée avant sa disponibilité. Refuser carnets périmés, désynchronisés, invalides ou profondeur insuffisante. Tester snapshots/mises à jour ; ne revendiquer un contrôle de checksum que s'il est réellement implémenté et testé.
+3. Calculer produit de vente net moins coût d'achat net moins coût simulé de rééquilibrage. Intégrer frais des deux jambes, prix moyens par profondeur, latence et remplissages partiels. Ne pas compter deux fois le slippage déjà représenté par le carnet.
+4. Simuler soldes/inventaires prépositionnés sur chaque plateforme. Ne jamais supposer un transfert instantané. Une seule jambe exécutée laisse une exposition ouverte et une perte possible ; afficher ce risque, ne pas afficher un gain réalisé pour une paire non terminée.
+5. CLI locale et rapport JSON/Markdown : scénarios, hypothèses, spread brut/net, quantités, frais, inventaire, expositions et motifs de rejet. Toute sortie porte SIMULATION SYNTHÉTIQUE — PAS UNE PREUVE DE RENTABILITÉ.
+6. Mini-parcours pédagogique : bid/ask, spread, maker/taker, liquidité, frais, drawdown, look-ahead, surapprentissage et différence arbitrage/signal directionnel. Exercices liés aux scénarios ; aucune recommandation personnalisée d'achat/vente.
+
+### Tests obligatoires
+Spread brut positif mais net négatif ; carnet ancien donnant un faux gain ; profondeur insuffisante ; devise de cotation incompatible ; précision/arrondi/minimum ; donnée future inaccessible ; exécution d'une seule jambe ; solde insuffisant ; latence détruisant l'écart ; conservation des actifs et rapprochement du P&L. Tester reproductibilité et refus de toute activité réseau. Aucun choix du meilleur bot à partir des seules fixtures.
+
+### Architecture des lots ultérieurs — spécification seulement
+- Apprentissage : commencer par stratégies simples et référence sans trading ; séparation chronologique entraînement/validation/test, walk-forward, période finale intacte, suivi de tous les essais. Inclure coûts, drawdown, exposition, turnover, taux de remplissage et incertitude, pas seulement taux de réussite ou rendement.
+- Informations quotidiennes : interface d'événements officiels BLS/Fed/RBA/SEC. Prévoir URL/source/empreinte, période décrite, published_at, first_seen_at, available_at, versions et corrections. Un calendrier ne contient pas la publication future ; les statistiques révisées et minutes tardives ne sont pas disponibles rétroactivement. Pas de surprise vs consensus sans consensus historique horodaté. IA pour résumer/classer avec citations et incertitude, jamais pour autoriser des ordres. Livrer seulement des fixtures et le schéma dans ce lot ; aucun collecteur récurrent actif.
+- Watch interplateformes : futurs adaptateurs publics en lecture seule, limites de débit, reconnexion, trous de séquence, fraîcheur et provenance. Accès et licences à vérifier avant activation.
+- Abonnement : instances clients et données isolées, configurations versionnées, secrets séparés, droits minimaux, arrêt d'urgence. Ne jamais partager les identifiants personnels de Mustapha. Droits sur les données et statut réglementaire à examiner avant publication ; ne pas présumer qu'un simple abonnement logiciel est exempt.
+- La duplication de bots ne multiplie pas mécaniquement les gains : liquidité limitée, concurrence entre instances et coûts d'infrastructure.
+
+### Sources primaires de conception vérifiées par dot le 2026-10-30
+- Carnets Coinbase : https://docs.cdp.coinbase.com/exchange/websocket-feed/channels
+- Carnets Kraken : https://docs.kraken.com/exchange/api-reference/spot-websocket-v2/book
+- Droits sur données Coinbase : https://www.coinbase.com/legal/market_data (accès public ne signifie pas droit de redistribuer/commercialiser ; autorisations nécessaires selon l'usage).
+- Limites de la simulation : https://docs.alpaca.markets/us/v1.4.2/docs/paper-trading
+- Périmètre australien : https://www.asic.gov.au/regulatory-resources/digital-transformation/digital-assets-financial-products-and-services
+- https://www.bls.gov/newsroom/ ; https://www.bls.gov/web/empsit/cesnaicsrev.htm
+- https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
+- https://www.rba.gov.au/schedules-events/calendar/
+- https://www.sec.gov/search-filings/edgar-application-programming-interfaces
+
+### Livraison et limites
+Suite complète et nouveaux tests hors ligne, commandes/résultats/version Python, commit de code exact, limites et hypothèses. Renseigner review_requested pour LAB-001 r1. Aucune rentabilité revendiquée, pas de frais ou performances inventés. Les 17 dollars ne sont pas un budget autorisé de trading. Pas de levier, crédit, dérivés ni intérêts dans le premier lot ; les critères religieux restent à examiner séparément sans prétendre à une certification.
+- 2026-10-30 : v10, priorité trading demandée par l'utilisateur ; LAB-001 r1 assignée ; revue X402-002 reportée sans acceptation.
