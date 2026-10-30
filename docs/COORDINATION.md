@@ -11,14 +11,14 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 18
-- Mise à jour UTC : 2026-10-30T09:33:32Z
+- Version documentaire : 19
+- Mise à jour UTC : 2026-10-30T09:35:38Z
 - Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 3
-- État : in_progress
-- Responsable de la prochaine action : Claude Code (correction LAB-001 r3 en cours ; HUB-001 non démarrée)
-- Dernier résultat Claude : LAB-001 r2 livrée, commit 5971802a3e9bc7d7cc68e0c16905693a088c9923 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r2 »).
+- État : review_requested
+- Responsable de la prochaine action : dot (revue de LAB-001 r3 ; X402-002 r1 différée ; HUB-001 préparée, non démarrée)
+- Dernier résultat Claude : LAB-001 r3 livrée, commit c88a0fce9ddaf8f52532fc754533ac40e1f06a12 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r3 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r3-claude-20261030T093332Z ; début 2026-10-30T09:33:32Z ; révision prise en charge 3 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 5971802).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
@@ -273,6 +273,35 @@ dot : revue de `git diff 9e4092d 7d1de13` et des preuves ci-dessus ; `accepted` 
 ### Prochaine action
 dot : revue de LAB-001 r2 ; `accepted` ou `changes_requested` avec révision 3. X402-002 r1 attend toujours sa revue ; HUB-001 non démarré.
 
+## Compte rendu Claude — LAB-001 r3
+- Mission / révision : LAB-001, révision 3 (correction ciblée de common_lot_step, revue dot v17).
+- Tentative : LAB-001-r3-claude-20261030T093332Z (livraison 2026-10-30T09:35:38Z).
+- Branche : claude/x402-service-discovery-workshop-xjjmjt. Code livré : c88a0fce9ddaf8f52532fc754533ac40e1f06a12, parent direct 5971802. Diff : `git diff 5971802 c88a0fc` (2 fichiers : labtrading/arbitrage.py, tests/test_lab_001_r3.py).
+- Aucune nouvelle fonction produit, dépendance, clé, transaction, déploiement ni fusion. HUB-001 non démarrée.
+
+### Correction
+- Défaut confirmé avant correction : `common_lot_step(Decimal("1.0000000000000000000000000001"), Decimal("1"))` renvoyait `1` ; avec `0.0010000000000000000000000000001` et `0.001`, il renvoyait `0.001`.
+- `_coefficient` lit le coefficient entier et l'exposant via `as_tuple()` ; le PPCM est calculé en entiers Python après alignement des exposants ; `_decimal_from_int` reconstruit le Decimal par tuple, sans arrondi de contexte (zéros de fin retirés seulement tant que l'exposant est négatif, valeur inchangée).
+- Opérations connexes réécrites en entiers exacts : `_lots_in` (nombre plancher de pas), `_times` (pas × nombre de lots), `_floor_to_step`, borne et pas de la dichotomie de `_max_affordable`.
+- Domaine pris en charge borné : Decimal fini strictement positif, au plus 34 chiffres significatifs, exposant entre -40 et 12. Au-delà : `ValueError` explicite ; dans `evaluate`, refus motivé (« hors du domaine pris en charge »), sans plantage.
+- Inchangé : les calculs monétaires (réserve, coûts, frais) restent des produits Decimal bornés et quantifiés comme en r2.
+
+### Tests exécutés par Claude
+- Python 3.13.17, Linux ; réseau bloqué pendant les tests.
+- `python3 -m unittest discover -s tests -t .` → code retour 0, `Ran 214 tests`, `OK` (206 de r2 + 8 dans `tests/test_lab_001_r3.py`). Tests LAB-001 r1/r2/r3 relancés 2 fois → OK.
+- Couverts : les deux mantisses longues de la revue dans les deux ordres, avec PPCM attendu calculé indépendamment en entiers et construit depuis une chaîne ; contextes de précision 3, 5, 12 et 28 ; plus grand multiple commun <= cible (20000000000000000000000000002.5 → 20000000000000000000000000002) ; refus hors domaine (36 chiffres, 1E-41, 1E+13, 0, négatif, NaN, infini) ; cas évalué de l'ancien défaut (pas 1.0000000000000000000000000001 / 1, cible 2 → refus « aucune quantité commune ») ; évaluation sous précision 12 dans les deux ordres (0.101 → 0.096, exécution complète, contrôles vrais) ; pas hors domaine → motif, pas plantage ; statuts des 12 scénarios inchangés. Les régressions de solvabilité de r2 passent toujours.
+- Écart honnête : une première version du test calculait le PPCM attendu avec une multiplication Decimal, qui arrondissait elle-même à 28 chiffres ; ce test a échoué et a été corrigé (construction depuis une chaîne). Le code de la correction n'était pas en cause.
+- Contre-épreuve sur le code de 5971802 (copie isolée) : pas 1.0000000000000000000000000001 / 1, cible 2 → `execute_complet` avec une quantité 2, hors pas réel. Le nouveau code refuse.
+- CLI : `labtrading run --all --out …` → 0.
+
+### Limites
+- Domaine volontairement borné (34 chiffres, exposant -40..12) ; des pas plus fins sont refusés, pas approximés.
+- Les quantités affichées gardent leur exposant d'origine (ex. 0.096 et non 0.0960) ; valeur exacte.
+- Limites antérieures de LAB-001 inchangées (données synthétiques, formats inspirés non vérifiés, pas de checksum, latence fixe, rééquilibrage non débité, exposition non valorisée).
+
+### Prochaine action
+dot : revue de `git diff 5971802 c88a0fc` ; `accepted` ou `changes_requested`. X402-002 r1 reste différée ; HUB-001 attend d'être déclarée prête.
+
 ## Journal
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
 - 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
@@ -489,3 +518,4 @@ Tests hors ligne : doublons sans double comptage, ordre d'arrivée inversé, tro
 Livrer commit puis compte rendu dans ce document, état review_requested HUB-001 r1. Arrêt après démonstration locale et tests ; dot fera la revue, sans fusion ni publication automatique.
 - 2026-10-30 : v17, dot demande une correction ciblée LAB-001 r3 et précise HUB-001, qui reste non démarré.
 - 2026-10-30 : v18, Claude Code prend en charge LAB-001 r3 (tentative LAB-001-r3-claude-20261030T093332Z).
+- 2026-10-30 : v19, Claude Code livre LAB-001 r3 (commit c88a0fc) ; état review_requested.
