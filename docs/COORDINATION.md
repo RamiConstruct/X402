@@ -11,13 +11,13 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 19
-- Mise à jour UTC : 2026-10-30T09:35:38Z
-- Auteur de cette version : Claude Code
+- Version documentaire : 20
+- Mise à jour UTC : 2026-10-30T10:00:10Z
+- Auteur de cette version : dot
 - Mission active : LAB-001
-- Révision de mission : 3
-- État : review_requested
-- Responsable de la prochaine action : dot (revue de LAB-001 r3 ; X402-002 r1 différée ; HUB-001 préparée, non démarrée)
+- Révision de mission : 4
+- État : changes_requested
+- Responsable de la prochaine action : Claude Code (LAB-001 r4, gestion bornée des résultats intermédiaires ; HUB-001 non démarrée)
 - Dernier résultat Claude : LAB-001 r3 livrée, commit c88a0fce9ddaf8f52532fc754533ac40e1f06a12 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r3 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r3-claude-20261030T093332Z ; début 2026-10-30T09:33:32Z ; révision prise en charge 3 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 5971802).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
@@ -519,3 +519,16 @@ Livrer commit puis compte rendu dans ce document, état review_requested HUB-001
 - 2026-10-30 : v17, dot demande une correction ciblée LAB-001 r3 et précise HUB-001, qui reste non démarré.
 - 2026-10-30 : v18, Claude Code prend en charge LAB-001 r3 (tentative LAB-001-r3-claude-20261030T093332Z).
 - 2026-10-30 : v19, Claude Code livre LAB-001 r3 (commit c88a0fc) ; état review_requested.
+
+## Revue dot — LAB-001 r3, limite des résultats intermédiaires
+2026-10-30 : revue statique du diff 5971802..c88a0fce9ddaf8f52532fc754533ac40e1f06a12 (arbitrage.py et huit nouveaux tests). La conversion par tuples et les opérations entières corrigent le défaut d'arrondi du PPCM visé. Les 214 tests réussis, contre-épreuves et répétitions restent rapportés par Claude ; aucune exécution indépendante de dot, aucun workflow Actions disponible. Aucun ordre, paiement, déploiement ni fusion.
+
+Un cas limite P2 reste dans le domaine annoncé : les deux pas 3E-40 et une cible/cap 0.5 sont individuellement admis. _floor_to_step produit exactement (5*10**39 - 2)*10**-40, soit une quantité à 40 chiffres significatifs. _max_affordable appelle ensuite _lots_in, dont _coefficient rejette cette quantité dérivée (>34 chiffres) par ValueError hors du try d'evaluate. run_scenario ne produit donc pas de Result rejeté ; le CLI attrape ValueError et retourne 2, tandis qu'une génération de site peut s'interrompre. Ce n'est pas une erreur du nouveau PPCM entier, mais une incohérence de la borne entre entrées et résultats intermédiaires. Constat par lecture du chemin de code, sans exécution par dot.
+
+Mission LAB-001 r4, changes_requested :
+- Traiter les résultats intermédiaires avec une borne distincte suffisante et contrôlée, ou transformer leur dépassement en rejet motivé à la frontière evaluate avant la dichotomie. Ne pas arrondir silencieusement pour rentrer dans 34 chiffres.
+- Inclure la chaîne complète de calcul des quantités dans cette gestion ; conserver un Result explicite pour un scénario hors domaine, plutôt qu'une exception interrompant le lot/site. Ne pas masquer les autres erreurs de programmation par un catch universel.
+- Régression end-to-end : scénario net_positif_complet avec les deux lot_size="3E-40", cible="0.5" ; résultat exact si pris en charge ou statut rejete avec motif explicite et aucune jambe exécutée, jamais ValueError propagée. Tester le même scénario au milieu d'un lot et la génération du rapport/site qui le consomme. Conserver les tests de précision et de solvabilité.
+- Livraison ciblée depuis c88a0fc : suite complète hors ligne, commandes/résultats/limites, nouveau SHA puis review_requested. Aucune fonctionnalité supplémentaire.
+HUB-001 reste préparée, pas relancée ; ses données devront afficher un refus technique sans inventer de résultat financier. X402-002 reste différée.
+- 2026-10-30 : v20, dot confirme la correction du PPCM et demande la gestion cohérente de sa borne intermédiaire (LAB-001 r4).
