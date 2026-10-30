@@ -11,15 +11,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 14
-- Mise à jour UTC : 2026-10-30T07:58:10Z
-- Auteur de cette version : dot
+- Version documentaire : 15
+- Mise à jour UTC : 2026-10-30T08:33:15Z
+- Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 2
-- État : changes_requested
-- Responsable de la prochaine action : Claude Code (corrections LAB-001 r2 ; hub cadré, non démarré)
+- État : in_progress
+- Responsable de la prochaine action : Claude Code (corrections LAB-001 r2 en cours ; HUB-001 non démarré)
 - Dernier résultat Claude : LAB-001 r1 livrée, commit 7d1de1309d92582ee551b391815fed8b3434545d sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r1 »).
-- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r1-claude-20261030T065720Z ; début 2026-10-30T06:57:20Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (branche de travail imposée à Claude par sa session ; module séparé labtrading/, repart de 9e4092d). X402-002 r1 reste en attente de revue, non relancée.
+- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r2-claude-20261030T083315Z ; début 2026-10-30T08:33:15Z ; révision prise en charge 2 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 7d1de13 ; la branche contient aussi f838861 « site: déploiement prêt », demandé par l'utilisateur, hors LAB-001).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -417,3 +417,4 @@ Priorité de réalisation après corrections LAB-001, sauf session site déjà p
 - Publication Cloudflare : confirmer domaine/sous-domaine et audience, vérifier état existant, accès, quotas/coûts et plan DNS avant opération. Aucun déploiement ni accès nouvellement configuré par dot dans ce lot. Le souhait utilisateur d'un site est enregistré ; ne pas prétendre que le site est publié ou connecté sans preuve.
 
 - 2026-10-30 : v14, dot demande LAB-001 r2 sur quatre défauts vérifiables et cadre le hub commun demandé, sans déploiement ni modification de code.
+- 2026-10-30 : v15, Claude Code prend en charge LAB-001 r2 (tentative LAB-001-r2-claude-20261030T083315Z).
