@@ -11,14 +11,14 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 21
-- Mise à jour UTC : 2026-10-30T10:34:53Z
+- Version documentaire : 22
+- Mise à jour UTC : 2026-10-30T10:37:04Z
 - Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 4
-- État : in_progress
-- Responsable de la prochaine action : Claude Code (LAB-001 r4 en cours ; HUB-001 non démarrée)
-- Dernier résultat Claude : LAB-001 r3 livrée, commit c88a0fce9ddaf8f52532fc754533ac40e1f06a12 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r3 »).
+- État : review_requested
+- Responsable de la prochaine action : dot (revue de LAB-001 r4 ; X402-002 r1 différée ; HUB-001 préparée, non démarrée)
+- Dernier résultat Claude : LAB-001 r4 livrée, commit c09475557b5a0c6a62a67b69bb48b5c4333d0772 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r4 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r4-claude-20261030T103453Z ; début 2026-10-30T10:34:53Z ; révision prise en charge 4 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de c88a0fc).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
@@ -302,6 +302,35 @@ dot : revue de LAB-001 r2 ; `accepted` ou `changes_requested` avec révision 3. 
 ### Prochaine action
 dot : revue de `git diff 5971802 c88a0fc` ; `accepted` ou `changes_requested`. X402-002 r1 reste différée ; HUB-001 attend d'être déclarée prête.
 
+## Compte rendu Claude — LAB-001 r4
+- Mission / révision : LAB-001, révision 4 (borne des résultats intermédiaires, revue dot v20).
+- Tentative : LAB-001-r4-claude-20261030T103453Z (livraison 2026-10-30T10:37:04Z).
+- Branche : claude/x402-service-discovery-workshop-xjjmjt. Code livré : c09475557b5a0c6a62a67b69bb48b5c4333d0772, parent direct c88a0fc. Diff : `git diff c88a0fc c094755` (2 fichiers : labtrading/arbitrage.py, tests/test_lab_001_r4.py).
+- Aucune fonctionnalité supplémentaire, dépendance, clé, transaction, déploiement ni fusion.
+
+### Correction
+- Défaut confirmé avant correction (exécution par Claude) : avec les deux pas à 3E-40 et la cible 0.5, `run_scenario` levait `ValueError` (« quantité : hors du domaine pris en charge… »), et `labtrading run --all` s'arrêtait avec le code 2 dès ce scénario.
+- Bornes séparées : entrées limitées à `MAX_DIGITS` = 34 chiffres significatifs (exposant -40..12) ; résultats intermédiaires limités à `MAX_INTERMEDIATE_DIGITS` = 2×34 + 52 + 2 = 122 chiffres, contrôlés dans `_lots_in` et `_times` (multiple de pas). Aucun arrondi pour rentrer dans une borne : un dépassement lève `DomainError`.
+- `evaluate` s'exécute dans un `localcontext` de précision `EXACT_PREC` = 2×122 + 2×34 = 312 ; les produits et sommes de valeurs bornées ne sont donc jamais arrondis, seuls les `quantize` monétaires explicites arrondissent. Le contexte de l'appelant est restauré.
+- Contrôle des entrées à la frontière d'`evaluate` : cible, coût de rééquilibrage, paramètres de marché, soldes, prix et quantités des carnets visibles. Si l'un est hors domaine : `Result` « rejete », motif « entrée hors du domaine pris en charge », aucune jambe. Un carnet réel hors domaine au moment de l'exécution ne remplit pas.
+- Seule `DomainError` (sous-classe de `ValueError`, qui remplace les `ValueError` de `_coefficient` et `common_lot_step`) devient un refus, sur toute la chaîne de quantité : PPCM, plancher, dichotomie de solvabilité. Les autres erreurs ne sont pas masquées.
+- Cas de la revue : quantité exacte (5×10^39 // 3)×3×10^-40 = 0.4999…98 (40 chiffres), exécution complète simulée, conservation, soldes non négatifs et P&L rapproché.
+
+### Tests exécutés par Claude
+- Python 3.13.17, Linux ; réseau bloqué pendant les tests.
+- `python3 -m unittest discover -s tests -t .` → code retour 0, `Ran 222 tests`, `OK` (214 de r3 + 8 dans `tests/test_lab_001_r4.py`). Tests LAB-001 r1 à r4 relancés 2 fois → OK.
+- Couverts : cas de la revue de bout en bout (quantité exacte attendue calculée en entiers, 40 chiffres, contrôles vrais) ; contexte appelant à précision 5 (résultat identique, contexte restauré) ; borne intermédiaire volontairement abaissée → rejet motivé sans jambe ; entrées hors domaine (pas 3E-41, cible de 36 chiffres, prix de 43 chiffres, solde de 40 chiffres) → rejet motivé, aucune exception ; une autre erreur de programmation simulée (`RuntimeError`) n'est pas masquée ; lot de 4 scénarios avec le cas limite et un cas hors domaine au milieu → rapports et Markdown complets ; CLI sur les deux cas → code 0 ; génération du site (`lab_results`) consommant ce lot → statuts « execute_complet » et « rejete », P&L absent pour le rejet. Les tests de précision et de solvabilité de r2/r3 passent toujours.
+- Contre-épreuve sur le code de c88a0fc (copie isolée, scénario extrême ajouté aux fixtures) : `labtrading run --all` → code 2 (« hors du domaine »), tout le lot interrompu. Le nouveau code traite ce scénario exactement.
+- `labtrading run --all --out …` → 0 ; `python3 site/build_site.py` → 0.
+
+### Limites
+- Domaine d'entrée inchangé (34 chiffres, exposant -40..12) ; la borne intermédiaire et la précision de calcul en découlent par construction, sans preuve formelle au-delà des tests.
+- Le contrôle de domaine des carnets porte sur les niveaux lus ; un carnet très profond reste parcouru en temps linéaire (synthétique, non borné ici).
+- Limites antérieures inchangées (données synthétiques, formats inspirés non vérifiés, pas de checksum, latence fixe, rééquilibrage non débité, exposition non valorisée).
+
+### Prochaine action
+dot : revue de `git diff c88a0fc c094755` ; `accepted` ou `changes_requested`. X402-002 r1 reste différée ; HUB-001 attend d'être déclarée prête.
+
 ## Journal
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
 - 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
@@ -533,3 +562,4 @@ Mission LAB-001 r4, changes_requested :
 HUB-001 reste préparée, pas relancée ; ses données devront afficher un refus technique sans inventer de résultat financier. X402-002 reste différée.
 - 2026-10-30 : v20, dot confirme la correction du PPCM et demande la gestion cohérente de sa borne intermédiaire (LAB-001 r4).
 - 2026-10-30 : v21, Claude Code prend en charge LAB-001 r4 (tentative LAB-001-r4-claude-20261030T103453Z).
+- 2026-10-30 : v22, Claude Code livre LAB-001 r4 (commit c094755) ; état review_requested.
