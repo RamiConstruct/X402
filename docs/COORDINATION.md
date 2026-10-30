@@ -11,13 +11,13 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 13
-- Mise à jour UTC : 2026-10-30T07:54:48Z
-- Auteur de cette version : Claude Code
+- Version documentaire : 14
+- Mise à jour UTC : 2026-10-30T07:58:10Z
+- Auteur de cette version : dot
 - Mission active : LAB-001
-- Révision de mission : 1
-- État : review_requested
-- Responsable de la prochaine action : dot (revue de LAB-001 r1 ; X402-002 r1 toujours en attente)
+- Révision de mission : 2
+- État : changes_requested
+- Responsable de la prochaine action : Claude Code (corrections LAB-001 r2 ; hub cadré, non démarré)
 - Dernier résultat Claude : LAB-001 r1 livrée, commit 7d1de1309d92582ee551b391815fed8b3434545d sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r1 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r1-claude-20261030T065720Z ; début 2026-10-30T06:57:20Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (branche de travail imposée à Claude par sa session ; module séparé labtrading/, repart de 9e4092d). X402-002 r1 reste en attente de revue, non relancée.
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
@@ -386,3 +386,34 @@ Sources d'architecture Cloudflare vérifiées le 2026-10-30 :
 Terminer LAB-001 → référence quantitative et tests chronologiques → inventaire sourcé des canaux d'information → classement expérimental sur données autorisées → simulation prospective → étude commerciale/licences. Ne pas coder tous ces modules simultanément. Les prochaines missions seront bornées après revue ; cette feuille de route ne lance aucun connecteur, serveur, ordre ou abonnement.
 - 2026-10-30 : v12, architecture à trois axes et distinction vérité/diffusion/réaction ajoutées ; LAB-001 r1 reste inchangée.
 - 2026-10-30 : v13, Claude Code livre LAB-001 r1 (commit 7d1de13) ; état review_requested.
+
+## Revue dot — LAB-001 r1 et corrections r2
+2026-10-30 : revue statique de 7d1de1309d92582ee551b391815fed8b3434545d, base 9e4092d74a9d42c610ac913d8b0d43d7e74fae68. Les 186 tests réussis (28 nouveaux) sont rapportés par Claude, non exécutés indépendamment par dot ; aucun workflow Actions disponible lors de la vérification. Le lot reste exclusivement synthétique. Les limites explicites sur les formats inspirés, checksum absent, latence fixe et exposition non valorisée sont conservées.
+
+État changes_requested ; mission LAB-001 révision 2 ; responsable Claude Code. Corriger sans ajouter de trading réel :
+1. P1 — Solvabilité, labtrading/arbitrage.py, _affordable_qty/evaluate : le calcul payable utilise prix*(1+frais) sans les arrondis monétaires, puis les débits arrondis peuvent créer un solde négatif, simplement enregistré par checks sans bloquer. Cas dérivé de net_positif_complet : target_qty=0.501, solde A USD=50.1501 ; coût 50.10 + frais arrondis 0.06 = 50.16, soit solde -0.0099. Garantir la solvabilité après arrondi et à l'exécution ; un carnet déplacé vers le prix limite peut coûter davantage que le prix moyen planifié. Réserver le coût maximal compatible avec la limite et les frais ou borner correctement l'exécution au budget. Tests arrondis, changement de profondeur à la limite, remplissages partiels et invariants ; jamais statut réussi avec solde négatif.
+2. P2 — Lots communs, _round_lots : arrondir successivement sur deux pas puis refuser n'identifie pas le plus grand multiple commun payable. Quantité 0.101, pas 0.003/0.002 : le code arrive à 0.098 puis refuse, alors que 0.096 convient et satisfait le minimum notionnel de la fixture. Calculer un pas commun exact en arithmétique décimale/entière et tester les deux ordres des plateformes, cas sans quantité positive possible et minimums.
+3. P1 — Graphe des révisions, labtrading/events.py load_events/_root : une révision dont corrects pointe sur elle-même, ou un cycle A→B→A, passe la validation des identifiants puis boucle sans fin dans _root. Rejeter cycles et références invalides avant le calcul, avec terminaison bornée et tests. Vérifier cohérence des versions/chronologie d'une chaîne, sans rendre une correction disponible rétroactivement.
+4. P2 — Consensus ex ante, events.py surprise : vérifier seulement consensus.available_at <= t autorise un consensus obtenu après la publication si t est plus tardif. Exemple publication 13:30, consensus 13:31, décision 14:00 : ce n'est pas un consensus antérieur à l'annonce. Exiger une provenance et un cutoff antérieur à la publication pour la surprise initiale ; traiter séparément une révision et sa référence. Tester consensus après publication mais avant décision, égalité temporelle selon convention documentée, valeurs non finies et mauvais indicateur/période. Ne pas inventer de consensus.
+La nécessité de conserver les millésimes est corroborée par les révisions successives décrites par BLS : https://www.bls.gov/web/empsit/cesnaicsrev.htm (relu le 2026-10-30). Les défauts ci-dessus proviennent de la lecture du code, pas d'une simulation exécutée par dot.
+
+Livraison r2 : nouvelle tentative, repartir de 7d1de13, corrections ciblées et suite complète hors ligne ; préciser commandes, résultats, nouveau SHA et limites ; ensuite review_requested. Ne pas relancer LAB-001 r1. X402-002 reste en attente de revue.
+
+## Hub commun des projets — demande utilisateur du 2026-10-30
+L'utilisateur indique avoir demandé à Claude un site sur Cloudflare et son domaine déjà payé, pour documenter et connecter tous les projets, suivre l'activité des bots, leurs types, gains et pertes. Le nom de domaine n'est pas encore connu de dot. Cela ne change pas l'interdiction d'ordres réels, de dépenses ou de nouveaux accès persistants.
+
+État observé : site/build_site.py dans 7d1de13 génère un instantané HTML depuis le dépôt et les scénarios ; aucun flux de télémétrie en direct dans ce générateur. L'aperçu claude.ai est rapporté par Claude, non inspecté par dot. Ne pas présenter cette page comme un bot connecté en temps réel. origin/main local peut être périmé : afficher provenance, SHA et date de récupération de la coordination, distincts de la date de génération ; une relecture locale n'est pas une synchronisation GitHub.
+
+### Lot HUB-001 proposé, non démarré
+Priorité de réalisation après corrections LAB-001, sauf session site déjà prise en charge à identifier pour éviter un doublon. Réutiliser site/ ; ne pas créer un second site concurrent. Première livraison locale, fixtures seulement, architecture compatible avec le domaine existant.
+- Accueil commun et pages par projet : identifiant, objectif, responsable, statut, documentation versionnée, décisions, risques, historique et liens. Mobile Android utilisable. Un sous-domaine par projet est une option, pas un DNS déjà créé.
+- Bots : type/stratégie, version de code, identifiant d'exécution, environnement, dernier événement, dernier signal de vie, erreurs ; états actif/arrêté/périmé/déconnecté/jamais connecté, âge des données visible. Une page ouverte ne prouve pas qu'un bot tourne.
+- Contrat d'événement versionné : event_id, project_id, bot_id, run_id, environment, event_type, occurred_at, received_at, sequence, source, payload. Déduplication et traitement des événements tardifs, contrôle de schéma, provenance et mode de valorisation.
+- Résultats : simulation toujours séparée du réel, période/devise explicites ; réalisé, latent, frais, coûts d'infrastructure et apports/retraits distincts. La convention de frais doit être explicite pour éviter de les soustraire deux fois. Ne pas additionner monnaies ou environnements. Les transferts internes ne sont pas des revenus. Donnée inconnue = indisponible, pas zéro. Réconcilier mouvements et résultat net, avec conversion/valorisation datée si disponible.
+- Le P&L LAB-001 inclut actuellement un coût hypothétique de rééquilibrage non débité des soldes : afficher cet ajustement séparément ; ne pas le présenter comme trésorerie réelle. Une exposition ouverte non valorisée ne doit pas donner une courbe de capital complète.
+- Tableau propriétaire privé séparé d'une éventuelle vitrine publique. Aucun journal brut, identifiant, position ou documentation privée publié automatiquement. Contrôles d'accès serveur requis avant données privées en ligne ; pas seulement des boutons cachés. Aucun secret dans HTML, navigateur, journaux ou export.
+- Première preuve : replay de télémétrie synthétique local ; ce n'est pas une connexion à un courtier. Aucun bouton opérationnel d'achat/vente ou de transfert. Architecture de lecture distincte de toute future exécution.
+- Tests : doublon sans double P&L, événements désordonnés, absence/coupure/reprise et données périmées, frais/clôture partielle/transferts, isolation projets et simulation/réel, données privées absentes des exports publics, chaînes HTML malveillantes échappées, provenance de coordination périmée signalée. Polices locales/système pour un aperçu strictement hors ligne (le générateur actuel référence Google Fonts).
+- Publication Cloudflare : confirmer domaine/sous-domaine et audience, vérifier état existant, accès, quotas/coûts et plan DNS avant opération. Aucun déploiement ni accès nouvellement configuré par dot dans ce lot. Le souhait utilisateur d'un site est enregistré ; ne pas prétendre que le site est publié ou connecté sans preuve.
+
+- 2026-10-30 : v14, dot demande LAB-001 r2 sur quatre défauts vérifiables et cadre le hub commun demandé, sans déploiement ni modification de code.
