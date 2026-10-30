@@ -9,16 +9,16 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 6
-- Mise à jour UTC : 2026-10-30T04:02:56Z
-- Auteur de cette version : Claude Code
-- Mission active : X402-001
-- Révision de mission : 2
-- État : review_requested
-- Responsable de la prochaine action : dot (revue de X402-001 r2)
+- Version documentaire : 7
+- Mise à jour UTC : 2026-10-30T05:01:30Z
+- Auteur de cette version : dot
+- Mission active : X402-002
+- Révision de mission : 1
+- État : ready
+- Responsable de la prochaine action : Claude Code (X402-002 r1, adaptateurs Bazaar hors ligne)
 - Dernier résultat Claude : X402-001 r2 livrée, commit 3657c34bafec4e8f3349dcb637989855612f7d3d sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-001 r2 »).
-- Prise en charge : exécutant Claude Code ; tentative X402-001-r2-claude-20261030T040003Z ; début 2026-10-30T04:00:03Z ; révision prise en charge 2 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (repart de d70cd9b).
-- Dernière revue dot : revue statique de d70cd9ba431a00902bb86c8d227f8cd97b661791 ; trois corrections ciblées demandées en révision 2 ; tests non exécutés indépendamment.
+- Prise en charge de la mission active : aucune ; les tentatives X402-001 sont terminées.
+- Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
 ## Détection des changements et reprise
@@ -179,3 +179,37 @@ Livraison r2 : repartir du code d70cd9b, nouvelle tentative, même branche de co
 - 2026-10-30 : v4, dot termine la revue statique de r1 ; trois régressions ciblées demandées, X402-001 r2 assignée à Claude.
 - 2026-10-30 : v5, Claude Code prend en charge X402-001 r2 (tentative X402-001-r2-claude-20261030T040003Z).
 - 2026-10-30 : v6, Claude Code livre X402-001 r2 (commit 3657c34) ; état review_requested.
+
+## Revue dot — acceptation limitée X402-001 r2
+2026-10-30 : accepted, livraison 3657c34bafec4e8f3349dcb637989855612f7d3d comparée à d70cd9b.
+Les trois corrections demandées sont présentes : socket TLS actif enregistré avant négociation et interruptible ; vérification des octets reçus par rapport à Content-Length ; conversion récursive exacte des Decimal dans la simulation. Les 15 nouvelles définitions de tests couvrent ces régressions. Aucun blocage concret identifié dans ce périmètre.
+Vérification : revue statique du diff et des tests. Les 125 tests réussis sont le compte rendu de Claude, pas une exécution indépendante de dot. Aucun workflow GitHub Actions disponible. La connexion TCP externe et une négociation TLS réussie restent non testées. Acceptation du lot hors ligne uniquement, pas certification de production ni autorisation de fusion.
+X402-001 est terminée : ne pas la relancer.
+
+## Mission X402-002 r1 — Adaptateurs Bazaar hors ligne
+État ready ; responsable Claude Code. Base de code : 3657c34bafec4e8f3349dcb637989855612f7d3d sur la branche de travail. Lire ce document sur main sans fusionner les branches automatiquement.
+
+But : sortir du format maison pour normaliser des exemples Bazaar documentés, sans aucun appel aux services découverts. Pas de nouvelle dépendance ni de réseau d'exécution. Consultation de documentation publique seulement ; tests et démonstration hors ligne.
+
+Sources officielles consultées par dot le 2026-10-30 :
+- https://docs.x402.org/extensions/bazaar
+- https://github.com/x402-foundation/x402/blob/main/typescript/packages/extensions/src/bazaar/facilitatorClient.ts
+- https://github.com/x402-foundation/x402/blob/main/specs/extensions/bazaar.md
+- https://github.com/x402-foundation/x402/blob/main/specs/x402-specification-v2.md
+
+Périmètre :
+1. Deux adaptateurs explicites : liste (items) et recherche (resources). Préserver x402Version, pagination et partialResults. Pagination absente/null n'est pas inventée ; les variantes dépendant du facilitateur sont documentées. Rejeter les enveloppes contradictoires plutôt que choisir arbitrairement.
+2. Conserver toutes les offres accepts : amount atomique sous forme de chaîne entière exacte, scheme, network, asset, payTo et métadonnées. Pas de float, pas de première offre privilégiée, aucune décimale d'actif ou conversion USD supposée. Un prix non comparable reste non comparable ; upto n'est pas un coût final.
+3. Distinguer HTTP et MCP. Pour MCP, préserver resource et toolName, avec diagnostic s'il manque ; deux outils d'une même ressource ne fusionnent pas. Un identifiant mcp:// n'est pas une URL à appeler. Conserver le schéma comme donnée sans résoudre de référence externe.
+4. Préserver provenance et données brutes expurgées, avertissements et couverture complete/partial/unknown. Les exemples officiels ne prouvent aucune disponibilité ni demande commerciale.
+5. Conserver la compatibilité du mode fixtures historique ou signaler explicitement la migration, sans transformer le CLI en acheteur ou exécuteur de services.
+
+Livrables :
+- Fonctions pures/adaptateurs, environ huit fixtures couvrant liste/recherche, pagination absente/null, offres multiples, entier au-delà de 2^53, décimales inconnues, MCP partagé et entrée invalide.
+- Manifest des fixtures : URL, version de protocole si explicite, date réelle de récupération, commit immuable ou empreinte de contenu ; signaler séparément les cas synthétiques. Ne pas inventer une provenance si la source n'a pas pu être récupérée.
+- Régressions sans réseau : références de schéma externes jamais chargées, aucun fournisseur appelé, aucun coût inconnu traité comme zéro.
+- Suite complète exécutée, rapport des commandes/résultats et limites. Publier le commit de code puis renseigner ce document avec review_requested pour X402-002 r1.
+- Compatibilité limitée aux formats et versions réellement couverts : aucune revendication universelle Bazaar/MCP.
+
+Arrêt du lot : démonstration et tests hors ligne terminés. Aucun portefeuille, paiement, appel fournisseur, déploiement, fusion ni lancement GitHub Actions. Si les sources officielles restent inaccessibles, consigner le blocage précis et ne pas deviner un format.
+- 2026-10-30 : v7, dot accepte X402-001 r2 dans le périmètre statique/hors ligne et prépare X402-002 r1.
