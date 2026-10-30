@@ -1,7 +1,7 @@
 {
   "proprietaire": "RamiConstruct",
   "intention": "Projets menés avec gratitude envers Allah Azza wa Jal : utiles, honnêtes, sans promesse de gain.",
-  "domaine": null,
+  "domaine": "laboratory.site",
   "visibilite": "publique",
   "visibilite_note": "Décision de l'utilisateur le 2026-10-30 : page publique, sans protection Cloudflare Access. Ne publier ni secret, ni identifiant, ni donnée personnelle.",
   "projets": [
@@ -38,5 +38,7 @@
       "argent_reel": false,
       "bloque_par": "accord de déploiement en réseau de test, adresse de portefeuille publique, mission non rédigée"
     }
-  ]
+  ],
+  "sous_domaine_accueil": "projets",
+  "domaine_note": "Domaine racine laissé intact (il peut servir le VPS existant) ; accueil sur projets.laboratory.site, un sous-domaine par projet."
 }

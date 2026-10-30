@@ -116,7 +116,7 @@ def render(registry: dict, coord: dict, log: list, lab: list, test: dict | None,
         cards.append(f"""
       <article class="project">
         <header><h3>{escape(p["nom"])}</h3>{chip(label, tone)}</header>
-        <p class="host">{escape(p["slug"])}.{host}</p>
+        <p class="host"><a href="https://{escape(p["slug"])}.{host}/">{escape(p["slug"])}.{host}</a></p>
         <p>{escape(p["resume"])}</p>
         <dl>
           <div><dt>Missions</dt><dd>{escape(missions)}</dd></div>
@@ -266,6 +266,10 @@ tbody tr:last-child td { border-bottom: 0; }
 .log code, .log time { font: 0.82rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 .who { font: 500 0.75rem var(--mono); color: var(--accent); }
 .subject { min-width: 0; overflow-wrap: anywhere; }
+a { color: var(--accent); text-underline-offset: 0.15em; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.facts { display: grid; gap: 0.5rem 1.5rem; margin: 1rem 0 0; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.meta .chip { margin-right: 0.5rem; }
 footer { border-top: 1px solid var(--line); padding-top: 1rem; color: var(--muted); font-style: italic; }
 @media (max-width: 640px) {
   .log li { grid-template-columns: 1fr 1fr; }
@@ -275,24 +279,95 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; color: var(--mute
 """
 
 
+SLUG = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$")
+
+HEADERS = """/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+"""
+
+
+def document(head: str, body: str) -> str:
+    return ("<!doctype html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"utf-8\">\n"
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
+            f"{head}\n</head>\n<body>{body}\n</body>\n</html>\n")
+
+
+def render_project(p: dict, registry: dict, lab_section: str, domain: str, generated: str) -> tuple[str, str]:
+    label, tone = ETATS.get(p["etat"], (p["etat"], "muted"))
+    home = f'https://{registry.get("sous_domaine_accueil", "projets")}.{escape(domain)}/'
+    blocked = (f'<p class="blocked"><strong>Bloqué par :</strong> {escape(p["bloque_par"])}</p>'
+               if p.get("bloque_par") else "")
+    head = (f"<title>{escape(p['nom'])}</title>\n"
+            "<meta name=\"claude:viewport-fit-sides\" content=\"cover\">\n"
+            '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Public+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">\n'
+            f"<style>{CSS}</style>")
+    body = f"""
+<main>
+  <header class="top">
+    <p class="eyebrow"><a href="{home}">← Tous les projets</a> · {escape(p["slug"])}.{escape(domain)}</p>
+    <h1>{escape(p["nom"])}</h1>
+    <p class="meta">{chip(label, tone)} Généré le {escape(generated)} UTC.</p>
+  </header>
+  <p class="banner">{escape(BANNER)}. Argent réel : {"oui" if p["argent_reel"] else "non"}.</p>
+  <section>
+    <h2>Objet</h2>
+    <p>{escape(p["resume"])}</p>
+    {blocked}
+    <dl class="facts">
+      <div><dt>Missions</dt><dd>{escape(", ".join(p["missions"]) or "aucune")}</dd></div>
+      <div><dt>Données</dt><dd>{escape(p["donnees"])}</dd></div>
+    </dl>
+  </section>{lab_section if p["slug"] == "labo" else ""}
+  <footer><p>{escape(registry["intention"])}</p></footer>
+</main>"""
+    return head, body
+
+
+def generated_js(registry: dict) -> str:
+    slugs = [p["slug"] for p in registry["projets"]]
+    return ("// Généré par site/build_site.py depuis site/projets.json — ne pas modifier à la main.\n"
+            f"export const DOMAIN = {json.dumps(registry['domaine'])};\n"
+            f"export const HOME = {json.dumps(registry.get('sous_domaine_accueil', 'projets'))};\n"
+            f"export const SLUGS = {json.dumps(slugs)};\n")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--domaine", help="nom de domaine pour afficher les sous-domaines prévus")
+    parser.add_argument("--domaine", help="remplace le domaine du registre")
     parser.add_argument("--avec-tests", action="store_true", help="exécuter la suite de tests")
     args = parser.parse_args(argv)
     registry = json.loads((ROOT / "site" / "projets.json").read_text(encoding="utf-8"))
+    if args.domaine:
+        registry["domaine"] = args.domaine
+    for p in registry["projets"]:
+        if not SLUG.match(p["slug"]) or p["slug"] == registry.get("sous_domaine_accueil"):
+            raise SystemExit(f"slug de projet invalide: {p['slug']!r}")
+    domain = registry.get("domaine") or "votre-domaine"
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
-    head, body = render(registry, coordination(), commits(), lab_results(),
-                        tests() if args.avec_tests else None,
-                        args.domaine or registry.get("domaine"), generated)
+    lab = lab_results()
+    head, body = render(registry, coordination(), commits(), lab,
+                        tests() if args.avec_tests else None, domain, generated)
     dist = ROOT / "site" / "dist"
     dist.mkdir(parents=True, exist_ok=True)
-    (dist / "index.html").write_text(
-        "<!doctype html>\n<html lang=\"fr\">\n<head>\n<meta charset=\"utf-8\">\n"
-        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover\">\n"
-        f"{head}\n</head>\n<body>{body}\n</body>\n</html>\n", encoding="utf-8")
+    (dist / "index.html").write_text(document(head, body), encoding="utf-8")
     (dist / "apercu.html").write_text(f"{head}\n{body}\n", encoding="utf-8")
-    print(f"Écrit: {dist / 'index.html'}\nÉcrit: {dist / 'apercu.html'}")
+    lab_section = body[body.index('<section aria-labelledby="lab-t">'):]
+    lab_section = lab_section[:lab_section.index("</section>") + len("</section>")]
+    for p in registry["projets"]:
+        p_head, p_body = render_project(p, registry, lab_section, domain, generated)
+        (dist / p["slug"]).mkdir(exist_ok=True)
+        (dist / p["slug"] / "index.html").write_text(document(p_head, p_body), encoding="utf-8")
+    (dist / "404.html").write_text(document(
+        f"<title>Page introuvable</title><style>{CSS}</style>",
+        '<main><h1>Page introuvable</h1><p><a href="/">Retour à la liste des projets</a></p></main>'),
+        encoding="utf-8")
+    (dist / "_headers").write_text(HEADERS, encoding="utf-8")
+    (ROOT / "site" / "worker" / "projets.generated.js").write_text(generated_js(registry), encoding="utf-8")
+    print(f"Écrit: {dist} ({len(registry['projets'])} pages de projet, index, 404, _headers)")
     return 0
 
 
