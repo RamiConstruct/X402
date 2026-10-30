@@ -11,15 +11,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 10
-- Mise à jour UTC : 2026-10-30T06:48:00Z
-- Auteur de cette version : dot
+- Version documentaire : 11
+- Mise à jour UTC : 2026-10-30T06:57:20Z
+- Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 1
-- État : ready
-- Responsable de la prochaine action : Claude Code (LAB-001 r1, laboratoire trading hors ligne)
+- État : in_progress
+- Responsable de la prochaine action : Claude Code (LAB-001 r1 en cours)
 - Dernier résultat Claude : X402-002 r1 livrée, commit 9e4092d74a9d42c610ac913d8b0d43d7e74fae68 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-002 r1 »).
-- Prise en charge de la mission active : aucune ; X402-002 livrée, revue conservée en attente et non acceptée.
+- Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r1-claude-20261030T065720Z ; début 2026-10-30T06:57:20Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (branche de travail imposée à Claude par sa session ; module séparé labtrading/, repart de 9e4092d). X402-002 r1 reste en attente de revue, non relancée.
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -299,3 +299,4 @@ Spread brut positif mais net négatif ; carnet ancien donnant un faux gain ; pro
 ### Livraison et limites
 Suite complète et nouveaux tests hors ligne, commandes/résultats/version Python, commit de code exact, limites et hypothèses. Renseigner review_requested pour LAB-001 r1. Aucune rentabilité revendiquée, pas de frais ou performances inventés. Les 17 dollars ne sont pas un budget autorisé de trading. Pas de levier, crédit, dérivés ni intérêts dans le premier lot ; les critères religieux restent à examiner séparément sans prétendre à une certification.
 - 2026-10-30 : v10, priorité trading demandée par l'utilisateur ; LAB-001 r1 assignée ; revue X402-002 reportée sans acceptation.
+- 2026-10-30 : v11, Claude Code prend en charge LAB-001 r1 (tentative LAB-001-r1-claude-20261030T065720Z).
