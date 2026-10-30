@@ -9,14 +9,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 1
-- Mise à jour UTC : 2026-10-29T23:35:00Z
-- Auteur de cette version : dot
+- Version documentaire : 2
+- Mise à jour UTC : 2026-10-30T03:32:39Z
+- Auteur de cette version : Claude Code
 - Mission active : X402-001
 - Révision de mission : 1
-- État : ready
+- État : in_progress
 - Responsable de la prochaine action : Claude Code
-- Dernier résultat Claude : aucun pour cette mission.
+- Dernier résultat Claude : aucun pour cette mission (en cours).
+- Prise en charge : exécutant Claude Code ; tentative X402-001-r1-claude-20261030T033239Z ; début 2026-10-30T03:32:39Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt.
 - Dernière revue dot : audit statique du code 6f23e44a42eab64e51dc3cb8938054b170f67551.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -97,3 +98,4 @@ Tant que ce mécanisme manque : Claude relit le document à chaque reprise de se
 
 ## Journal
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
+- 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
