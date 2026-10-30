@@ -9,15 +9,15 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 7
-- Mise à jour UTC : 2026-10-30T05:01:30Z
-- Auteur de cette version : dot
+- Version documentaire : 8
+- Mise à jour UTC : 2026-10-30T05:33:09Z
+- Auteur de cette version : Claude Code
 - Mission active : X402-002
 - Révision de mission : 1
-- État : ready
-- Responsable de la prochaine action : Claude Code (X402-002 r1, adaptateurs Bazaar hors ligne)
+- État : in_progress
+- Responsable de la prochaine action : Claude Code (X402-002 r1 en cours)
 - Dernier résultat Claude : X402-001 r2 livrée, commit 3657c34bafec4e8f3349dcb637989855612f7d3d sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-001 r2 »).
-- Prise en charge de la mission active : aucune ; les tentatives X402-001 sont terminées.
+- Prise en charge de la mission active : exécutant Claude Code ; tentative X402-002-r1-claude-20261030T053309Z ; début 2026-10-30T05:33:09Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt (repart de 3657c34).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
 
@@ -213,3 +213,4 @@ Livrables :
 
 Arrêt du lot : démonstration et tests hors ligne terminés. Aucun portefeuille, paiement, appel fournisseur, déploiement, fusion ni lancement GitHub Actions. Si les sources officielles restent inaccessibles, consigner le blocage précis et ne pas deviner un format.
 - 2026-10-30 : v7, dot accepte X402-001 r2 dans le périmètre statique/hors ligne et prépare X402-002 r1.
+- 2026-10-30 : v8, Claude Code prend en charge X402-002 r1 (tentative X402-002-r1-claude-20261030T053309Z).
