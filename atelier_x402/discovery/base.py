@@ -21,6 +21,7 @@ class PaymentRequiredObservation:
     observed_at_utc: str
     headers: dict[str, str]
     body: Any
+    body_error: str | None = None  # corps coupé, trop long ou hors délai
     action: str = "arret_observation_sans_paiement"
 
 

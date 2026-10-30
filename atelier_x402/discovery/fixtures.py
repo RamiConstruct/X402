@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from ..models import Provenance, Source, utc_now_iso
@@ -21,14 +22,20 @@ class FixtureDiscovery(DiscoverySource):
 
     def discover(self) -> DiscoveryResult:
         result = DiscoveryResult()
-        data = json.loads(self.path.read_text(encoding="utf-8"))
+        data = json.loads(self.path.read_text(encoding="utf-8"), parse_float=Decimal)
         meta = data.get("_meta", {}) if isinstance(data, dict) else {}
         if meta.get("fictif") is not True:
             result.errors.append(
                 f"{self.path.name}: fixture non marquée « fictif »: refusée"
             )
             return result
+        services = data.get("services")
+        if not isinstance(services, list):
+            result.errors.append(
+                f"{self.path.name}: schéma invalide: champ « services » absent ou non liste"
+            )
+            return result
         source = Source(kind="fixture", uri=self.path.name, retrieved_at_utc=utc_now_iso())
-        for item in data.get("services", []):
+        for item in services:
             result.records.append(normalize_item(item, source, Provenance.FICTIF))
         return result

@@ -67,7 +67,7 @@ class FlowReport:
 
 
 def load_scenarios(path: Path | str = DEFAULT_SCENARIOS) -> dict[str, Any]:
-    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    data = json.loads(Path(path).read_text(encoding="utf-8"), parse_float=Decimal)
     if data.get("_meta", {}).get("fictif") is not True:
         raise ValueError("fichier de scénarios non marqué « fictif »: refusé")
     return data
@@ -86,7 +86,7 @@ def _amount(option: dict) -> tuple[Decimal | None, list[str]]:
         value = Decimal(str(atomic))
     except InvalidOperation:
         return None, [f"montant atomique illisible: {atomic!r}"]
-    if value < 0 or value != value.to_integral_value():
+    if not value.is_finite() or value < 0 or value != value.to_integral_value():
         return None, [f"montant atomique invalide: {atomic!r}"]
     return value.scaleb(-decimals), []
 

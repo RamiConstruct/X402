@@ -26,6 +26,29 @@ from ..models import BillingUnit
 BILLABLE_CALLS_ALLOWED = False  # verrou du lot 1 : ne pas rendre configurable
 
 
+def _invalid_number(name: str, value: object) -> str | None:
+    """Refuse tout montant non ``Decimal``, non fini (NaN, infini) ou négatif."""
+    if value is None:
+        return None
+    if not isinstance(value, Decimal):
+        return f"{name}: type {type(value).__name__} refusé (Decimal exigé)"
+    if not value.is_finite():
+        return f"{name}: valeur non finie refusée"
+    if value < 0:
+        return f"{name}: valeur négative refusée"
+    return None
+
+
+def _non_billable_inconsistency(estimate: "CostEstimate") -> str | None:
+    for name, value in (("prix", estimate.amount), ("estimation", estimate.quantity)):
+        problem = _invalid_number(name, value)
+        if problem:
+            return f"estimation non facturable incohérente: {problem}"
+    if estimate.amount not in (None, Decimal(0)):
+        return "estimation non facturable incohérente: prix non nul"
+    return None
+
+
 @dataclass(frozen=True)
 class CostEstimate:
     billable: bool | None
@@ -79,6 +102,9 @@ class CostGuard:
         return Decision(allowed=not reasons, reasons=tuple(reasons), billable=estimate.billable)
 
     def _evaluate(self, estimate: CostEstimate, is_retry: bool) -> Decision:
+        if estimate.billable is False and _non_billable_inconsistency(estimate):
+            reasons = (_non_billable_inconsistency(estimate),)
+            return Decision(False, reasons, False, is_retry)
         if estimate.billable is False:
             if is_retry:
                 return Decision(True, ("réessai non facturable",), False, True)
@@ -89,6 +115,19 @@ class CostGuard:
 
     def _rules(self, estimate: CostEstimate, is_retry: bool, include_lock: bool) -> list[str]:
         reasons: list[str] = []
+        invalid = [msg for msg in (
+            _invalid_number("prix", estimate.amount),
+            _invalid_number("estimation de consommation", estimate.quantity),
+            _invalid_number("plafond par appel", self.policy.per_call_cap),
+            _invalid_number("plafond de session", self.policy.session_cap),
+            _invalid_number("dépense de session", self.spent),
+        ) if msg]
+        if invalid:
+            # Aucune comparaison avec des valeurs invalides : refus immédiat.
+            reasons.extend(invalid)
+            if include_lock and not BILLABLE_CALLS_ALLOWED:
+                reasons.append("appels facturables bloqués dans ce lot")
+            return reasons
         if estimate.billable is None:
             reasons.append("caractère facturable inconnu")
         if estimate.amount is None:

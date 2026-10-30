@@ -1,8 +1,9 @@
+import itertools
 import json
 import unittest
 
 from atelier_x402.discovery import DiscoveryDisabled, HttpPolicy, PublicHttpDiscovery
-from atelier_x402.discovery.http_public import RawResponse, ResponseTooLarge
+from atelier_x402.discovery.http_public import PartialResponse, RawResponse, ResponseTooLarge
 from atelier_x402.discovery.netguard import DestinationRefused, validate_url
 from atelier_x402.models import Provenance
 from atelier_x402.redact import MASK
@@ -24,15 +25,15 @@ class FakeTransport:
         self.routes = routes  # chemin -> RawResponse | liste | exception
         self.calls = []
 
-    def __call__(self, target, timeout, max_bytes):
-        self.calls.append((target.host, target.path, target.address, timeout))
+    def __call__(self, target, deadline, max_bytes):
+        self.calls.append((target.host, target.path, target.address, deadline.remaining()))
         value = self.routes[target.path]
         if isinstance(value, list):
             value = value.pop(0) if len(value) > 1 else value[0]
         if isinstance(value, Exception):
             raise value
         if len(value.body) > max_bytes:
-            raise ResponseTooLarge("trop gros")
+            raise ResponseTooLarge(value.status, value.headers, "trop gros")
         return value
 
 
@@ -171,12 +172,12 @@ class LimitsTests(unittest.TestCase):
         self.assertEqual(len(t.calls), 1)
 
     def test_global_deadline(self):
-        clock = iter([0.0, 100.0, 100.0, 100.0])
+        clock = itertools.chain([0.0], itertools.repeat(100.0))
         d, t, _ = make({"/s": ok([])}, total_deadline_s=10)
         d.clock = lambda: next(clock)
         result = d.discover()
         self.assertEqual(t.calls, [])
-        self.assertIn("TimeoutError", result.errors[0])
+        self.assertIn("échéance", result.errors[0])
 
     def test_timeout_bounded_by_policy(self):
         d, t, _ = make({"/s": ok([])}, timeout_s=2.0)

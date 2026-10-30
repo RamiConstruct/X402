@@ -15,7 +15,7 @@ from .discovery.fixtures import DEFAULT_FIXTURE
 from .normalize import normalize_currency, normalize_unit
 from .providers import default_registry
 from .redact import install_log_redaction
-from .report import compare, summary_markdown, write_outputs
+from .report import comparison_report, coverage, summary_markdown, write_outputs
 from .x402 import load_scenarios, simulate
 from .x402.flow import DEFAULT_SCENARIOS
 
@@ -46,17 +46,25 @@ def _collect(args: argparse.Namespace) -> DiscoveryResult:
     return result
 
 
+EXIT_INCOMPLETE = 3  # couverture partielle, en échec ou vide
+
+
+def _exit_code(result: DiscoveryResult) -> int:
+    return 0 if coverage(result)["etat"] == "complete" else EXIT_INCOMPLETE
+
+
 def cmd_discover(args: argparse.Namespace) -> int:
     result = _collect(args)
     json_path, md_path = write_outputs(result, Path(args.out))
     print(summary_markdown(result))
     print(f"Écrit: {json_path}\nÉcrit: {md_path}")
-    return 0
+    return _exit_code(result)
 
 
 def cmd_compare(args: argparse.Namespace) -> int:
-    print(json.dumps(compare(_collect(args).records), ensure_ascii=False, indent=2))
-    return 0
+    result = _collect(args)
+    print(json.dumps(comparison_report(result), ensure_ascii=False, indent=2, default=str))
+    return _exit_code(result)
 
 
 def cmd_providers(_args: argparse.Namespace) -> int:

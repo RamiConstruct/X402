@@ -78,12 +78,22 @@ def normalize_unit(raw: Any) -> BillingUnit | None:
 
 
 def parse_amount(raw: Any, warnings: list[str]) -> tuple[Decimal | None, str | None]:
-    """Retourne (montant, symbole_detecte). Les flottants sont lus via str()."""
+    """Retourne (montant, symbole_detecte).
+
+    Les lecteurs JSON de l'atelier utilisent ``parse_float=Decimal`` : un montant
+    JSON arrive donc ici en ``Decimal`` exact. Un ``float`` ne peut venir que
+    d'un appel Python direct ; il est accepté avec un avertissement.
+    """
     if raw is None or isinstance(raw, bool):
         return None, None
     symbol = None
-    if isinstance(raw, (int, float)):
+    if isinstance(raw, Decimal):
         text = str(raw)
+    elif isinstance(raw, int):
+        text = str(raw)
+    elif isinstance(raw, float):
+        warnings.append("montant reçu en flottant: précision d'origine non garantie")
+        text = repr(raw)
     elif isinstance(raw, str):
         text = raw.strip()
         if text[:1] in _AMBIGUOUS_SYMBOLS:

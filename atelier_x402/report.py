@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -19,15 +20,63 @@ AVERTISSEMENT = (
 )
 
 
+_COVERAGE_NOTES = {
+    "complete": "toutes les sources lues sans erreur ni 402",
+    "partielle": "des services ont été lus, mais des erreurs, des 402 ou des éléments "
+                 "invalides limitent la couverture",
+    "echec": "aucun service lu: erreurs ou 402 seulement",
+    "vide": "aucune donnée et aucune erreur: ce n'est PAS une réussite",
+}
+
+
+def _plain(value: Any) -> Any:
+    """Rend l'export sérialisable : Decimal -> texte exact (jamais de float)."""
+    if isinstance(value, dict):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_plain(v) for v in value]
+    if isinstance(value, Decimal):
+        return str(value)
+    return value
+
+
+def coverage(result: DiscoveryResult) -> dict[str, Any]:
+    invalid = sum(1 for r in result.records if not isinstance(r.raw, dict))
+    problems = bool(result.errors or result.payment_required or invalid)
+    if result.records:
+        state = "partielle" if problems else "complete"
+    else:
+        state = "echec" if problems else "vide"
+    return {
+        "etat": state,
+        "note": _COVERAGE_NOTES[state],
+        "services": len(result.records),
+        "elements_invalides": invalid,
+        "erreurs": len(result.errors),
+        "reponses_402": len(result.payment_required),
+    }
+
+
+def comparison_report(result: DiscoveryResult) -> dict[str, Any]:
+    """Comparaison accompagnée de tout ce qui en limite la portée."""
+    return _plain(redact({
+        "couverture": coverage(result),
+        "comparaison": compare(result.records),
+        "erreurs": result.errors,
+        "reponses_402_observees": [vars(o) for o in result.payment_required],
+    }))
+
+
 def result_to_dict(result: DiscoveryResult) -> dict[str, Any]:
-    return redact({
+    return _plain(redact({
         "genere_le_utc": utc_now_iso(),
         "avertissement": AVERTISSEMENT,
+        "couverture": coverage(result),
         "services": [r.to_dict() for r in result.records],
         "reponses_402_observees": [vars(o) for o in result.payment_required],
         "erreurs": result.errors,
         "comparaison": compare(result.records),
-    })
+    }))
 
 
 def compare(records: list[ServiceRecord]) -> dict[str, Any]:
@@ -56,8 +105,12 @@ def _cell(value: Any) -> str:
 
 
 def summary_markdown(result: DiscoveryResult) -> str:
+    cov = coverage(result)
     lines = ["# Synthèse de découverte", "", f"Généré le {utc_now_iso()} (UTC).", "",
              f"> {AVERTISSEMENT}", "",
+             f"**Couverture : {cov['etat']}** — {cov['note']} "
+             f"({cov['services']} services, {cov['elements_invalides']} éléments invalides, "
+             f"{cov['erreurs']} erreurs, {cov['reponses_402']} réponses 402).", "",
              "| Fournisseur | Service | Capacité | Prix | Devise | Unité | Provenance | Vérification | Inconnues |",
              "|---|---|---|---|---|---|---|---|---|"]
     for r in result.records:
@@ -77,7 +130,9 @@ def summary_markdown(result: DiscoveryResult) -> str:
             _cell(i["service"]) for i in comparison["non_comparables"])]
     if result.payment_required:
         lines += ["", "## Réponses HTTP 402 observées (aucun paiement effectué)", ""]
-        lines += [f"- {o.url} à {o.observed_at_utc}" for o in result.payment_required]
+        lines += [f"- {o.url} à {o.observed_at_utc}"
+                  + (f" (corps non lu: {o.body_error})" if o.body_error else "")
+                  for o in result.payment_required]
     warnings = [(r.service_name, w) for r in result.records for w in r.warnings]
     if warnings:
         lines += ["", "## Avertissements", ""]

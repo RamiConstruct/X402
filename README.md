@@ -26,7 +26,7 @@ Toutes les commandes se lancent depuis la racine du dépôt.
 ```bash
 make test                                  # = python3 -m unittest discover -s tests -t . -v
 python3 -m atelier_x402 discover           # fixtures -> sorties/decouverte.json + sorties/synthese.md
-python3 -m atelier_x402 compare            # comparaison JSON (même capacité, devise et unité)
+python3 -m atelier_x402 compare            # comparaison JSON + couverture, erreurs et 402 observées
 python3 -m atelier_x402 providers          # fournisseurs IA et leur état
 python3 -m atelier_x402 simulate-x402 --all
 python3 -m atelier_x402 check-cost --price 0.01 --currency USDC --unit per_request
@@ -40,7 +40,16 @@ python3 -m atelier_x402 discover --enable-http \
 ```
 
 Elle n'attend que le **format de l'atelier** (`{"services": [...], "next": "..."}`
-ou une liste). Ce n'est pas le format d'une API de découverte x402.
+ou une liste). Ce n'est pas le format d'une API de découverte x402 (Bazaar, MCP
+ou autre) : aucune compatibilité n'est revendiquée. Un document qui ne respecte
+pas ce schéma est signalé comme « schéma invalide », jamais comme une liste vide.
+
+**Couverture et code retour** : `discover` et `compare` indiquent une couverture
+`complete`, `partielle` (erreurs, 402 ou éléments invalides à côté de services
+lus), `echec` (aucun service lu) ou `vide` (aucune donnée : ce n'est pas une
+réussite). Le code retour vaut 0 seulement si la couverture est `complete`, et 3
+sinon. Les montants JSON sont lus en `Decimal` exact (`parse_float=Decimal`) et
+exportés en texte, sans passer par un flottant.
 
 ## Modèle normalisé
 
@@ -102,6 +111,10 @@ Une seule règle non satisfaite suffit à refuser ; toutes les raisons sont list
 4. réessai payant, refusé dans tous les cas ;
 5. verrou du lot : appels facturables bloqués.
 
+Tout montant non `Decimal`, non fini (NaN, infini) ou négatif (prix, quantité,
+plafonds, dépense de session) est refusé avant toute comparaison. Une estimation
+« non facturable » avec un prix non nul ou invalide est refusée comme incohérente.
+
 `evaluate_hypothetical` évalue les règles 1 à 4 pour la simulation, mais
 n'autorise jamais une dépense réelle.
 
@@ -113,12 +126,12 @@ n'autorise jamais une dépense réelle.
 | Hôtes | liste blanche vide | `--allow-host` |
 | Schéma / port | HTTPS / 443 | — |
 | Sources | 3 | 5 |
-| Délai par requête | 5 s | 15 s |
-| Échéance globale | 30 s | — |
+| Délai par requête (connexion → fin du corps) | 5 s | 15 s |
+| Échéance globale (DNS, connexion, TLS, en-têtes, corps, pauses) | 30 s | — |
 | Taille de réponse | 256 Ko | 1 Mo |
 | Pages | 3 | 5 |
 | Éléments par source | 200 | — |
-| Tentatives | 2 (erreurs réseau et 5xx seulement) | — |
+| Tentatives | 2 : erreur réseau sans statut reçu, ou 5xx avec corps complet | — |
 | Redirections | 1, même hôte uniquement, revalidée | — |
 
 Sont refusés : les noms locaux (`localhost`, `*.local`, `*.internal`…), les IP
@@ -128,7 +141,22 @@ dans l'URL et les ports non autorisés. La connexion est épinglée sur l'adress
 validée. Aucun en-tête d'authentification n'est envoyé.
 
 **HTTP 402** : arrêt de la source, observation enregistrée (en-têtes masqués),
-sans réessai ni paiement.
+sans réessai ni paiement, y compris quand le corps de la 402 est coupé, trop long
+ou hors délai (`body_error` renseigné). Plus généralement, dès qu'un statut est
+reçu, aucune nouvelle tentative n'est faite si le corps est incomplet.
+
+**Budget de temps, ce qui est garanti et ce qui ne l'est pas :**
+- le corps est lu par blocs, avec un délai de socket recalculé avant chaque
+  lecture, et un minuteur ferme la connexion à l'échéance (connexion, TLS,
+  en-têtes, corps) ;
+- les pauses entre tentatives ne dépassent jamais l'échéance : une pause trop
+  longue arrête les tentatives ;
+- la résolution DNS (`getaddrinfo`) ne peut pas être interrompue en Python :
+  l'atelier cesse **d'attendre** à l'échéance, mais le fil de résolution (démon)
+  peut continuer en arrière-plan jusqu'au délai du système ;
+- le retour peut dépasser l'échéance d'une **marge de nettoyage** (fermeture de
+  socket, ordonnancement des fils), courte en pratique mais non garantie.
+L'échéance est donc un budget d'exécution, pas une limite absolue.
 
 ### Secrets
 
@@ -136,13 +164,18 @@ sans réessai ni paiement.
 `token`, `private`, `mnemonic`, `signature`, `payment-signature`…) et les motifs
 (`0x` + 64 hex, `sk-…`, `Bearer …`, phrase mnémonique probable) dans les
 données brutes, les observations 402, les exports et les journaux (filtre posé
-sur les handlers). Le masquage est volontairement large.
+sur les handlers). Les URL présentes dans ces textes sont aussi nettoyées :
+identifiants (`user:mdp@`) et paramètres sensibles de requête ou de fragment
+(`api_key`, `token`, `key`, `sig`, `code`, `session`…). Le masquage est
+volontairement large.
 
 ## Limites connues
 
-- Le transport HTTP réel (`default_transport`) **n'est pas testé** : les tests
-  utilisent un transport simulé et bloquent le réseau. Il se connecte en direct,
-  sans proxy HTTP(S).
+- Le transport HTTP réel (`HttpsTransport`) est testé avec des doubles de
+  connexion contrôlés (corps coupé, lecture lente, minuteur, taille), mais
+  **jamais contre un vrai serveur** : le réseau est bloqué pendant les tests. La
+  classe `_PinnedHTTPSConnection` (socket, TLS) n'est donc pas exécutée. Elle se
+  connecte en direct, sans proxy HTTP(S).
 - Les détections de secrets sont heuristiques : un secret au format inattendu
   sous une clé neutre peut passer.
 - Le schéma de découverte HTTP est propre à l'atelier, sans format x402 vérifié.

@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
+from urllib.parse import unquote_plus, urlsplit, urlunsplit
 
 MASK = "[MASQUÉ]"
 
@@ -27,7 +28,41 @@ _SENSITIVE_VALUE = [
 ]
 
 
+_URL = re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.\-]*://[^\s\"'<>]+")
+_SENSITIVE_PARAMS = {"key", "sig", "sign", "pwd", "pass", "session", "sessionid", "sid",
+                     "jwt", "code", "state", "nonce", "hmac"}
+
+
+def _sensitive_param(name: str) -> bool:
+    lowered = unquote_plus(name).strip().lower()
+    return lowered in _SENSITIVE_PARAMS or bool(_SENSITIVE_KEY.search(lowered))
+
+
+def _redact_params(params: str) -> str:
+    if "=" not in params:
+        return params
+    out = []
+    for segment in params.split("&"):
+        name, sep, _value = segment.partition("=")
+        out.append(f"{name}={MASK}" if sep and _sensitive_param(name) else segment)
+    return "&".join(out)
+
+
+def redact_url(url: str) -> str:
+    """Masque identifiants, paramètres de requête et de fragment sensibles."""
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return MASK
+    netloc = parts.netloc
+    if "@" in netloc:
+        netloc = f"{MASK}@{netloc.rsplit('@', 1)[1]}"
+    return urlunsplit((parts.scheme, netloc, parts.path,
+                       _redact_params(parts.query), _redact_params(parts.fragment)))
+
+
 def redact_text(text: str) -> str:
+    text = _URL.sub(lambda m: redact_url(m.group(0)), text)
     for pattern in _SENSITIVE_VALUE:
         text = pattern.sub(MASK, text)
     return text
