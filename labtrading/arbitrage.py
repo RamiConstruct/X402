@@ -161,8 +161,12 @@ def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
     }
     cap = min(limits.values())
     binding = [name for name, value in limits.items() if value == cap]
-    step = common_lot_step(buy_m.lot_size, sell_m.lot_size)
-    qty = _floor_to_step(max(cap, ZERO), step)
+    try:
+        step = common_lot_step(buy_m.lot_size, sell_m.lot_size)
+        qty = _floor_to_step(max(cap, ZERO), step)
+    except ValueError as exc:
+        result.reasons.append(f"quantité ou pas de lot hors du domaine pris en charge: {exc}")
+        return result
     if qty == 0 and cap >= max(buy_m.lot_size, sell_m.lot_size):
         # Chaque plateforme pourrait traiter seule cette quantité, mais pas les deux ensemble.
         result.reasons.append(
@@ -291,18 +295,73 @@ def _depth(levels: list[tuple[Decimal, Decimal]], accept) -> Decimal:
     return sum((q for p, q in levels if accept(p)), ZERO)
 
 
+# Domaine pris en charge pour les pas de lot et les quantités : au-delà, refus
+# explicite (évite des entiers démesurés). Tout le calcul de pas se fait en
+# entiers Python exacts, jamais sous le contexte Decimal ambiant (précision 28
+# par défaut), qui arrondirait en silence les longues mantisses.
+MAX_DIGITS = 34
+MIN_EXPONENT = -40
+MAX_EXPONENT = 12
+
+
+def _coefficient(value: Decimal, name: str) -> tuple[int, int]:
+    """(coefficient entier, exposant) exacts : value == coefficient x 10**exposant."""
+    if not isinstance(value, Decimal) or not value.is_finite():
+        raise ValueError(f"{name}: Decimal fini exigé")
+    sign, digits, exponent = value.as_tuple()
+    if sign or not any(digits):
+        raise ValueError(f"{name}: valeur strictement positive exigée")
+    coefficient = int("".join(map(str, digits)))
+    significant = len(str(coefficient).rstrip("0"))
+    if significant > MAX_DIGITS or not MIN_EXPONENT <= exponent <= MAX_EXPONENT:
+        raise ValueError(
+            f"{name}: hors du domaine pris en charge ({MAX_DIGITS} chiffres significatifs, "
+            f"exposant entre {MIN_EXPONENT} et {MAX_EXPONENT})")
+    return coefficient, exponent
+
+
+def _decimal_from_int(coefficient: int, exponent: int) -> Decimal:
+    """Construit coefficient x 10**exposant sans aucun arrondi de contexte."""
+    if coefficient == 0:
+        return Decimal((0, (0,), exponent))
+    while exponent < 0 and coefficient % 10 == 0:  # zéros superflus retirés, valeur inchangée
+        coefficient //= 10
+        exponent += 1
+    return Decimal((0, tuple(int(c) for c in str(coefficient)), exponent))
+
+
+def _aligned(value: Decimal, exponent: int) -> int:
+    """Entier exact de value / 10**exposant (exposant <= exposant de value)."""
+    _, digits, own = value.as_tuple()
+    return int("".join(map(str, digits)) or "0") * 10 ** (own - exponent)
+
+
 def common_lot_step(lot_a: Decimal, lot_b: Decimal) -> Decimal:
-    """Plus petit commun multiple exact de deux pas décimaux (arithmétique entière)."""
-    places = max(-lot_a.as_tuple().exponent, -lot_b.as_tuple().exponent, 0)
-    scale = 10 ** places
-    a, b = int(lot_a * scale), int(lot_b * scale)
-    if a <= 0 or b <= 0 or Decimal(a) != lot_a * scale or Decimal(b) != lot_b * scale:
-        raise ValueError(f"pas de lot invalides: {lot_a}, {lot_b}")
-    return Decimal(math.lcm(a, b)) / scale
+    """Plus petit commun multiple EXACT de deux pas décimaux."""
+    ca, ea = _coefficient(lot_a, "pas de lot")
+    cb, eb = _coefficient(lot_b, "pas de lot")
+    exponent = min(ea, eb)
+    a, b = ca * 10 ** (ea - exponent), cb * 10 ** (eb - exponent)
+    return _decimal_from_int(math.lcm(a, b), exponent)
+
+
+def _lots_in(qty: Decimal, step: Decimal) -> int:
+    """Nombre entier exact de pas contenus dans qty (plancher), sans arrondi de contexte."""
+    if qty <= 0:
+        return 0
+    _coefficient(qty, "quantité")  # même domaine que les pas
+    exponent = min(qty.as_tuple().exponent, step.as_tuple().exponent)
+    return _aligned(qty, exponent) // _aligned(step, exponent)
+
+
+def _times(step: Decimal, lots: int) -> Decimal:
+    """step x lots, exact."""
+    coefficient, exponent = _coefficient(step, "pas de lot")
+    return _decimal_from_int(coefficient * lots, exponent)
 
 
 def _floor_to_step(qty: Decimal, step: Decimal) -> Decimal:
-    return (qty // step) * step
+    return _times(step, _lots_in(qty, step))
 
 
 def buy_reserve(book: OrderBook, qty: Decimal, market: Market) -> Decimal | None:
@@ -323,17 +382,17 @@ def _max_affordable(qty: Decimal, step: Decimal, book: OrderBook, market: Market
                     budget: Decimal) -> Decimal:
     """Plus grande quantité multiple de ``step`` (<= qty) dont la réserve tient dans le budget."""
     def fits(n: int) -> bool:
-        reserve = buy_reserve(book, step * n, market)
+        reserve = buy_reserve(book, _times(step, n), market)
         return reserve is not None and reserve <= budget
 
-    low, high = 0, int(qty / step)
+    low, high = 0, _lots_in(qty, step)
     while low < high:  # la réserve croît avec la quantité : recherche dichotomique
         mid = (low + high + 1) // 2
         if fits(mid):
             low = mid
         else:
             high = mid - 1
-    return step * low
+    return _times(step, low)
 
 
 def _ceil(value: Decimal, precision: Decimal) -> Decimal:
