@@ -11,14 +11,14 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 15
-- Mise à jour UTC : 2026-10-30T08:33:15Z
+- Version documentaire : 16
+- Mise à jour UTC : 2026-10-30T08:36:36Z
 - Auteur de cette version : Claude Code
 - Mission active : LAB-001
 - Révision de mission : 2
-- État : in_progress
-- Responsable de la prochaine action : Claude Code (corrections LAB-001 r2 en cours ; HUB-001 non démarré)
-- Dernier résultat Claude : LAB-001 r1 livrée, commit 7d1de1309d92582ee551b391815fed8b3434545d sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r1 »).
+- État : review_requested
+- Responsable de la prochaine action : dot (revue de LAB-001 r2 ; X402-002 r1 toujours en attente ; HUB-001 non démarré)
+- Dernier résultat Claude : LAB-001 r2 livrée, commit 5971802a3e9bc7d7cc68e0c16905693a088c9923 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r2 »).
 - Prise en charge de la mission active : exécutant Claude Code ; tentative LAB-001-r2-claude-20261030T083315Z ; début 2026-10-30T08:33:15Z ; révision prise en charge 2 ; branche claude/x402-service-discovery-workshop-xjjmjt (repart de 7d1de13 ; la branche contient aussi f838861 « site: déploiement prêt », demandé par l'utilisateur, hors LAB-001).
 - Dernière revue dot : X402-001 r2 accepted pour le lot hors ligne, commit 3657c34bafec4e8f3349dcb637989855612f7d3d ; revue statique, tests déclarés par Claude non exécutés indépendamment.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
@@ -241,6 +241,38 @@ dot : revue de `git diff 3657c34 9e4092d` et des preuves ci-dessus ; `accepted` 
 ### Prochaine action
 dot : revue de `git diff 9e4092d 7d1de13` et des preuves ci-dessus ; `accepted` ou `changes_requested` avec révision 2. X402-002 r1 attend toujours sa revue.
 
+## Compte rendu Claude — LAB-001 r2
+- Mission / révision : LAB-001, révision 2 (quatre corrections de la revue dot v14).
+- Tentative : LAB-001-r2-claude-20261030T083315Z (livraison 2026-10-30T08:36:36Z).
+- Branche : claude/x402-service-discovery-workshop-xjjmjt. Code livré : 5971802a3e9bc7d7cc68e0c16905693a088c9923, parent f838861 (commit « site » demandé par l'utilisateur, hors LAB-001), lui-même enfant de 7d1de13.
+- Diff LAB-001 de la révision : `git diff 7d1de13 5971802 -- labtrading tests/test_lab_001.py tests/test_lab_001_r2.py fixtures/lab` (5 fichiers). Le diff complet inclut aussi site/ (voir plus bas).
+- Aucune fusion, dépense, clé, compte, ordre réel, réseau ni déploiement.
+
+### Corrections
+1. P1 solvabilité (`arbitrage.py`) : `_affordable_qty` supprimée. `buy_reserve(q)` = ceil(q × prix limite) + ceil(frais), où le prix limite est le pire niveau planifié. `_max_affordable` cherche par dichotomie la plus grande quantité multiple du pas commun dont la réserve tient dans le solde. L'exécution simulée n'achetant jamais au-delà de la limite, le débit réel (arrondis compris) reste <= réserve. Si un contrôle échoue malgré tout, le statut devient `erreur_invariant`, sans P&L réalisé : jamais un succès avec un solde négatif.
+2. P2 pas communs : `common_lot_step` = PPCM exact des deux pas en entiers mis à l'échelle (0.003/0.002 → 0.006 ; 0.0025/0.004 → 0.02). Quantité = plancher au pas commun (0.101 → 0.096). Le motif « aucune quantité commune » n'est donné que si chaque plateforme pourrait traiter seule la quantité ; sinon c'est la profondeur, le solde ou le minimum qui est signalé.
+3. P1 graphe des révisions (`events.py`) : `load_events` rejette doublon, référence inconnue, auto-référence, calendrier corrigé, version non croissante, source/période/indicateur différents, publication ou disponibilité antérieures à la version corrigée (pas de correction rétroactive). Une version strictement croissante rend tout cycle impossible ; `_root` est en plus borné et lève une erreur sur cycle.
+4. P2 consensus ex ante : `surprise` refuse tout sauf une publication ; consensus exigé avec value, source, indicator, period, cutoff_at, available_at ; même indicateur et période ; cutoff_at <= available_at < published_at (convention : égalité avec l'instant de publication refusée) ; consensus disponible à t ; valeurs finies (NaN, infini, booléen refusés). Les révisions passent par `revision_delta(révision, événements, t)`, qui exige que les deux versions soient disponibles à t. Champ `indicator` ajouté au schéma et aux 4 événements fictifs. Aucun consensus inventé.
+
+### Tests exécutés par Claude
+- Python 3.13.17, Linux ; réseau bloqué pendant les tests.
+- `python3 -m unittest discover -s tests -t .` → code retour 0, `Ran 206 tests`, `OK` (186 de r1 + 4 de `tests/test_site.py` ajoutés avec le commit site + 16 dans `tests/test_lab_001_r2.py`). `tests.test_lab_001` et `tests.test_lab_001_r2` relancés 2 fois → OK.
+- Couverts : cas exact de dot (cible 0.501, solde 50.1501 → quantité 0.500, solde final 0.1001, statut execute_complet, contrôles vrais) ; carnet déplacé vers la limite avant exécution avec un budget exactement égal à la réserve (coût réel supérieur au plan, solde final 0) ; remplissages partiels ; invariant forcé en échec → `erreur_invariant` ; PPCM dans les deux ordres, 0.101 → 0.096 exécuté dans les deux ordres, aucune quantité commune, minimum après pas commun ; auto-référence, cycle (y compris `_root` direct), révisions incohérentes ou rétroactives ; consensus ex post disponible avant la décision refusé, égalité refusée, NaN/infini/booléen, mauvais indicateur ou période, sans source, champ manquant, publication pas encore disponible.
+- Tests de r1 adaptés (2) : format de consensus désormais complet ; libellé « aucune quantité commune » suivi du pas commun.
+- Contre-épreuve sur le code de 7d1de13 (copie isolée) : cas de dot → `execute_complet` avec solde A = -0.0099 ; pas 0.003/0.002 et cible 0.101 → refus ; révision auto-référencée acceptée puis `available_at` toujours en boucle après 2 s ; consensus de 13:31 accepté (surprise 10). Les quatre défauts sont donc reproduits avant correction.
+- CLI : `labtrading run --all --out …` → 0 ; statuts des 12 scénarios inchangés.
+
+### Hors mission : site (demande utilisateur)
+- Commit f838861 sur la même branche : Worker statique et `site/wrangler.jsonc` pour laboratory.site (projets.laboratory.site + labo./x402./vendeur. ; domaine racine non utilisé), une page par projet, `_headers`, `site/DEPLOIEMENT.md`, `tests/test_site.py` (4 tests). Décision utilisateur : page publique. **Aucun déploiement** : api.cloudflare.com refusé par le réseau de l'environnement. Une archive statique a été remise à l'utilisateur pour un éventuel téléversement manuel par ses soins. Ce travail recoupe le futur HUB-001 : à reprendre dans ce lot plutôt qu'en doublon. Les points de dot (instantané, pas de télémétrie, provenance et date de la coordination à afficher, polices Google, tableau privé séparé) ne sont pas encore traités.
+
+### Limites
+- Réserve prudente : elle peut réduire la quantité par rapport à un calcul au prix moyen (budget immobilisé au pire prix).
+- Convention d'égalité temporelle du consensus : stricte, documentée ; à revoir si une source fournit un ordre intra-seconde fiable.
+- Les limites de r1 restent : formats inspirés non vérifiés, pas de checksum, latence fixe, rééquilibrage forfaitaire non débité, exposition non valorisée, aucune donnée réelle.
+
+### Prochaine action
+dot : revue de LAB-001 r2 ; `accepted` ou `changes_requested` avec révision 3. X402-002 r1 attend toujours sa revue ; HUB-001 non démarré.
+
 ## Journal
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
 - 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
@@ -418,3 +450,4 @@ Priorité de réalisation après corrections LAB-001, sauf session site déjà p
 
 - 2026-10-30 : v14, dot demande LAB-001 r2 sur quatre défauts vérifiables et cadre le hub commun demandé, sans déploiement ni modification de code.
 - 2026-10-30 : v15, Claude Code prend en charge LAB-001 r2 (tentative LAB-001-r2-claude-20261030T083315Z).
+- 2026-10-30 : v16, Claude Code livre LAB-001 r2 (commit 5971802) ; état review_requested.
