@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
+from decimal import ROUND_CEILING, ROUND_FLOOR, ROUND_HALF_EVEN, Decimal, localcontext
 from typing import Any
 
 from .book import Market, OrderBook, to_decimal
@@ -107,6 +107,17 @@ class Result:
 
 def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
              inventory: Inventory) -> Result:
+    """Évalue dans un contexte Decimal assez précis pour qu'aucun produit ni somme
+    de valeurs du domaine ne soit arrondi en silence (seuls les arrondis monétaires
+    explicites, par quantize, arrondissent)."""
+    with localcontext() as ctx:
+        ctx.prec = EXACT_PREC
+        ctx.rounding = ROUND_HALF_EVEN
+        return _evaluate(markets, replay, params, inventory)
+
+
+def _evaluate(markets: dict[str, Market], replay: Replay, params: Params,
+              inventory: Inventory) -> Result:
     venues = sorted(markets)
     if len(venues) != 2:
         return Result("rejete", ["exactement deux plateformes attendues"])
@@ -115,6 +126,10 @@ def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
     D = params.decision_time
     states = {v: replay.visible_book(v, D) for v in venues}
     result.visible = {v: _describe(s) for v, s in states.items()}
+    out_of_domain = _input_problems(markets, params, inventory, [s.book for s in states.values()])
+    if out_of_domain:
+        result.reasons.append("entrée hors du domaine pris en charge: " + "; ".join(out_of_domain[:3]))
+        return result
 
     a, b = (markets[v] for v in venues)
     if a.base != b.base:
@@ -161,10 +176,12 @@ def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
     }
     cap = min(limits.values())
     binding = [name for name, value in limits.items() if value == cap]
+    budget = inventory.get(buy_v, {}).get(buy_m.quote, ZERO)
     try:
         step = common_lot_step(buy_m.lot_size, sell_m.lot_size)
         qty = _floor_to_step(max(cap, ZERO), step)
-    except ValueError as exc:
+        affordable = _max_affordable(qty, step, buy_book, buy_m, budget)
+    except DomainError as exc:
         result.reasons.append(f"quantité ou pas de lot hors du domaine pris en charge: {exc}")
         return result
     if qty == 0 and cap >= max(buy_m.lot_size, sell_m.lot_size):
@@ -173,8 +190,6 @@ def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
             f"aucune quantité commune aux pas de lot des deux plateformes "
             f"(pas commun {step} > {cap})")
         return result
-    budget = inventory.get(buy_v, {}).get(buy_m.quote, ZERO)
-    affordable = _max_affordable(qty, step, buy_book, buy_m, budget)
     if affordable < qty:
         binding = [f"solde {buy_m.quote} payable sur {buy_v} "
                    "(réserve au prix limite, frais et arrondis compris)"]
@@ -220,8 +235,9 @@ def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
     for leg, market in ((buy_leg, buy_m), (sell_leg, sell_m)):
         leg.exec_time = D + params.latency_ms.get(leg.venue, 0)
         truth = replay.true_book(leg.venue, leg.exec_time)
-        if not truth.valid:
-            result.notes.append(f"carnet réel {leg.venue} invalide à {leg.exec_time}: aucun remplissage")
+        if not truth.valid or _book_problems(truth.book, leg.venue):
+            result.notes.append(f"carnet réel {leg.venue} invalide ou hors domaine à {leg.exec_time}: "
+                                "aucun remplissage")
             continue
         if leg.side == "achat":
             leg.executed = _walk(truth.book.sorted_asks(), qty, lambda p, lim=leg.limit_price: p <= lim)
@@ -302,20 +318,30 @@ def _depth(levels: list[tuple[Decimal, Decimal]], accept) -> Decimal:
 MAX_DIGITS = 34
 MIN_EXPONENT = -40
 MAX_EXPONENT = 12
+# Un résultat intermédiaire (PPCM, plancher, multiple de pas) dérivé d'entrées du
+# domaine ne dépasse jamais cette borne : produit de deux coefficients d'entrée
+# plus l'écart d'exposants. Au-delà, c'est une erreur de domaine, jamais un arrondi.
+MAX_INTERMEDIATE_DIGITS = 2 * MAX_DIGITS + (MAX_EXPONENT - MIN_EXPONENT) + 2
+# Précision des calculs d'evaluate : un produit de deux valeurs bornées tient sans arrondi.
+EXACT_PREC = 2 * MAX_INTERMEDIATE_DIGITS + 2 * MAX_DIGITS
 
 
-def _coefficient(value: Decimal, name: str) -> tuple[int, int]:
+class DomainError(ValueError):
+    """Valeur hors du domaine pris en charge (refus motivé, jamais arrondi)."""
+
+
+def _coefficient(value: Decimal, name: str, max_digits: int = MAX_DIGITS) -> tuple[int, int]:
     """(coefficient entier, exposant) exacts : value == coefficient x 10**exposant."""
     if not isinstance(value, Decimal) or not value.is_finite():
-        raise ValueError(f"{name}: Decimal fini exigé")
+        raise DomainError(f"{name}: Decimal fini exigé")
     sign, digits, exponent = value.as_tuple()
     if sign or not any(digits):
-        raise ValueError(f"{name}: valeur strictement positive exigée")
+        raise DomainError(f"{name}: valeur strictement positive exigée")
     coefficient = int("".join(map(str, digits)))
     significant = len(str(coefficient).rstrip("0"))
-    if significant > MAX_DIGITS or not MIN_EXPONENT <= exponent <= MAX_EXPONENT:
-        raise ValueError(
-            f"{name}: hors du domaine pris en charge ({MAX_DIGITS} chiffres significatifs, "
+    if significant > max_digits or not MIN_EXPONENT <= exponent <= MAX_EXPONENT:
+        raise DomainError(
+            f"{name}: hors du domaine pris en charge ({max_digits} chiffres significatifs, "
             f"exposant entre {MIN_EXPONENT} et {MAX_EXPONENT})")
     return coefficient, exponent
 
@@ -349,15 +375,18 @@ def _lots_in(qty: Decimal, step: Decimal) -> int:
     """Nombre entier exact de pas contenus dans qty (plancher), sans arrondi de contexte."""
     if qty <= 0:
         return 0
-    _coefficient(qty, "quantité")  # même domaine que les pas
+    _coefficient(qty, "quantité", MAX_INTERMEDIATE_DIGITS)  # peut être un résultat intermédiaire
     exponent = min(qty.as_tuple().exponent, step.as_tuple().exponent)
     return _aligned(qty, exponent) // _aligned(step, exponent)
 
 
 def _times(step: Decimal, lots: int) -> Decimal:
-    """step x lots, exact."""
-    coefficient, exponent = _coefficient(step, "pas de lot")
-    return _decimal_from_int(coefficient * lots, exponent)
+    """step x lots, exact (borne des résultats intermédiaires contrôlée)."""
+    coefficient, exponent = _coefficient(step, "pas commun", MAX_INTERMEDIATE_DIGITS)
+    product = coefficient * lots
+    if len(str(product).rstrip("0")) > MAX_INTERMEDIATE_DIGITS:
+        raise DomainError("quantité intermédiaire au-delà de la borne contrôlée")
+    return _decimal_from_int(product, exponent)
 
 
 def _floor_to_step(qty: Decimal, step: Decimal) -> Decimal:
@@ -414,6 +443,40 @@ def _add(inv: Inventory, venue: str, asset: str, delta: Decimal) -> None:
 
 def _get(inv: Inventory, venue: str, asset: str) -> Decimal:
     return inv.get(venue, {}).get(asset, ZERO)
+
+
+def _input_ok(value: Decimal, name: str) -> str | None:
+    """None si la valeur d'entrée est 0 ou dans le domaine (positive, bornée)."""
+    if isinstance(value, Decimal) and value.is_finite() and value == 0:
+        return None
+    try:
+        _coefficient(value, name)
+    except DomainError as exc:
+        return str(exc)
+    return None
+
+
+def _book_problems(book: OrderBook, venue: str) -> list[str]:
+    found = []
+    for side, levels in (("bid", book.bids), ("ask", book.asks)):
+        for price, qty in levels.items():
+            found += [m for m in (_input_ok(price, f"prix {side} {venue}"),
+                                  _input_ok(qty, f"quantité {side} {venue}")) if m]
+    return found
+
+
+def _input_problems(markets: dict[str, Market], params: Params, inventory: Inventory,
+                    books: list[OrderBook]) -> list[str]:
+    values = [(params.target_qty, "cible"), (params.rebalance_cost_per_unit, "rééquilibrage")]
+    for m in markets.values():
+        values += [(getattr(m, f), f"{f} {m.venue}") for f in (
+            "tick_size", "lot_size", "min_qty", "min_notional", "taker_fee", "quote_precision")]
+    for venue, assets in inventory.items():
+        values += [(amount, f"solde {asset} {venue}") for asset, amount in assets.items()]
+    found = [m for value, name in values if (m := _input_ok(value, name))]
+    for venue, book in zip(sorted(markets), books):
+        found += _book_problems(book, venue)
+    return found
 
 
 def _describe(state: BookState) -> dict[str, Any]:
