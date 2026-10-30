@@ -1,0 +1,91 @@
+{
+  "x402Version": 2,
+  "items": [
+    {
+      "resource": "https://api.exemple-fictif.org/gros-montant",
+      "type": "http",
+      "x402Version": 2,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          },
+          "amount": "9007199254740993"
+        },
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          },
+          "amount": 9007199254740995
+        },
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          }
+        }
+      ],
+      "lastUpdated": "2026-10-01T00:00:00.000Z",
+      "description": "Service fictif (lecture)",
+      "mimeType": "application/json",
+      "serviceName": "Service Fictif",
+      "tags": [
+        "fictif",
+        "demo"
+      ],
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": {
+              "type": "http",
+              "method": "GET",
+              "queryParams": {
+                "q": "exemple"
+              }
+            },
+            "output": {
+              "type": "json",
+              "example": {
+                "ok": true
+              }
+            }
+          },
+          "schema": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "input"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "pagination": {
+    "limit": 10,
+    "offset": 0,
+    "total": 1
+  }
+}

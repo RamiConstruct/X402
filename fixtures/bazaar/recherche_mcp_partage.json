@@ -1,0 +1,213 @@
+{
+  "x402Version": 2,
+  "partialResults": false,
+  "resources": [
+    {
+      "resource": "https://api.exemple-fictif.org/mcp",
+      "type": "mcp",
+      "x402Version": 2,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          },
+          "amount": "500"
+        }
+      ],
+      "lastUpdated": "2026-10-03T00:00:00.000Z",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": {
+              "type": "mcp",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "string"
+                  }
+                }
+              },
+              "toolName": "resumer"
+            }
+          },
+          "schema": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "resource": "https://api.exemple-fictif.org/mcp",
+      "type": "mcp",
+      "x402Version": 2,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          },
+          "amount": "500"
+        }
+      ],
+      "lastUpdated": "2026-10-03T00:00:00.000Z",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": {
+              "type": "mcp",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "string"
+                  }
+                }
+              },
+              "toolName": "traduire"
+            }
+          },
+          "schema": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "resource": "mcp://outils.exemple-fictif.org",
+      "type": "mcp",
+      "x402Version": 2,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          },
+          "amount": "500"
+        }
+      ],
+      "lastUpdated": "2026-10-03T00:00:00.000Z",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": {
+              "type": "mcp",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "string"
+                  }
+                }
+              },
+              "toolName": "classer"
+            }
+          },
+          "schema": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "resource": "https://api.exemple-fictif.org/mcp",
+      "type": "mcp",
+      "x402Version": 2,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          },
+          "amount": "500"
+        }
+      ],
+      "lastUpdated": "2026-10-03T00:00:00.000Z",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": {
+              "type": "mcp",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "schema": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "resource": "https://api.exemple-fictif.org/mcp",
+      "type": "mcp",
+      "x402Version": 2,
+      "accepts": [
+        {
+          "scheme": "exact",
+          "network": "eip155:84532",
+          "asset": "0xa1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1",
+          "payTo": "0xc3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "maxTimeoutSeconds": 60,
+          "extra": {
+            "name": "JETON-FICTIF",
+            "version": "2"
+          },
+          "amount": "500"
+        }
+      ],
+      "lastUpdated": "2026-10-03T00:00:00.000Z",
+      "extensions": {
+        "bazaar": {
+          "info": {
+            "input": {
+              "type": "mcp",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "string"
+                  },
+                  "y": {
+                    "$ref": "https://schemas.exemple-fictif.org/y.json"
+                  }
+                }
+              },
+              "toolName": "schema_externe"
+            }
+          },
+          "schema": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  ]
+}

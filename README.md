@@ -30,6 +30,7 @@ python3 -m atelier_x402 compare            # comparaison JSON + couverture, erre
 python3 -m atelier_x402 providers          # fournisseurs IA et leur état
 python3 -m atelier_x402 simulate-x402 --all
 python3 -m atelier_x402 check-cost --price 0.01 --currency USDC --unit per_request
+python3 -m atelier_x402 bazaar --all      # normalise les fixtures Bazaar (hors ligne)
 ```
 
 Découverte HTTP (désactivée par défaut, ne pas utiliser sans décision explicite) :
@@ -50,6 +51,40 @@ lus), `echec` (aucun service lu) ou `vide` (aucune donnée : ce n'est pas une
 réussite). Le code retour vaut 0 seulement si la couverture est `complete`, et 3
 sinon. Les montants JSON sont lus en `Decimal` exact (`parse_float=Decimal`) et
 exportés en texte, sans passer par un flottant.
+
+## Bazaar (x402 v2), hors ligne
+
+`atelier_x402/bazaar.py` normalise les réponses de découverte Bazaar **déjà
+chargées**, avec des fonctions pures : il n'appelle ni facilitateur, ni ressource,
+ni outil MCP, et ne charge jamais une référence de schéma externe.
+
+Formats couverts, et seulement eux : ceux du dépôt `x402-foundation/x402` au
+commit `14bc0fb` (voir `fixtures/bazaar/MANIFEST.json`) :
+
+| Réponse | Enveloppe | Couverture |
+|---|---|---|
+| Liste `GET /discovery/resources` | `x402Version`, `items`, `pagination{limit, offset, total}` | `complete` si tout le total est lu ; `partial` sinon ; `unknown` sans pagination |
+| Recherche `GET /discovery/search` | `x402Version`, `resources`, `partialResults?`, `pagination?` (objet `{limit, cursor}` ou `null`) | `partial` si `partialResults` vaut vrai ou si un curseur est présent ; `complete` si `partialResults` vaut faux ; `unknown` sinon |
+| Variante de recherche | `limit` et `cursor` à la racine (pagination propre au facilitateur, citée par la doc) | signalée comme `racine` |
+
+- Une enveloppe avec `items` **et** `resources` est rejetée, sans choix arbitraire.
+- Toutes les offres `accepts` sont conservées dans l'ordre. `amount` reste une
+  chaîne d'entier exacte, même au-delà de 2^53. Aucune décimale d'actif ni
+  conversion USD n'est supposée, et un montant absent n'est jamais zéro.
+  `offer_cost_estimate` renvoie un prix inconnu : `CostGuard` refuse toujours.
+- La comparaison n'a lieu qu'entre offres `exact` de même réseau et de même
+  actif, en unités atomiques. `upto` est un plafond, jamais un coût final.
+- MCP : l'identifiant est le couple (`resource`, `toolName`). Deux outils d'une
+  même ressource restent séparés. Un `toolName` manquant est diagnostiqué, et
+  `mcp://…` est un identifiant, pas une URL à appeler.
+- Métadonnées `serviceName`, `tags` et `iconUrl` : règles d'écartement de la
+  spécification (l'icône n'est jamais chargée).
+- Les fixtures `fixtures/bazaar/` sont **synthétiques** (provenance `fictif`) :
+  seule leur structure suit les sources. Le chargeur refuse un fichier absent du
+  manifeste ou dont l'empreinte SHA-256 diffère.
+
+La commande `bazaar` est séparée : `discover` et `compare` (format historique de
+l'atelier) restent inchangées.
 
 ## Modèle normalisé
 
@@ -84,8 +119,10 @@ atelier_x402/
   discovery/   base.py (interface) · fixtures.py · http_public.py · netguard.py
   providers/   base.py (interface) · simulated.py · registry.py (adaptateurs désactivés)
   costs/       guard.py (CostGuard, BudgetPolicy, CostEstimate)
+  bazaar.py    adaptateurs Bazaar hors ligne (liste, recherche, offres, MCP)
   x402/        flow.py (simulation hors ligne)
 fixtures/      services_fictifs.json · x402_scenarios_fictifs.json   (marqués "fictif": true)
+               bazaar/ (10 fixtures synthétiques + MANIFEST.json)
 tests/         unittest, réseau bloqué pendant les tests
 docs/          parcours_x402.md · VISION.md (boussole du projet)
 ```
@@ -187,7 +224,7 @@ volontairement large.
   serveur ne peut pas être distinguée d'une fin normale.
 - Les détections de secrets sont heuristiques : un secret au format inattendu
   sous une clé neutre peut passer.
-- Le schéma de découverte HTTP est propre à l'atelier, sans format x402 vérifié.
-- docs.x402.org n'a pas pu être consultée (voir `docs/parcours_x402.md`).
+- Le schéma de découverte HTTP (`discover --enable-http`) reste propre à l'atelier. Bazaar n'est couvert qu'en hors ligne, pour les formats ci-dessus : aucune revendication universelle Bazaar ou MCP, aucun client HTTP Bazaar.
+- docs.x402.org n'a pas pu être consultée (connexion refusée par le proxy) ; les sources sont celles du dépôt officiel, au commit noté dans le manifeste.
 - Les fixtures sont fictives : aucune conclusion commerciale ou de rentabilité
   ne peut en être tirée.

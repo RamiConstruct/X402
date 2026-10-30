@@ -1,0 +1,162 @@
+{
+  "avertissement": "Toutes les fixtures sont SYNTHÉTIQUES : hôtes, adresses, actifs et montants inventés. Seule leur STRUCTURE suit les sources officielles ci-dessous. Aucune ne reproduit une réponse réelle d'un facilitateur ni ne prouve disponibilité ou demande commerciale.",
+  "source": {
+    "depot": "https://github.com/x402-foundation/x402",
+    "commit": "14bc0fbf784914a6eb24bf87cdcd8d827e2b3ff3",
+    "licence": "Apache-2.0",
+    "recupere_le_utc": "2026-10-30T05:32:51Z",
+    "methode": "git clone --depth 1 (lecture seule) ; https://docs.x402.org inaccessible depuis l'environnement (connexion refusée par le proxy), donc non consultée directement",
+    "fichiers": [
+      {
+        "chemin": "specs/extensions/bazaar.md",
+        "blob": "442708e76d5a129e0c1393471d8ed71e3604c94e",
+        "url": "https://github.com/x402-foundation/x402/blob/14bc0fbf784914a6eb24bf87cdcd8d827e2b3ff3/specs/extensions/bazaar.md"
+      },
+      {
+        "chemin": "docs/extensions/bazaar.mdx",
+        "blob": "70057cd342e53a1b7527239ecf1dff490b3f657c",
+        "url": "https://github.com/x402-foundation/x402/blob/14bc0fbf784914a6eb24bf87cdcd8d827e2b3ff3/docs/extensions/bazaar.mdx"
+      },
+      {
+        "chemin": "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "blob": "74b921439a8769b10cbe3ccccd1fe5d86b6b1c22",
+        "url": "https://github.com/x402-foundation/x402/blob/14bc0fbf784914a6eb24bf87cdcd8d827e2b3ff3/typescript/packages/extensions/src/bazaar/facilitatorClient.ts"
+      },
+      {
+        "chemin": "specs/x402-specification-v2.md",
+        "blob": "7f324a6d9af1a2403387dc64e65ad9555d2dd1fc",
+        "url": "https://github.com/x402-foundation/x402/blob/14bc0fbf784914a6eb24bf87cdcd8d827e2b3ff3/specs/x402-specification-v2.md"
+      }
+    ]
+  },
+  "fixtures": [
+    {
+      "fichier": "liste_complete.json",
+      "endpoint_attendu": "list",
+      "couverture_attendue": "complete",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "docs/extensions/bazaar.mdx",
+        "specs/x402-specification-v2.md"
+      ],
+      "sha256": "c6e24b2e48c4fc4bb8ee051d59a29b6426516a94897fe1e2a98960e0122d6d66"
+    },
+    {
+      "fichier": "recherche_pagination_absente.json",
+      "endpoint_attendu": "search",
+      "couverture_attendue": "unknown",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "specs/extensions/bazaar.md",
+        "docs/extensions/bazaar.mdx"
+      ],
+      "sha256": "c1aef75c5f4dc85d3da018c77463201134e690dcfa028025d0f0747280b24418"
+    },
+    {
+      "fichier": "recherche_pagination_null.json",
+      "endpoint_attendu": "search",
+      "couverture_attendue": "complete",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "specs/extensions/bazaar.md",
+        "docs/extensions/bazaar.mdx"
+      ],
+      "sha256": "2ff4d494225615369b1d722bd590fb291de855d14c5260d0529c55bb44ccb9f7"
+    },
+    {
+      "fichier": "recherche_partielle_curseur.json",
+      "endpoint_attendu": "search",
+      "couverture_attendue": "partial",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "specs/extensions/bazaar.md",
+        "docs/extensions/bazaar.mdx"
+      ],
+      "sha256": "37027360dca899345430b49a9600353f4dbc724aa7281a83b2b25f596208f0da"
+    },
+    {
+      "fichier": "recherche_variante_racine.json",
+      "endpoint_attendu": "search",
+      "couverture_attendue": "complete",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "specs/extensions/bazaar.md",
+        "docs/extensions/bazaar.mdx"
+      ],
+      "sha256": "b2d7b77cfe65bc6b76e770a2925de9b57d5fdc4923908575aff711a492114846"
+    },
+    {
+      "fichier": "liste_offres_multiples.json",
+      "endpoint_attendu": "list",
+      "couverture_attendue": "partial",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "docs/extensions/bazaar.mdx",
+        "specs/x402-specification-v2.md"
+      ],
+      "sha256": "4c76980fb9b673a9af4a3e90453d5d4d54d11dce9bcdbc7e20c694aeae5422ad"
+    },
+    {
+      "fichier": "liste_grand_entier_decimales_inconnues.json",
+      "endpoint_attendu": "list",
+      "couverture_attendue": "complete",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "docs/extensions/bazaar.mdx",
+        "specs/x402-specification-v2.md"
+      ],
+      "sha256": "b852cef9a09d1a1cbf3ff78a0b11def46d5ba17020c799d97f853ced0dae4ba0"
+    },
+    {
+      "fichier": "recherche_mcp_partage.json",
+      "endpoint_attendu": "search",
+      "couverture_attendue": "partial",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "specs/extensions/bazaar.md",
+        "docs/extensions/bazaar.mdx"
+      ],
+      "sha256": "92dee97cd28b655ee3e198b318c377e31b0928dfec60fdbc25c08a0f714bbbdb"
+    },
+    {
+      "fichier": "enveloppe_contradictoire.json",
+      "endpoint_attendu": "rejete",
+      "couverture_attendue": "unknown",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts"
+      ],
+      "sha256": "555a0c27828bc72826f350a1dd2abc2addd87964e5605c2676aa17a2389269bc"
+    },
+    {
+      "fichier": "liste_entrees_invalides.json",
+      "endpoint_attendu": "list",
+      "couverture_attendue": "partial",
+      "synthetique": true,
+      "x402Version_explicite": 2,
+      "forme_documentee_dans": [
+        "typescript/packages/extensions/src/bazaar/facilitatorClient.ts",
+        "docs/extensions/bazaar.mdx",
+        "specs/x402-specification-v2.md"
+      ],
+      "sha256": "b3d50560eb5285c81c745db3930a52e80372a73a0566c95304d0934ff92fa945"
+    }
+  ]
+}

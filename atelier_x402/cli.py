@@ -9,6 +9,7 @@ import sys
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
+from . import bazaar
 from .costs import BudgetPolicy, CostEstimate, CostGuard
 from .discovery import DiscoveryResult, FixtureDiscovery, HttpPolicy, PublicHttpDiscovery
 from .discovery.fixtures import DEFAULT_FIXTURE
@@ -90,6 +91,31 @@ def cmd_simulate(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bazaar(args: argparse.Namespace) -> int:
+    """Normalise des fixtures Bazaar hors ligne. N'appelle aucun service."""
+    if args.all:
+        paths = [bazaar.FIXTURES_DIR / f["fichier"] for f in bazaar.load_manifest()["fixtures"]]
+    else:
+        paths = [Path(args.fixture)]
+    pages, code = [], 0
+    for path in paths:
+        try:
+            page = bazaar.load_fixture(path)
+        except (bazaar.FixtureRefused, OSError, ValueError) as exc:
+            pages.append({"source": str(path), "erreur": str(exc)})
+            code = EXIT_INCOMPLETE
+            continue
+        pages.append(page.to_dict())
+        if page.coverage != "complete":
+            code = EXIT_INCOMPLETE
+    text = json.dumps(pages if args.all else pages[0], ensure_ascii=False, indent=2)
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(text + "\n", encoding="utf-8")
+    print(text)
+    return code
+
+
 def cmd_check_cost(args: argparse.Namespace) -> int:
     def dec(value: str | None) -> Decimal | None:
         try:
@@ -144,6 +170,13 @@ def build_parser() -> argparse.ArgumentParser:
     group.add_argument("--all", action="store_true")
     p.add_argument("--out")
     p.set_defaults(func=cmd_simulate)
+
+    p = sub.add_parser("bazaar", help="normalise des fixtures Bazaar hors ligne (aucun appel)")
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument("--fixture", help="fixture listée dans fixtures/bazaar/MANIFEST.json")
+    group.add_argument("--all", action="store_true", help="toutes les fixtures du manifeste")
+    p.add_argument("--out")
+    p.set_defaults(func=cmd_bazaar)
 
     p = sub.add_parser("check-cost", help="évalue un coût avec CostGuard (toujours refusé ici)")
     p.add_argument("--price")
