@@ -89,7 +89,7 @@ class MandatoryScenarioTests(unittest.TestCase):
         lots["markets"][1]["lot_size"] = "0.002"
         lots["params"]["target_qty"] = "0.005"
         r = run_scenario(lots)
-        self.assertIn("aucune quantité commune aux pas de lot des deux plateformes", r.reasons)
+        self.assertTrue(r.reasons[0].startswith("aucune quantité commune aux pas de lot"))
 
     def test_future_data_inaccessible(self):
         data = scenario("donnee_future")
@@ -223,6 +223,14 @@ class BookAndReplayTests(unittest.TestCase):
             Event.from_dict({"venue": "A", "market_time": 10, "received_at": 5, "seq": 1, "message": {}})
 
 
+def consensus(**kw):
+    base = {"value": 90, "source": "enquête fictive", "indicator": "emploi_fictif",
+            "period": "2026-10", "cutoff_at": "2026-11-05T00:00:00Z",
+            "available_at": "2026-11-05T12:00:00Z"}
+    base.update(kw)
+    return base
+
+
 class OfficialEventTests(unittest.TestCase):
     def setUp(self):
         data = json.loads((SCENARIOS_DIR / "evenements_officiels_fictifs.json").read_text())
@@ -261,8 +269,8 @@ class OfficialEventTests(unittest.TestCase):
         with self.assertRaises(EventError):
             surprise(pub, None, t)
         with self.assertRaises(EventError):
-            surprise(pub, {"value": 90, "available_at": "2026-11-08T00:00:00Z"}, t)
-        self.assertEqual(surprise(pub, {"value": 90, "available_at": "2026-11-05T00:00:00Z"}, t), 10)
+            surprise(pub, {"value": 90, "available_at": "2026-11-05T00:00:00Z"}, t)  # non sourcé
+        self.assertEqual(surprise(pub, consensus(), t), 10)
 
 
 class ReportCliAndSafetyTests(unittest.TestCase):

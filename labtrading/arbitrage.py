@@ -23,6 +23,7 @@ instantané entre plateformes n'est supposé.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from decimal import ROUND_CEILING, ROUND_FLOOR, Decimal
 from typing import Any
@@ -153,23 +154,30 @@ def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
     limits = {
         "cible": params.target_qty,
         f"inventaire {sell_m.base} sur {sell_v}": inventory.get(sell_v, {}).get(sell_m.base, ZERO),
-        f"solde {buy_m.quote} payable sur {buy_v}": _affordable_qty(
-            buy_book, inventory.get(buy_v, {}).get(buy_m.quote, ZERO), buy_m),
         f"profondeur ask {buy_v} (prix < meilleur bid {sell_v})": _depth(
             buy_book.sorted_asks(), lambda p: p < sell_book.best_bid()),
         f"profondeur bid {sell_v} (prix > meilleur ask {buy_v})": _depth(
             sell_book.sorted_bids(), lambda p: p > buy_book.best_ask()),
     }
-    qty = min(limits.values())
-    binding = [name for name, value in limits.items() if value == qty]
-    qty = _round_lots(qty, buy_m.lot_size, sell_m.lot_size)
-    result.planned_qty = qty
-    result.notes.append(f"contrainte(s) limitante(s): {', '.join(binding)}")
-    minimum = max(buy_m.min_qty, sell_m.min_qty)
-    if qty is None:
-        result.reasons.append("aucune quantité commune aux pas de lot des deux plateformes")
-        result.planned_qty = ZERO
+    cap = min(limits.values())
+    binding = [name for name, value in limits.items() if value == cap]
+    step = common_lot_step(buy_m.lot_size, sell_m.lot_size)
+    qty = _floor_to_step(max(cap, ZERO), step)
+    if qty == 0 and cap >= max(buy_m.lot_size, sell_m.lot_size):
+        # Chaque plateforme pourrait traiter seule cette quantité, mais pas les deux ensemble.
+        result.reasons.append(
+            f"aucune quantité commune aux pas de lot des deux plateformes "
+            f"(pas commun {step} > {cap})")
         return result
+    budget = inventory.get(buy_v, {}).get(buy_m.quote, ZERO)
+    affordable = _max_affordable(qty, step, buy_book, buy_m, budget)
+    if affordable < qty:
+        binding = [f"solde {buy_m.quote} payable sur {buy_v} "
+                   "(réserve au prix limite, frais et arrondis compris)"]
+        qty = affordable
+    result.planned_qty = qty
+    result.notes.append(f"contrainte(s) limitante(s): {', '.join(binding)} ; pas commun {step}")
+    minimum = max(buy_m.min_qty, sell_m.min_qty)
     if qty < minimum or qty == 0:
         why = f"quantité {qty} < minimum {minimum} après arrondi au pas de lot"
         if any(n.startswith(("solde", "inventaire")) for n in binding):
@@ -254,6 +262,12 @@ def evaluate(markets: dict[str, Market], replay: Replay, params: Params,
     if result.realized_pnl is not None:
         reb = _ceil(bought * params.rebalance_cost_per_unit, buy_m.quote_precision)
         result.checks["pnl_rapproche"] = result.realized_pnl == quote_delta - reb
+    if not all(result.checks.values()):
+        # Ne devrait jamais arriver : la réserve couvre le pire cas. Jamais de statut réussi.
+        failed = [name for name, ok in result.checks.items() if not ok]
+        result.status = "erreur_invariant"
+        result.realized_pnl = None
+        result.reasons.append(f"invariant violé: {', '.join(failed)} ; résultat non utilisable")
     return result
 
 
@@ -277,25 +291,49 @@ def _depth(levels: list[tuple[Decimal, Decimal]], accept) -> Decimal:
     return sum((q for p, q in levels if accept(p)), ZERO)
 
 
-def _affordable_qty(book: OrderBook, budget: Decimal, market: Market) -> Decimal:
-    qty, spent = ZERO, ZERO
-    for price, available in book.sorted_asks():
-        unit = price * (1 + market.taker_fee)
-        if spent + available * unit <= budget:
-            qty += available
-            spent += available * unit
-        else:
-            qty += (budget - spent) / unit
-            break
-    return qty
+def common_lot_step(lot_a: Decimal, lot_b: Decimal) -> Decimal:
+    """Plus petit commun multiple exact de deux pas décimaux (arithmétique entière)."""
+    places = max(-lot_a.as_tuple().exponent, -lot_b.as_tuple().exponent, 0)
+    scale = 10 ** places
+    a, b = int(lot_a * scale), int(lot_b * scale)
+    if a <= 0 or b <= 0 or Decimal(a) != lot_a * scale or Decimal(b) != lot_b * scale:
+        raise ValueError(f"pas de lot invalides: {lot_a}, {lot_b}")
+    return Decimal(math.lcm(a, b)) / scale
 
 
-def _round_lots(qty: Decimal, lot_a: Decimal, lot_b: Decimal) -> Decimal | None:
-    rounded = (qty // lot_a) * lot_a
-    rounded = (rounded // lot_b) * lot_b
-    if rounded % lot_a != 0:
+def _floor_to_step(qty: Decimal, step: Decimal) -> Decimal:
+    return (qty // step) * step
+
+
+def buy_reserve(book: OrderBook, qty: Decimal, market: Market) -> Decimal | None:
+    """Pire débit possible pour acheter ``qty`` : tout au prix limite, frais et arrondis compris.
+
+    L'exécution simulée ne paie jamais plus que le prix limite (pire niveau
+    planifié) : réserver ``qty x limite`` garantit la solvabilité même si le
+    carnet se déplace vers la limite avant l'arrivée de l'ordre.
+    """
+    plan = _walk(book.sorted_asks(), qty, None)
+    if plan.qty < qty or not plan.levels:
         return None
-    return rounded
+    worst = _ceil(qty * max(p for p, _ in plan.levels), market.quote_precision)
+    return worst + _ceil(worst * market.taker_fee, market.quote_precision)
+
+
+def _max_affordable(qty: Decimal, step: Decimal, book: OrderBook, market: Market,
+                    budget: Decimal) -> Decimal:
+    """Plus grande quantité multiple de ``step`` (<= qty) dont la réserve tient dans le budget."""
+    def fits(n: int) -> bool:
+        reserve = buy_reserve(book, step * n, market)
+        return reserve is not None and reserve <= budget
+
+    low, high = 0, int(qty / step)
+    while low < high:  # la réserve croît avec la quantité : recherche dichotomique
+        mid = (low + high + 1) // 2
+        if fits(mid):
+            low = mid
+        else:
+            high = mid - 1
+    return step * low
 
 
 def _ceil(value: Decimal, precision: Decimal) -> Decimal:
