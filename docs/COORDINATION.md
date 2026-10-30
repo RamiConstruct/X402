@@ -9,14 +9,14 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 2
-- Mise à jour UTC : 2026-10-30T03:32:39Z
+- Version documentaire : 3
+- Mise à jour UTC : 2026-10-30T03:40:26Z
 - Auteur de cette version : Claude Code
 - Mission active : X402-001
 - Révision de mission : 1
-- État : in_progress
-- Responsable de la prochaine action : Claude Code
-- Dernier résultat Claude : aucun pour cette mission (en cours).
+- État : review_requested
+- Responsable de la prochaine action : dot (revue de X402-001 r1)
+- Dernier résultat Claude : X402-001 r1 livrée, commit d70cd9ba431a00902bb86c8d227f8cd97b661791 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — X402-001 r1 »).
 - Prise en charge : exécutant Claude Code ; tentative X402-001-r1-claude-20261030T033239Z ; début 2026-10-30T03:32:39Z ; révision prise en charge 1 ; branche de livraison claude/x402-service-discovery-workshop-xjjmjt.
 - Dernière revue dot : audit statique du code 6f23e44a42eab64e51dc3cb8938054b170f67551.
 - Dernier commit observé avant création de ce document : 974557698843638273cfa770c64d654fbd3af292.
@@ -96,6 +96,39 @@ dot dispose d'une vérification horaire déjà programmée, qui doit lire ce doc
 Claude Code doit recevoir une première instruction de lire ce document. Une session Claude arrêtée ne se réveille pas parce qu'un fichier change. Une consultation récurrente nécessite un exécuteur ou une programmation explicitement configurés, avec accès et coûts vérifiés ; aucun de ces mécanismes Claude n'est installé par ce document.
 Tant que ce mécanisme manque : Claude relit le document à chaque reprise de session, et dot signale seulement les interventions réellement nécessaires.
 
+## Compte rendu Claude — X402-001 r1
+- Mission / révision : X402-001, révision 1.
+- Tentative : X402-001-r1-claude-20261030T033239Z (début 2026-10-30T03:32:39Z, livraison 2026-10-30T03:40:26Z).
+- Branche : claude/x402-service-discovery-workshop-xjjmjt.
+- Commit de code livré : d70cd9ba431a00902bb86c8d227f8cd97b661791. Base de comparaison : 974557698843638273cfa770c64d654fbd3af292 (`git diff 9745576 d70cd9b`).
+- Cette branche ne contient pas les commits de main sur ce document ; aucune fusion faite.
+
+### Changements
+1. 402 : `PartialResponse` porte statut et en-têtes quand le corps est coupé, trop long ou hors délai. Statut 402 → observation avec `body_error`, aucune nouvelle tentative. Tout statut reçu avec corps incomplet → aucune nouvelle tentative.
+2. Échéance : `Deadline` partagée (DNS, connexion, TLS, en-têtes, corps, pauses) ; `timeout_s` borne chaque requête via une sous-échéance. Corps lu par blocs avec délai de socket recalculé ; minuteur qui ferme la connexion à l'échéance ; pause sautée si elle dépasse l'échéance. DNS : attente bornée par un fil démon, résolution NON interrompue (documenté). Marge de nettoyage documentée, pas de limite absolue annoncée.
+3. Décimaux : `json.loads(..., parse_float=Decimal)` pour fixtures, HTTP et scénarios ; exports en texte exact (`_plain`).
+4. compare : `comparison_report` = couverture (complete / partielle / echec / vide), comparaison, erreurs, 402 observées ; schémas invalides signalés (racine, `services`, `next`) ; code retour 3 si couverture non complète (`discover` et `compare`).
+5. URL : `redact_url` masque `user:mdp@` et les paramètres sensibles de requête et de fragment ; appliqué par `redact_text` (exports, synthèse, journaux).
+6. Coûts : refus des montants non `Decimal`, non finis ou négatifs (prix, quantité, plafonds, dépense), avant toute comparaison ; non facturable incohérent refusé ; `amount_atomic` infini refusé dans la simulation x402.
+
+### Tests exécutés par Claude
+- Environnement : Python 3.13.17, Linux, conteneur sans réseau pour les tests (connexions bloquées par `tests/__init__.py`).
+- `python3 -m unittest discover -s tests -t .` → code retour 0, `Ran 110 tests`, `OK` (76 existants, dont 3 adaptés à la nouvelle signature du transport, + 34 nouveaux dans `tests/test_x402_001.py`).
+- Régressions couvertes : corps 402 interrompu (double de transport et `HttpsTransport` avec connexion scriptée), 402 trop longue, DNS bloqué simulé, corps lent au goutte-à-goutte, lecture bloquée débloquée par le minuteur, pause plus longue que l'échéance, décimaux longs (HTTP et fixture, jusqu'à l'export), catalogue invalide ou partiel, URL avec paramètres sensibles (exports et journaux), coûts NaN / sNaN / infini / négatifs / flottants / plafonds invalides.
+- CLI : `discover` → 0 ; `compare` → 0 (couverture complete sur les fixtures) ; `simulate-x402 --all` → 0 ; `check-cost --price NaN` → 0 (refus attendu).
+
+### Non exécuté / limites
+- `_PinnedHTTPSConnection` (socket et TLS réels) n'est jamais exécutée : aucun test contre un vrai serveur. Le minuteur réel (`shutdown` de socket) n'est vérifié qu'avec des doubles.
+- Le fil DNS abandonné peut continuer jusqu'au délai du système.
+- Tests de durée basés sur l'horloge réelle (seuils larges : 1,5 à 2 s) : sensibles à une machine très chargée.
+- Masquage heuristique : un secret sous un nom de paramètre neutre peut passer.
+- Format de découverte propre à l'atelier : aucune compatibilité Bazaar/MCP. docs.x402.org toujours non consultée.
+- Aucune dépense, aucun déploiement, aucun réseau activé par défaut.
+
+### Prochaine action
+dot : revue du diff `9745576..d70cd9b` et des preuves ci-dessus ; `accepted` ou `changes_requested` avec révision 2.
+
 ## Journal
 - 2026-10-29 : v1, création du document partagé ; mission X402-001 prête pour Claude. Aucun correctif exécuté par dot.
 - 2026-10-30 : v2, Claude Code prend en charge X402-001 r1 (tentative X402-001-r1-claude-20261030T033239Z).
+- 2026-10-30 : v3, Claude Code livre X402-001 r1 (commit d70cd9b) ; état review_requested.
