@@ -11,9 +11,9 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 11
-- Mise à jour UTC : 2026-10-30T06:57:20Z
-- Auteur de cette version : Claude Code
+- Version documentaire : 12
+- Mise à jour UTC : 2026-10-30T06:58:15Z
+- Auteur de cette version : dot
 - Mission active : LAB-001
 - Révision de mission : 1
 - État : in_progress
@@ -300,3 +300,48 @@ Spread brut positif mais net négatif ; carnet ancien donnant un faux gain ; pro
 Suite complète et nouveaux tests hors ligne, commandes/résultats/version Python, commit de code exact, limites et hypothèses. Renseigner review_requested pour LAB-001 r1. Aucune rentabilité revendiquée, pas de frais ou performances inventés. Les 17 dollars ne sont pas un budget autorisé de trading. Pas de levier, crédit, dérivés ni intérêts dans le premier lot ; les critères religieux restent à examiner séparément sans prétendre à une certification.
 - 2026-10-30 : v10, priorité trading demandée par l'utilisateur ; LAB-001 r1 assignée ; revue X402-002 reportée sans acceptation.
 - 2026-10-30 : v11, Claude Code prend en charge LAB-001 r1 (tentative LAB-001-r1-claude-20261030T065720Z).
+
+## Architecture intégrée — précisions utilisateur du 2026-10-30
+Cette section prépare les lots suivants sans modifier LAB-001 r1 ni déclencher sa double exécution. L'utilisateur veut relier recherche quantitative, influence internationale de l'information et arbitrage interplateformes. Sa précision est essentielle : une rumeur fausse peut produire un mouvement réel. Étudier ce que les acteurs suivent et leurs réactions, pas seulement la véracité des informations. Chercher un avantage est l'hypothèse scientifique ; battre le marché n'est pas un résultat acquis.
+
+### Trois axes reliés par des données datées
+A. Quantitatif : probabilités, statistiques, séries temporelles, microstructure, optimisation sous contraintes. La physique peut inspirer des hypothèses de diffusion ou de régimes ; elle ne prouve aucune loi stable de marché. Commencer par des références simples et retirer chaque composante séparément pour mesurer son apport. Tester calibration, coûts, exposition, drawdown, stabilité hors échantillon et sensibilité aux paramètres. Pas de promesse HFT sur une infrastructure non mesurée.
+B. Information et réactions : séparer crédibilité factuelle, visibilité/diffusion, et effet de marché observé. Pour chaque récit, conserver source originale, copies et traductions, corrections/démentis, heures de publication/réception/disponibilité. Ne pas compter cent reprises comme cent sources indépendantes. Une information déjà incorporée dans les prix n'est pas automatiquement exploitable.
+C. Arbitrage : observer simultanément les carnets accessibles et autorisés, profondeur, fraîcheur, frais, inventaire et risque d'exécution. Couverture explicite des plateformes/paires, jamais prétendre observer toutes les plateformes. Les signaux d'information et d'arbitrage restent distincts ; ils peuvent partager le contexte de volatilité/liquidité et la gestion du risque.
+
+### Classement international des sources — protocole, pas classement inventé
+Comparer par actif × région × langue × séance. Inclure organismes officiels, flux de marché, agences/médias, recherche et canaux sociaux publics autorisés.
+Afficher séparément :
+- audience documentée et couverture ; audience de traders inconnue si aucune preuve ;
+- rapidité observée et redondance par rapport aux autres sources ;
+- fiabilité/corrections, séparée de l'attention suscitée ;
+- diffusion mesurée, avec suspicion d'amplification coordonnée et de bots ;
+- réaction agrégée : rendement, volume, spread, profondeur et déséquilibre du carnet ;
+- apport prédictif incrémental hors échantillon après coûts, par rapport aux prix/calendriers/volatilité seuls ;
+- échantillon, incertitude, retard et données manquantes.
+Ne pas fusionner arbitrairement ces dimensions en un score unique. Une rumeur peu fiable peut rester dans l'étude des réactions avec son étiquette ; pas de fausse qualification « fait établi ». Corrélation et étude d'événement ne prouvent pas la causalité. Aucune publication de rumeurs, manipulation, faux comptes ou surveillance individuelle.
+
+Références de recherche, non preuves d'une stratégie rentable :
+- https://www.esma.europa.eu/sites/default/files/2024-04/ESMA50-524821-3157_Risk_Article_Social_Media_sentiment_influence_on_EU_equity_prices.pdf
+- https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp1602.pdf
+
+### Architecture serveur proposée, non déployée
+Collecte autorisée → stockage brut immuable → normalisation/horodatage → déduplication/récits → indicateurs quantitatifs → simulations et comparaison → contrôle déterministe des risques → rapport.
+Les IA proposent des hypothèses et résument ; elles ne contournent ni les budgets ni les critères de fraîcheur ni l'interdiction d'ordres réels. Prévoir baseline sans IA et registre des essais rejetés.
+
+Cloudflare peut héberger API, orchestration et traitement événementiel. Ce n'est pas un processus VPS illimité :
+- Workers pour API et tâches bornées.
+- Durable Objects pour état/coordination ; WebSockets sortants possibles mais sans hibernation, coûts de durée possibles.
+- Queues pour tâches avec clés d'idempotence : livraison au moins une fois, doublons possibles.
+- Entraînement/backtests lourds : mesurer d'abord ; ordinateur existant ou calcul longue durée séparé si nécessaire et autorisé, pas de VPS supplémentaire acheté par défaut.
+Prévoir persistance, reprise après interruption, quotas partagés, détection des trous de séquence, backoff borné et arrêt des signaux si données périmées. Une disponibilité continue n'implique ni calcul ininterrompu garanti ni rentabilité perpétuelle. Affordabilité à estimer à partir du volume, des licences et de la rétention, pas de promesse dans 17 dollars.
+
+Sources d'architecture Cloudflare vérifiées le 2026-10-30 :
+- https://developers.cloudflare.com/workers/platform/limits/
+- https://developers.cloudflare.com/durable-objects/best-practices/websockets/
+- https://developers.cloudflare.com/queues/reference/delivery-guarantees/
+- https://developers.cloudflare.com/durable-objects/api/alarms/
+
+### Ordre de validation
+Terminer LAB-001 → référence quantitative et tests chronologiques → inventaire sourcé des canaux d'information → classement expérimental sur données autorisées → simulation prospective → étude commerciale/licences. Ne pas coder tous ces modules simultanément. Les prochaines missions seront bornées après revue ; cette feuille de route ne lance aucun connecteur, serveur, ordre ou abonnement.
+- 2026-10-30 : v12, architecture à trois axes et distinction vérité/diffusion/réaction ajoutées ; LAB-001 r1 reste inchangée.
