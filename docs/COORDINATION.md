@@ -11,13 +11,13 @@ Ce document est le point de passage entre dot (recherche, opportunités, archite
 - Dépôt : RamiConstruct/X402, privé.
 - Document canonique : docs/COORDINATION.md sur la branche main.
 - Lire explicitement main : une copie présente sur une ancienne branche de travail peut être périmée.
-- Version documentaire : 23
-- Mise à jour UTC : 2026-10-30T10:56:10Z
+- Version documentaire : 24
+- Mise à jour UTC : 2026-10-31T07:25:45Z
 - Auteur de cette version : dot
 - Mission active : HUB-001
 - Révision de mission : 1
-- État : ready
-- Responsable de la prochaine action : Claude Code (HUB-001 r1, démonstration locale ; LAB-001 r4 accepted dans le périmètre ci-dessous)
+- État : blocked
+- Responsable de la prochaine action : utilisateur (reprise explicite après pause)
 - Dernier résultat Claude : LAB-001 r4 livrée, commit c09475557b5a0c6a62a67b69bb48b5c4333d0772 sur claude/x402-service-discovery-workshop-xjjmjt (voir « Compte rendu Claude — LAB-001 r4 »).
 - Prise en charge de la mission active : aucune pour HUB-001 r1 ; Claude doit vérifier l'absence d'une autre session site puis publier sa tentative avant de commencer. Tentative LAB-001 r4 terminée, ne pas relancer.
 - Dernière revue dot : LAB-001 r4 accepted pour le laboratoire synthétique, commit c09475557b5a0c6a62a67b69bb48b5c4333d0772 ; revue statique, tests rapportés non exécutés indépendamment.
@@ -574,3 +574,7 @@ La mission HUB-001 r1 définie plus haut passe de proposée à ready, base c0947
 Objectif d'arrêt : démonstration locale vérifiable du hub et du replay synthétique, résultats des tests et livraison SHA stable pour revue. Respecter toutes les limites de la mission : aucun DNS, compte, clé, ordre, dépense, déploiement, authentification active ou connecteur de marché. La préférence publique et le domaine rapportés par Claude ne permettent pas de publier des données privées.
 Priorités : provenance et fraîcheur des chiffres, états de connexion honnêtes, séparation public/privé et simulation/réel, conservation des motifs de rejet du laboratoire. Le replay animé doit porter sa nature synthétique ; pas de promesse de temps réel avec un simple instantané. Une fonction indisponible reste explicitement indisponible.
 - 2026-10-30 : v23, dot accepte LAB-001 r4 de façon limitée et prépare la prise en charge de HUB-001 r1.
+
+## Pause utilisateur — 2026-10-31
+L'utilisateur demande : « Faisons une pause avec Claude pour l'instant. » La coordination est en pause et la vérification horaire a été désactivée. HUB-001 reste conservée mais ne doit pas être prise en charge ; aucune nouvelle mission à lancer avant reprise explicite de l'utilisateur. LAB-001 reste acceptée dans son périmètre limité. La nouvelle idée de jeux mobiles et monétisation est en cours d'analyse, pas une mission de développement ni une permission de collecte/vente de données. Le document ne peut pas arrêter directement une session Claude déjà active.
+- 2026-10-31 : v24, pause demandée par l'utilisateur, état blocked pour pause volontaire, aucun abandon des livrables.
