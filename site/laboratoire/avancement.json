@@ -4,16 +4,16 @@
   "intention": "Projets menés avec gratitude envers Allah Azza wa Jal : utiles, honnêtes, sans promesse de gain.",
   "mis_a_jour": "2026-11-02",
   "maintenant": {
-    "focus": "Phase de test — faire fonctionner la transformation IA sans diffusion : caméra → IA → aperçu et essais enregistrés. La diffusion vers les plateformes viendra ensuite.",
-    "dernier_fait": "Formulaire de liste d'attente sur la page d'accueil (inscriptions privées, consultables avec le jeton).",
+    "focus": "Phase de test avec la vraie IA : Daydream est branché sur la console. Prochaine étape, ton premier essai depuis le téléphone.",
+    "dernier_fait": "Premier vrai rendu IA : vidéo envoyée à Daydream, image IA reçue en 3 à 7 s, commande « chevalier, décor château » appliquée en direct.",
     "prochaines_etapes_claude": [
-      "Brancher un vrai moteur IA pour les essais (Daydream dès que le compte existe, ou GPU loué)",
-      "Mesurer images/seconde, latence et coût par minute pendant les essais",
-      "Améliorer la qualité de transformation à partir de tes essais enregistrés"
+      "Mesurer la fluidité réelle depuis un téléphone (le test serveur était limité par son processeur : ~5 images/s)",
+      "Régler qualité / vitesse (modèle, intensité, taille d'image) à partir de tes essais",
+      "Afficher le coût Daydream par minute dans la console"
     ],
     "en_attente_de_toi": [
+      "Faire ton premier essai : live.labotory.site/mobile.html → moteur « Daydream » → Démarrer, puis dire « transforme-moi en chevalier »",
       "Faire un premier essai sur live.labotory.site/mobile.html et enregistrer une courte vidéo",
-      "Créer un compte daydream.live (crédits gratuits) pour avoir un vrai rendu IA pendant les essais",
       "Rendre public le paquet x402-live-worker : GitHub → ton profil → Packages → x402-live-worker → Package settings → Change visibility → Public",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
     ]
@@ -23,7 +23,7 @@
       "nom": "AI LIVE",
       "resume": "Se transformer en direct pendant un stream (personnage, décor, style) par la voix, avec sortie vers OBS.",
       "etat": "en_cours",
-      "avancement": 75,
+      "avancement": 80,
       "fait": [
         "Console web : caméra, voix en français, personnages, décors, styles, intensité, retour à l'original",
         "Page de sortie pour OBS (transparente au retour à l'original)",
@@ -36,11 +36,12 @@
         "Page téléphone plein écran : bouton Original/IA, voix, personnages, écran maintenu allumé",
         "Plateformes sans minimum d'abonnés en premier (YouTube, Twitch, Kick, Facebook), adresses chiffrées préremplies",
         "Multidiffusion vers 3 plateformes simultanées (un encodeur par plateforme : une panne n'arrête pas les autres)",
-        "Phase de test : mode sans diffusion par défaut, enregistrement d'essais sur l'appareil (vidéo + son)"
+        "Phase de test : mode sans diffusion par défaut, enregistrement d'essais sur l'appareil (vidéo + son)",
+        "Daydream testé de bout en bout : création, envoi vidéo, réception IA, changement de scène, arrêt"
       ],
       "pas_encore_teste": [
         "Diffusion vers une vraie plateforme (TikTok, YouTube…)",
-        "Appels réels à Daydream, Vast.ai, RunPod",
+        "Appels réels à Vast.ai, RunPod",
         "Moteur StreamDiffusion sur un vrai GPU",
         "UDP du relais Oracle"
       ],
@@ -141,6 +142,11 @@
       "note": "effet de couleur CPU, pour tester le circuit vidéo sans GPU"
     },
     {
+      "element": "Moteur IA Daydream",
+      "etat": "ok",
+      "note": "branché sur la console ; 1re image IA en 3 à 7 s"
+    },
+    {
       "element": "Relais vidéo du serveur (turn.labotory.site)",
       "etat": "ok",
       "note": "TCP vérifié depuis Internet ; UDP à confirmer"
@@ -167,6 +173,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Premier vrai rendu IA avec Daydream : la commande vocale « chevalier, décor château » transforme l'image en direct."
+    },
     {
       "date": "2026-11-02",
       "texte": "Image du moteur GPU : construction réussie avec contrôle des imports (StreamDiffusion, WebRTC, diffusion RTMP)."
