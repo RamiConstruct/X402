@@ -34,7 +34,7 @@ label { display: block; font-size: 13px; color: var(--muted); }
 .auth-card { width: 100%; max-width: 400px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
 .auth-card label { margin-top: 12px; }
 
-.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); position: sticky; top: 57px; z-index: 5; flex-wrap: wrap; }
 .tabs { display: flex; gap: 4px; }
 .tab { border: 0; background: transparent; color: var(--muted); padding: 8px 12px; border-radius: 8px; cursor: pointer; font: inherit; }
 .tab.active { color: var(--text); background: var(--accent-weak); }

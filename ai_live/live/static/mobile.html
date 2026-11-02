@@ -42,30 +42,43 @@ input,select{width:100%;font:inherit;color:var(--text);background:#0f131a;border
 </style>
 </head>
 <body>
+<!-- labnav:start — menu commun du site (source : site/nav/nav.html, appliqué par site/nav/apply_nav.py) -->
 <style>
-.labfab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:1000;font:15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.labfab summary{list-style:none;width:52px;height:52px;border-radius:50%;background:#0f766e;color:#fff;display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35);font-size:22px;user-select:none}
-.labfab summary::-webkit-details-marker{display:none}
-.labfab summary:focus-visible{outline:3px solid #5eead4;outline-offset:3px}
-.labfab[open] summary{background:#134e4a}
-.labfab nav{position:absolute;right:0;bottom:64px;min-width:230px;background:#101317;border:1px solid #2a313b;border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.45)}
-.labfab .t{display:block;padding:6px 10px 8px;color:#5eead4;font-weight:700;font-size:13px;letter-spacing:.04em}
-.labfab a{display:block;color:#d6dbe3;text-decoration:none;padding:10px 12px;border-radius:9px}
-.labfab a:hover,.labfab a:focus-visible{background:#1c2229;color:#fff;outline:none}
-.labfab a[aria-current="page"]{background:#1f3a37;color:#fff;font-weight:600}
-.labfab a small{display:block;color:#8b94a3;font-size:12px;margin-top:2px}
+.labnav{position:sticky;top:0;z-index:1000;background:rgba(13,17,23,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid #232a33;color:#e6e9ee;font:15px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.labnav .in{max-width:1180px;margin:0 auto;padding:0 16px;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.labnav .b{color:#fff;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.labnav .b i{color:#2dd4bf;font-style:normal}
+.labnav input{position:absolute;width:1px;height:1px;opacity:0;margin:0;pointer-events:none}
+.labnav label{display:none;margin:0;cursor:pointer;padding:8px 12px;border:1px solid #2f3742;border-radius:10px;color:#e6e9ee;font-size:15px;user-select:none}
+.labnav input:focus-visible+label{outline:3px solid #5eead4;outline-offset:2px}
+.labnav input:checked+label{background:#1c2229}
+.labnav ul{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:2px}
+.labnav li{margin:0}
+.labnav a.l{display:block;color:#c3cad4;text-decoration:none;padding:8px 12px;border-radius:9px}
+.labnav a.l:hover,.labnav a.l:focus-visible{background:#1c2229;color:#fff;outline:none}
+.labnav a.l[aria-current="page"]{background:#1f3a37;color:#fff;font-weight:600}
+.labnav a.cta{background:#0f766e;color:#fff;font-weight:700;margin-left:6px}
+.labnav a.cta:hover,.labnav a.cta:focus-visible{background:#115e59}
+@media (max-width:860px){
+.labnav label{display:block}
+.labnav ul{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;align-items:stretch;gap:2px;background:#0d1117;border-bottom:1px solid #232a33;padding:8px 12px 14px;box-shadow:0 14px 30px rgba(0,0,0,.4)}
+.labnav input:checked~ul{display:flex}
+.labnav a.l{padding:13px 12px}
+.labnav a.cta{margin:6px 0 0;text-align:center}
+}
 </style>
-<details class="labfab">
-  <summary aria-label="Menu du laboratoire" title="Menu">☰</summary>
-  <nav aria-label="Navigation du laboratoire">
-    <span class="t">◆ LABORATOIRE</span>
-    <a href="https://labotory.site/" data-k="labo">Avancement<small>où en est le projet</small></a>
-    <a href="https://live.labotory.site/" data-k="live">AI Live<small>console sur ordinateur</small></a>
-    <a href="https://live.labotory.site/mobile.html" data-k="mobile" aria-current="page">AI Live téléphone<small>caméra du téléphone</small></a>
-    <a href="https://studio.labotory.site/" data-k="studio">AI Studio<small>modifier une vidéo</small></a>
-  </nav>
-</details>
-
+<nav class="labnav" aria-label="Menu du site"><div class="in">
+<a class="b" href="https://labotory.site/"><i>◆</i> Le Laboratoire</a>
+<input type="checkbox" id="labnav-t" aria-label="Ouvrir ou fermer le menu"><label for="labnav-t" aria-hidden="true">☰ Menu</label>
+<ul>
+<li><a class="l" data-k="accueil" href="https://labotory.site/">Accueil</a></li>
+<li><a class="l" data-k="live" href="https://live.labotory.site/">AI Live</a></li>
+<li><a class="l" data-k="mobile" aria-current="page" href="https://live.labotory.site/mobile.html">AI Live téléphone</a></li>
+<li><a class="l" data-k="studio" href="https://studio.labotory.site/">AI Studio</a></li>
+<li><a class="l" data-k="suivi" href="https://labotory.site/suivi">Suivi</a></li>
+</ul>
+</div></nav>
+<!-- labnav:end -->
 <section id="setup">
   <h1>AI Live — téléphone</h1>
   <p class="muted">Filme et transforme-toi par la voix.</p>

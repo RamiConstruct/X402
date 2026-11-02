@@ -112,7 +112,7 @@ $("#go").addEventListener("click", async () => {
     if (dests.length) body.broadcast = dests.map((d) => ({ platform: d.platform, server_url: d.server, stream_key: d.key, format: $("#format").value }));
     const platform = dests.map((d) => d.platform).join(" + ");
     st.session = await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
-    $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden"); document.querySelector(".labfab")?.classList.add("hidden");
+    $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden"); document.querySelector(".labnav")?.classList.add("hidden");
     $("#cam").srcObject = st.cam;
     $("#state").textContent = "Connexion au moteur…";
     st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H());
@@ -205,6 +205,6 @@ function teardown(back) {
   st.cam && st.cam.getTracks().forEach((t) => t.stop());
   st.listening = false; try { st.rec && st.rec.stop(); } catch {}
   try { st.wake && st.wake.release(); } catch {}
-  if (back) { $("#live").classList.add("hidden"); $("#setup").classList.remove("hidden"); document.querySelector(".labfab")?.classList.remove("hidden"); }
+  if (back) { $("#live").classList.add("hidden"); $("#setup").classList.remove("hidden"); document.querySelector(".labnav")?.classList.remove("hidden"); }
 }
 init();

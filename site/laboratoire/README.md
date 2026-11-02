@@ -9,6 +9,17 @@ Page publique d'avancement des projets, servie par un Worker Cloudflare (indépe
 | `preview.mjs` | Aperçu local : `node site/laboratoire/preview.mjs` → `apercu.html` |
 | `wrangler.jsonc` | Déploiement manuel possible : `npx wrangler deploy` |
 
+## Pages servies par le Worker
+
+| Chemin | Contenu |
+|---|---|
+| `/` | Page d'accueil commerciale (AI Live & AI Studio), statique dans `worker.js` (`landing()`) |
+| `/suivi` | Suivi du projet (non indexé), rendu depuis le KV (`render()`) ; `/avancement` redirige ici |
+| `/avancement.json` | Données en lecture (GET) et mise à jour authentifiée (PUT) |
+
+Le menu commun vient de `site/nav/nav.html` ; `python3 site/nav/apply_nav.py` le recopie dans les pages
+AI Live / AI Studio et dans `worker.js` (constante `NAV_HTML`). CSS seul, sans JavaScript (CSP du Worker).
+
 ## Mettre à jour la page
 
 1. Modifier `avancement.json` (date `mis_a_jour`, `maintenant`, projets, ajout en tête du `journal`).
