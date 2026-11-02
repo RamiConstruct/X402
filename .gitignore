@@ -12,3 +12,5 @@ ai_live/.venv/
 ai_live/engines/
 ai_live/data/
 site/laboratoire/apercu.html
+# Added by code-review-graph
+.code-review-graph/
