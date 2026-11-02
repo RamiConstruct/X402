@@ -109,19 +109,24 @@ $("#go").addEventListener("click", async () => {
   store.set("bc", $("#do-bc").checked ? "1" : "");
   store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
   try {
-    st.cam = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: $("#facing").value, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
-      audio: { echoCancellation: true, noiseSuppression: true },
-    });
     const body = { engine: $("#engine").value, mode: $("#mode").value };
     const tStart = Date.now();
     if (dests.length) body.broadcast = dests.map((d) => ({ platform: d.platform, server_url: d.server, stream_key: d.key, format: $("#format").value }));
     const platform = dests.map((d) => d.platform).join(" + ");
-    st.session = await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
+    // Caméra et création du flux IA en parallèle (le moteur commence à se préparer pendant l'ouverture de la caméra).
+    const [cam, session] = await Promise.all([
+      navigator.mediaDevices.getUserMedia({
+        video: videoConstraints({ facingMode: $("#facing").value }),
+        audio: { echoCancellation: true, noiseSuppression: true },
+      }),
+      api("/api/sessions", { method: "POST", body: JSON.stringify(body) }),
+    ]);
+    st.cam = cam; st.session = session;
     $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden"); document.querySelector(".labnav")?.classList.add("hidden");
     $("#cam").srcObject = st.cam;
     $("#state").textContent = "Connexion au moteur…";
-    st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H());
+    // Le micro ne part vers le moteur qu'en diffusion directe (inutile en mode essai : il reste pour l'enregistrement local).
+    st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H(), { audio: !!platform });
     $("#state").textContent = "Chargement de l'IA…";
     $("#ai").addEventListener("playing", () => say(`IA prête en ${((Date.now() - tStart) / 1000).toFixed(1)} s — mode ${st.session.mode_label || ""}`), { once: true });
     st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
@@ -130,6 +135,13 @@ $("#go").addEventListener("click", async () => {
     st.t0 = Date.now();
     st.timers.push(setInterval(tick, 1000));
     st.timers.push(fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`)));
+    st.timers.push(netStats(st.pub, st.view, (s) => {
+      const g = netGrade(s), el = $("#net");
+      if (!g) return;
+      el.classList.remove("hidden"); el.dataset.g = g;
+      el.textContent = `Réseau ${g}${s.rtt != null ? ` · ${s.rtt} ms` : ""}`;
+      el.title = `envoi ${s.upFps ?? "—"} i/s ${s.res ?? ""} ${s.upKbps ?? "—"} kbit/s · réception ${s.downFps ?? "—"} i/s · pertes ${s.loss ?? 0} % · tampon ${s.bufferMs ?? "—"} ms${s.limit ? " · limité par " + s.limit : ""}`;
+    }));
     st.timers.push(setInterval(refresh, 5000));
     try { st.wake = await navigator.wakeLock.request("screen"); } catch {}
     st.recorder = makeRecorder($("#ai"), st.cam.getAudioTracks()[0]);

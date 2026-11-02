@@ -1,6 +1,15 @@
 "use strict";
 // WebRTC minimal WHIP (envoi) / WHEP (lecture) — partagé par la console et la page OBS.
-let ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
+// STUN Cloudflare en premier (anycast : réponse la plus proche), Google en secours.
+let ICE = [{ urls: "stun:stun.cloudflare.com:3478" }, { urls: "stun:stun.l.google.com:19302" }];
+
+// L'IA travaille en 512×512 : capturer directement en carré 512 évite d'envoyer (et d'encoder)
+// 3,5 fois plus de pixels pour rien. Le navigateur recadre et réduit lui-même (crop-and-scale).
+const AI_SIZE = 512;
+function videoConstraints(extra = {}) {
+  return { width: { ideal: AI_SIZE }, height: { ideal: AI_SIZE }, aspectRatio: { ideal: 1 },
+           frameRate: { ideal: 30, max: 30 }, resizeMode: "crop-and-scale", ...extra };
+}
 // Serveurs TURN fournis par la console (indispensables avec un GPU loué derrière un NAT).
 function setIceServers(extra) { if (Array.isArray(extra) && extra.length) ICE = [...ICE, ...extra]; }
 
@@ -13,12 +22,17 @@ function preferH264(transceiver) {
   } catch {}
 }
 
-function gatherIce(pc, timeoutMs = 2000) {
+// WHIP sans « trickle » : on attend les candidats réseau, mais pas plus que nécessaire —
+// dès qu'une adresse publique (srflx) ou un relais est trouvé, 150 ms de plus suffisent.
+function gatherIce(pc, timeoutMs = 1200) {
   return new Promise((resolve) => {
     if (pc.iceGatheringState === "complete") return resolve();
-    const t = setTimeout(resolve, timeoutMs);
-    pc.addEventListener("icegatheringstatechange", () => {
-      if (pc.iceGatheringState === "complete") { clearTimeout(t); resolve(); }
+    let done = false;
+    const finish = () => { if (!done) { done = true; clearTimeout(t); resolve(); } };
+    const t = setTimeout(finish, timeoutMs);
+    pc.addEventListener("icegatheringstatechange", () => { if (pc.iceGatheringState === "complete") finish(); });
+    pc.addEventListener("icecandidate", (e) => {
+      if (e.candidate && /typ (srflx|relay)/.test(e.candidate.candidate)) setTimeout(finish, 150);
     });
   });
 }
@@ -33,14 +47,42 @@ async function postSdp(url, sdp, headers = {}) {
   return r.text();
 }
 
-async function whipPublish(url, stream, headers) {
-  const pc = new RTCPeerConnection({ iceServers: ICE });
+// opts.audio : n'envoyer le micro que s'il sert (diffusion directe) ; opts.maxBitrate : 1,5 Mbit/s
+// suffisent largement pour du 512×512 à 30 i/s en H.264 (encodage matériel sur téléphone).
+async function whipPublish(url, stream, headers, opts = {}) {
+  const { audio = true, maxBitrate = 1_500_000 } = opts;
+  const pc = new RTCPeerConnection({ iceServers: ICE, bundlePolicy: "max-bundle" });
   const track = stream.getVideoTracks()[0];
   track.contentHint = "motion";
-  const tr = pc.addTransceiver(track, { direction: "sendonly", sendEncodings: [{ maxBitrate: 3_000_000 }] });
+  const tr = pc.addTransceiver(track, { direction: "sendonly",
+    sendEncodings: [{ maxBitrate, maxFramerate: 30, priority: "high", networkPriority: "high" }] });
   preferH264(tr);
-  const mic = stream.getAudioTracks()[0];  // le son du micro part avec la vidéo (diffusion directe)
+  const mic = audio ? stream.getAudioTracks()[0] : null;
   if (mic) pc.addTransceiver(mic, { direction: "sendonly" });
+  await pc.setLocalDescription(await pc.createOffer());
+  await gatherIce(pc);
+  const answer = await postSdp(url, pc.localDescription.sdp, headers);
+  await pc.setRemoteDescription({ type: "answer", sdp: answer });
+  // En cas de réseau faible : garder la fluidité (30 i/s) et baisser la netteté plutôt que l'inverse.
+  try {
+    const p = tr.sender.getParameters();
+    p.degradationPreference = "maintain-framerate";
+    (p.encodings || []).forEach((e) => { e.maxBitrate = maxBitrate; e.maxFramerate = 30; });
+    await tr.sender.setParameters(p);
+  } catch {}
+  return pc;
+}
+
+// Lecture au plus près du direct : tampon de gigue minimal (le navigateur l'augmente seul si le réseau saccade).
+function lowLatency(receiver) {
+  try { if ("jitterBufferTarget" in receiver) receiver.jitterBufferTarget = 0; } catch {}
+  try { if ("playoutDelayHint" in receiver) receiver.playoutDelayHint = 0; } catch {}
+}
+
+async function whepPlay(url, videoEl, headers) {
+  const pc = new RTCPeerConnection({ iceServers: ICE });
+  preferH264(pc.addTransceiver("video", { direction: "recvonly" }));
+  pc.ontrack = (e) => { lowLatency(e.receiver); videoEl.srcObject = e.streams[0] || new MediaStream([e.track]); videoEl.play().catch(() => {}); };
   await pc.setLocalDescription(await pc.createOffer());
   await gatherIce(pc);
   const answer = await postSdp(url, pc.localDescription.sdp, headers);
@@ -48,15 +90,43 @@ async function whipPublish(url, stream, headers) {
   return pc;
 }
 
-async function whepPlay(url, videoEl, headers) {
-  const pc = new RTCPeerConnection({ iceServers: ICE });
-  preferH264(pc.addTransceiver("video", { direction: "recvonly" }));
-  pc.ontrack = (e) => { videoEl.srcObject = e.streams[0] || new MediaStream([e.track]); videoEl.play().catch(() => {}); };
-  await pc.setLocalDescription(await pc.createOffer());
-  await gatherIce(pc);
-  const answer = await postSdp(url, pc.localDescription.sdp, headers);
-  await pc.setRemoteDescription({ type: "answer", sdp: answer });
-  return pc;
+// Mesures réseau toutes les 2 s : aller-retour (ms), envoi (kbit/s, i/s, résolution), réception (i/s),
+// pertes (%) et retard ajouté par le tampon de lecture (ms). Sert à l'affichage et au diagnostic.
+function netStats(pubPc, viewPc, onStats, everyMs = 2000) {
+  let prev = {};
+  return setInterval(async () => {
+    const out = {};
+    try {
+      if (pubPc) (await pubPc.getStats()).forEach((r) => {
+        if (r.type === "candidate-pair" && r.nominated && r.currentRoundTripTime != null) out.rtt = Math.round(r.currentRoundTripTime * 1000);
+        if (r.type === "outbound-rtp" && r.kind === "video") {
+          if (prev.bytes != null) out.upKbps = Math.round((r.bytesSent - prev.bytes) * 8 / (everyMs));
+          prev.bytes = r.bytesSent; out.upFps = Math.round(r.framesPerSecond || 0);
+          out.res = r.frameWidth ? `${r.frameWidth}×${r.frameHeight}` : undefined;
+          out.limit = r.qualityLimitationReason && r.qualityLimitationReason !== "none" ? r.qualityLimitationReason : undefined;
+        }
+      });
+      if (viewPc) (await viewPc.getStats()).forEach((r) => {
+        if (r.type === "inbound-rtp" && r.kind === "video") {
+          out.downFps = Math.round(r.framesPerSecond || 0);
+          const lost = r.packetsLost - (prev.lost || 0), recv = r.packetsReceived - (prev.recv || 0);
+          if (prev.recv != null && lost + recv > 0) out.loss = Math.round(100 * lost / (lost + recv));
+          prev.lost = r.packetsLost; prev.recv = r.packetsReceived;
+          if (r.jitterBufferEmittedCount) out.bufferMs = Math.round(1000 * r.jitterBufferDelay / r.jitterBufferEmittedCount);
+        }
+        if (out.rtt == null && r.type === "candidate-pair" && r.nominated && r.currentRoundTripTime != null) out.rtt = Math.round(r.currentRoundTripTime * 1000);
+      });
+    } catch {}
+    onStats(out);
+  }, everyMs);
+}
+
+// Qualité réseau en un mot (pour l'utilisateur) à partir des mesures.
+function netGrade(s) {
+  if (s.rtt == null && s.loss == null) return "";
+  if ((s.loss ?? 0) >= 5 || (s.rtt ?? 0) >= 300) return "faible";
+  if ((s.loss ?? 0) >= 2 || (s.rtt ?? 0) >= 150) return "moyen";
+  return "bon";
 }
 
 function fpsMeter(videoEl, onFps) {

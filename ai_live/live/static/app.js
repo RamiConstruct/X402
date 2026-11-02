@@ -61,7 +61,7 @@ function render(s) {
 $("#start").addEventListener("click", async () => {
   say("Accès à la caméra…");
   try {
-    st.cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false });
+    st.cam = await navigator.mediaDevices.getUserMedia({ video: videoConstraints(), audio: false });
     $("#cam").srcObject = st.cam;
     say("Création du flux sur le moteur…");
     const s = await api("/api/sessions", { method: "POST", body: JSON.stringify({ engine: $("#engine").value, mode: $("#mode").value }) });
@@ -69,7 +69,7 @@ $("#start").addEventListener("click", async () => {
     const tStart = Date.now();
     $("#ai").addEventListener("playing", () => say(`IA prête en ${((Date.now() - tStart) / 1000).toFixed(1)} s (mode ${s.mode_label || "—"})`), { once: true });
     say("Connexion de la caméra au moteur (WHIP)…");
-    st.pubPc = await whipPublish(`/api/sessions/${s.id}/whip`, st.cam, headers());
+    st.pubPc = await whipPublish(`/api/sessions/${s.id}/whip`, st.cam, headers(), { audio: false });
     say("En attente de la sortie IA (premières secondes : chargement du modèle)…");
     st.viewPc = await whepPlay(`/api/sessions/${s.id}/whep`, $("#ai"), headers());
     $("#obs-url").value = location.origin + s.out_url;
@@ -81,6 +81,11 @@ $("#start").addEventListener("click", async () => {
     }, 1000);
     $("#timer").classList.add("live");
     fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`));
+    st.net = netStats(st.pubPc, st.viewPc, (x) => {
+      const g = netGrade(x); if (!g) return;
+      $("#fps").title = `réseau ${g} · aller-retour ${x.rtt ?? "—"} ms · envoi ${x.upFps ?? "—"} i/s ${x.res ?? ""} ${x.upKbps ?? "—"} kbit/s · pertes ${x.loss ?? 0} % · tampon ${x.bufferMs ?? "—"} ms`;
+      $("#cost").dataset.net = g;
+    });
     st.poll = setInterval(async () => { try { render(await api(`/api/sessions/${s.id}`)); } catch {} }, 3000);
     st.recorder = makeRecorder($("#ai"), null);
     say("Prêt (mode test). Parle ou clique sur un personnage ; « Enregistrer un essai » garde une vidéo sur ton ordinateur.");
@@ -105,7 +110,7 @@ $("#rec").addEventListener("click", async () => {
 function teardown() {
   if (st.recorder && st.recorder.recording) st.recorder.stop();
   clearInterval(st.recTimer);
-  clearInterval(st.timer); clearInterval(st.poll);
+  clearInterval(st.timer); clearInterval(st.poll); clearInterval(st.net);
   try { st.pubPc && st.pubPc.close(); st.viewPc && st.viewPc.close(); } catch {}
   st.cam && st.cam.getTracks().forEach((t) => t.stop());
   stopListening(); enable(false); $("#timer").classList.remove("live");
