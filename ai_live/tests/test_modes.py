@@ -72,3 +72,49 @@ def test_server_mode_roundtrip():
     assert len(seen[0]["params"]["controlnets"]) == 3
     c.post(f"/api/sessions/{s['id']}/command", json={"text": "plus fort"})
     assert len(seen[-1]["params"]["t_index_list"]) == 2  # les mises à jour gardent le mode
+
+
+def _app_with_log():
+    log = []
+
+    def handler(req):
+        if req.method == "POST" and req.url.path == "/v1/streams":
+            body = json.loads(req.content)
+            log.append(("POST", body))
+            n = sum(1 for m, _ in log if m == "POST")
+            return httpx.Response(200, json={"id": f"s{n}", "whip_url": f"https://w/{n}/whip"})
+        if req.method == "DELETE":
+            log.append(("DELETE", dict(req.url.params)))
+        if req.method == "PATCH":
+            log.append(("PATCH", json.loads(req.content)))
+        return httpx.Response(200, json={})
+
+    factory = lambda cfg: StreamEngine(cfg, client=httpx.Client(transport=httpx.MockTransport(handler)))  # noqa: E731
+    return TestClient(create_app(engines={"daydream": DD}, engine_factory=factory, access_token="", gpu=False)), log
+
+
+def test_switch_mode_recreates_stream_and_keeps_scene():
+    c, log = _app_with_log()
+    s = c.post("/api/sessions", json={"engine": "daydream", "mode": "qualite"}).json()
+    c.post(f"/api/sessions/{s['id']}/command", json={"text": "transforme-moi en pirate"})
+    r = c.post(f"/api/sessions/{s['id']}/mode", json={"mode": "rapide", "reason": "auto"})
+    assert r.status_code == 200
+    v = r.json()
+    assert v["mode"] == "rapide" and v["mode_label"] == "Rapide"
+    assert ("DELETE", {"id": "s1"}) in log
+    last_post = [b for m, b in log if m == "POST"][-1]
+    assert last_post["params"]["model_id"] == "stabilityai/sd-turbo" and "pirate" in last_post["params"]["prompt"]
+    assert any("rapide" in e["message"].lower() for e in v["log"])
+    # même mode : rien à faire
+    assert c.post(f"/api/sessions/{s['id']}/mode", json={"mode": "rapide"}).json()["mode"] == "rapide"
+    assert sum(1 for m, _ in log if m == "POST") == 2
+
+
+def test_switch_mode_refused_while_broadcasting_or_unknown():
+    c, _ = _app_with_log()
+    s = c.post("/api/sessions", json={"engine": "daydream", "mode": "equilibre"}).json()
+    assert c.post(f"/api/sessions/{s['id']}/mode", json={"mode": "turbo"}).status_code == 400
+    b = c.post("/api/sessions", json={"engine": "daydream", "broadcast": [
+        {"platform": "youtube", "server_url": "rtmp://a.example/live", "stream_key": "k1", "format": "horizontal"}]}).json()
+    r = c.post(f"/api/sessions/{b['id']}/mode", json={"mode": "rapide"})
+    assert r.status_code == 409

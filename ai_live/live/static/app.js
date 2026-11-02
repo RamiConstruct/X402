@@ -22,8 +22,9 @@ async function loadCatalog() {
   $("#engine").innerHTML = (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué (Vast.ai / RunPod)</option>` : "") +
     st.catalog.engines.map((e) =>
     `<option value="${esc(e.key)}">${esc(e.name)} — ${esc(e.model)}${e.configured ? "" : " (clé manquante)"}</option>`).join("");
-  $("#mode").innerHTML = (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}" title="${esc(m.hint)}">${esc(m.label)} — ${esc(m.hint)}</option>`).join("");
-  $("#mode").value = st.catalog.default_mode || "equilibre";
+  $("#mode").innerHTML = `<option value="auto">Auto — s'adapte au réseau</option>` +
+    (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}" title="${esc(m.hint)}">${esc(m.label)} — ${esc(m.hint)}</option>`).join("");
+  $("#mode").value = "auto";
   setupGpu();
   for (const [kind, id] of [["character", "#characters"], ["decor", "#decors"], ["style", "#styles"]]) {
     const list = st.catalog[kind === "character" ? "characters" : kind + "s"];
@@ -63,8 +64,11 @@ $("#start").addEventListener("click", async () => {
   try {
     st.cam = await navigator.mediaDevices.getUserMedia({ video: videoConstraints(), audio: false });
     $("#cam").srcObject = st.cam;
+    st.auto = $("#mode").value === "auto";
+    st.mode = st.auto ? pickInitialMode(await probeNetwork()) : $("#mode").value;
+    st.tune = st.auto ? new AutoTune({ mode: st.mode, allowModeSwitch: false }) : null;  // sur ordinateur : débit seulement
     say("Création du flux sur le moteur…");
-    const s = await api("/api/sessions", { method: "POST", body: JSON.stringify({ engine: $("#engine").value, mode: $("#mode").value }) });
+    const s = await api("/api/sessions", { method: "POST", body: JSON.stringify({ engine: $("#engine").value, mode: st.mode }) });
     render(s);
     const tStart = Date.now();
     $("#ai").addEventListener("playing", () => say(`IA prête en ${((Date.now() - tStart) / 1000).toFixed(1)} s (mode ${s.mode_label || "—"})`), { once: true });
@@ -82,6 +86,7 @@ $("#start").addEventListener("click", async () => {
     $("#timer").classList.add("live");
     fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`));
     st.net = netStats(st.pubPc, st.viewPc, (x) => {
+      if (st.tune) for (const a of st.tune.feed(x)) if (a.type === "bitrate") { applyBitrate(st.pubPc, a.level); say(a.level === "eco" ? "réseau faible : envoi allégé" : "réseau rétabli : envoi normal"); }
       const g = netGrade(x); if (!g) return;
       $("#fps").title = `réseau ${g} · aller-retour ${x.rtt ?? "—"} ms · envoi ${x.upFps ?? "—"} i/s ${x.res ?? ""} ${x.upKbps ?? "—"} kbit/s · pertes ${x.loss ?? 0} % · tampon ${x.bufferMs ?? "—"} ms`;
       $("#cost").dataset.net = g;

@@ -82,9 +82,12 @@ async function init() {
     st.catalog.engines.map((e) => `<option value="${esc(e.key)}">${esc(e.name)}</option>`).join("");
   $("#token").value = store.get("token");
   $("#engine").value = store.get("engine") || $("#engine").value;
-  $("#mode").innerHTML = (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}">${esc(m.label)}</option>`).join("");
-  $("#mode").value = store.get("mode") || st.catalog.default_mode || "equilibre";
-  const hint = () => { const m = (st.catalog.modes || []).find((x) => x.key === $("#mode").value); $("#mode-hint").textContent = m ? m.hint : ""; };
+  $("#mode").innerHTML = `<option value="auto">Auto (recommandé)</option>` +
+    (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}">${esc(m.label)}</option>`).join("");
+  $("#mode").value = store.get("mode") || "auto";
+  const hint = () => {
+    if ($("#mode").value === "auto") { $("#mode-hint").textContent = "s'adapte tout seul à ton réseau et à la fluidité de l'IA"; return; }
+    const m = (st.catalog.modes || []).find((x) => x.key === $("#mode").value); $("#mode-hint").textContent = m ? m.hint : ""; };
   $("#mode").addEventListener("change", hint); hint();
   $("#format").value = store.get("format") || "horizontal";
   let saved = [];
@@ -109,8 +112,11 @@ $("#go").addEventListener("click", async () => {
   store.set("bc", $("#do-bc").checked ? "1" : "");
   store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
   try {
-    const body = { engine: $("#engine").value, mode: $("#mode").value };
     const tStart = Date.now();
+    const auto = $("#mode").value === "auto";
+    let mode = $("#mode").value;
+    if (auto) { const net = await probeNetwork(); mode = pickInitialMode(net); st.probe = net; }
+    const body = { engine: $("#engine").value, mode };
     if (dests.length) body.broadcast = dests.map((d) => ({ platform: d.platform, server_url: d.server, stream_key: d.key, format: $("#format").value }));
     const platform = dests.map((d) => d.platform).join(" + ");
     // Caméra et création du flux IA en parallèle (le moteur commence à se préparer pendant l'ouverture de la caméra).
@@ -135,13 +141,9 @@ $("#go").addEventListener("click", async () => {
     st.t0 = Date.now();
     st.timers.push(setInterval(tick, 1000));
     st.timers.push(fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`)));
-    st.timers.push(netStats(st.pub, st.view, (s) => {
-      const g = netGrade(s), el = $("#net");
-      if (!g) return;
-      el.classList.remove("hidden"); el.dataset.g = g;
-      el.textContent = `Réseau ${g}${s.rtt != null ? ` · ${s.rtt} ms` : ""}`;
-      el.title = `envoi ${s.upFps ?? "—"} i/s ${s.res ?? ""} ${s.upKbps ?? "—"} kbit/s · réception ${s.downFps ?? "—"} i/s · pertes ${s.loss ?? 0} % · tampon ${s.bufferMs ?? "—"} ms${s.limit ? " · limité par " + s.limit : ""}`;
-    }));
+    st.tune = auto ? new AutoTune({ mode, allowModeSwitch: !platform }) : null;
+    showMode();
+    startNet();
     st.timers.push(setInterval(refresh, 5000));
     try { st.wake = await navigator.wakeLock.request("screen"); } catch {}
     st.recorder = makeRecorder($("#ai"), st.cam.getAudioTracks()[0]);
@@ -151,6 +153,48 @@ $("#go").addEventListener("click", async () => {
   }
   $("#go").disabled = false;
 });
+
+// Mesures réseau + mode automatique (relancé après chaque reconnexion, car il suit les connexions actives).
+function startNet() {
+  clearInterval(st.netTimer);
+  st.netTimer = netStats(st.pub, st.view, (s) => {
+    const g = netGrade(s), el = $("#net");
+    if (g) {
+      el.classList.remove("hidden"); el.dataset.g = g;
+      el.textContent = `Réseau ${g}${s.rtt != null ? ` · ${s.rtt} ms` : ""}`;
+      el.title = `envoi ${s.upFps ?? "—"} i/s ${s.res ?? ""} ${s.upKbps ?? "—"} kbit/s · réception ${s.downFps ?? "—"} i/s · pertes ${s.loss ?? 0} % · tampon ${s.bufferMs ?? "—"} ms${s.limit ? " · limité par " + s.limit : ""}`;
+    }
+    if (!st.tune || st.switching) return;
+    for (const a of st.tune.feed(s)) {
+      if (a.type === "bitrate") { applyBitrate(st.pub, a.level); say(a.level === "eco" ? "Réseau faible : envoi allégé pour rester fluide" : "Réseau rétabli : qualité d'envoi normale"); }
+      if (a.type === "mode") switchMode(a.mode);
+    }
+  });
+}
+
+function showMode() {
+  const el = $("#modep"); if (!el || !st.session) return;
+  el.classList.remove("hidden");
+  el.textContent = (st.tune ? "Auto · " : "") + (st.session.mode_label || st.session.mode || "");
+}
+
+// L'IA n'arrive pas à suivre : on recrée le flux dans un mode plus rapide (quelques secondes de coupure).
+async function switchMode(mode) {
+  st.switching = true;
+  try {
+    say("L'IA a du mal à suivre : passage à un mode plus fluide…");
+    st.session = await api(`/api/sessions/${st.session.id}/mode`, { method: "POST", body: JSON.stringify({ mode, reason: "auto" }) });
+    try { st.pub && st.pub.close(); st.view && st.view.close(); } catch {}
+    st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H(), { audio: false });
+    st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
+    showMode(); startNet();
+    say(`Mode ${st.session.mode_label} activé automatiquement`);
+  } catch (e) {
+    say("Changement de mode impossible : " + e.message);
+    st.tune = null;  // on n'insiste pas
+  }
+  st.switching = false;
+}
 
 function tick() {
   const s = Math.floor((Date.now() - st.t0) / 1000);
@@ -220,6 +264,7 @@ function teardown(back) {
   if (st.recorder && st.recorder.recording) st.recorder.stop();
   clearInterval(st.recTimer); $("#recpill")?.classList.add("hidden"); $("#rec").textContent = "⏺ Essai"; $("#rec").classList.remove("recording");
   st.timers.forEach((t) => clearInterval(t)); st.timers = [];
+  clearInterval(st.netTimer); st.tune = null;
   try { st.pub && st.pub.close(); st.view && st.view.close(); } catch {}
   st.cam && st.cam.getTracks().forEach((t) => t.stop());
   st.listening = false; try { st.rec && st.rec.stop(); } catch {}

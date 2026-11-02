@@ -391,6 +391,34 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         # sinon : aucune requête moteur, la page de sortie OBS devient transparente instantanément
         return view(s)
 
+    @app.post("/api/sessions/{sid}/mode")
+    def switch_mode(sid: str, body: dict = Body(default={}), x_live_token: str = Header(default="")):
+        """Change le mode de rendu en cours de session (mode automatique) : le modèle étant fixé à la
+        création chez Daydream, on recrée le flux avec la même scène ; le navigateur se reconnecte.
+        Refusé pendant une diffusion directe (les clés de stream ne sont jamais conservées)."""
+        guard(x_live_token)
+        s = get(sid)
+        mode = body.get("mode")
+        if mode not in QUALITY_MODES:
+            raise HTTPException(400, "mode de rendu inconnu (rapide, equilibre, qualite)")
+        if s.ended_at is not None:
+            raise HTTPException(410, "session terminée")
+        if mode == s.mode:
+            return view(s)
+        if s.broadcast:
+            raise HTTPException(409, "changement de mode impossible pendant une diffusion directe")
+        client = clients[s.engine_key]
+        try:
+            data = client.create(s.history.current, mode=mode)
+        except EngineError as e:
+            raise HTTPException(502, str(e)) from e
+        old, previous = s.stream_id, s.mode
+        s.stream_id, s.whip_url, s.whep_url, s.mode = data["id"], data["whip_url"], None, mode
+        client.delete(old)
+        why = " (automatique)" if body.get("reason") == "auto" else ""
+        s.note(f"mode {QUALITY_MODES[previous]['label']} → {QUALITY_MODES[mode]['label']}{why}")
+        return view(s)
+
     @app.delete("/api/sessions/{sid}")
     def stop(sid: str, x_live_token: str = Header(default="")):
         guard(x_live_token)

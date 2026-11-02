@@ -129,6 +129,79 @@ function netGrade(s) {
   return "bon";
 }
 
+// ------------------------------------------------------------------ mode automatique
+// Ordre des modes, du plus rapide au plus beau.
+const MODE_ORDER = ["rapide", "equilibre", "qualite"];
+
+// Mesure rapide du réseau avant de démarrer : aller-retour vers notre serveur (3 essais, on garde
+// le meilleur) + indications du navigateur (débit estimé, mode économie de données).
+async function probeNetwork(url = "/api/catalog") {
+  const out = {};
+  const c = navigator.connection || {};
+  if (c.downlink) out.downlinkMbps = c.downlink;
+  if (c.saveData) out.saveData = true;
+  const times = [];
+  for (let i = 0; i < 3; i++) {
+    const t0 = performance.now();
+    try { await fetch(url, { method: "HEAD", cache: "no-store" }); times.push(performance.now() - t0); } catch {}
+  }
+  if (times.length) out.rttMs = Math.round(Math.min(...times));
+  return out;
+}
+
+// Mode de départ : Qualité si le réseau est excellent, Rapide s'il est faible, Équilibré sinon.
+function pickInitialMode(n = {}) {
+  if (n.saveData) return "rapide";
+  const rtt = n.rttMs, down = n.downlinkMbps;
+  if ((rtt != null && rtt >= 200) || (down != null && down < 2)) return "rapide";
+  if (rtt != null && rtt <= 60 && (down == null || down >= 10)) return "qualite";
+  return "equilibre";
+}
+
+// Décisions en cours de session, à partir des mesures de netStats (toutes les 2 s) :
+//  - réseau faible 3 fois de suite → débit d'envoi « eco » (sans coupure) ; 5 bonnes mesures → « normal » ;
+//  - réseau bon mais l'IA renvoie peu d'images 5 fois de suite → mode plus rapide (recrée le flux :
+//    au plus un changement par minute, jamais pendant une diffusion directe, jamais vers un mode plus lent).
+class AutoTune {
+  constructor({ mode, allowModeSwitch = true, now = () => Date.now(), minDownFps = 12, cooldownMs = 60_000 } = {}) {
+    this.mode = mode; this.allow = allowModeSwitch; this.now = now;
+    this.minDownFps = minDownFps; this.cooldownMs = cooldownMs;
+    this.level = "normal"; this.bad = 0; this.good = 0; this.slow = 0; this.lastSwitch = -Infinity;
+  }
+  feed(st) {
+    const acts = [];
+    if (!st || !st.downFps) return acts;  // démarrage : pas encore d'image IA, on ne juge pas
+    const netBad = (st.loss ?? 0) >= 5 || (st.rtt ?? 0) >= 300;
+    const netGood = (st.loss ?? 0) < 2 && (st.rtt ?? 0) < 150;
+    this.bad = netBad ? this.bad + 1 : 0;
+    this.good = netGood ? this.good + 1 : 0;
+    if (this.level === "normal" && this.bad >= 3) { this.level = "eco"; acts.push({ type: "bitrate", level: "eco" }); }
+    else if (this.level === "eco" && this.good >= 5) { this.level = "normal"; acts.push({ type: "bitrate", level: "normal" }); }
+    const aiSlow = netGood && (st.upFps ?? 30) >= 20 && st.downFps < this.minDownFps;
+    this.slow = aiSlow ? this.slow + 1 : 0;
+    const i = MODE_ORDER.indexOf(this.mode);
+    if (this.allow && this.slow >= 5 && i > 0 && this.now() - this.lastSwitch >= this.cooldownMs) {
+      this.mode = MODE_ORDER[i - 1]; this.lastSwitch = this.now(); this.slow = 0;
+      acts.push({ type: "mode", mode: this.mode });
+    }
+    return acts;
+  }
+}
+
+// Applique un niveau de débit à l'émetteur vidéo, sans renégociation (donc sans coupure).
+async function applyBitrate(pc, level) {
+  const sender = pc && pc.getSenders().find((x) => x.track && x.track.kind === "video");
+  if (!sender) return;
+  try {
+    const p = sender.getParameters();
+    (p.encodings || []).forEach((e) => {
+      e.maxBitrate = level === "eco" ? 700_000 : 1_500_000;
+      e.maxFramerate = level === "eco" ? 24 : 30;
+    });
+    await sender.setParameters(p);
+  } catch {}
+}
+
 function fpsMeter(videoEl, onFps) {
   let n = 0;
   const tick = () => { n++; videoEl.requestVideoFrameCallback(tick); };
