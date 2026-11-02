@@ -6,14 +6,15 @@
 <meta name="theme-color" content="#0b0d12">
 <title>AI Live — Mobile</title>
 <style>
-:root{--bg:#0b0d12;--panel:#151a22;--line:#283040;--text:#eef1f5;--muted:#9aa3b2;--accent:#7c6cff;--danger:#e5484d;--ok:#30a46c}
+:root{--bg:#0c0e11;--panel:#14181d;--line:#242a32;--text:#eceef1;--muted:#9aa1ad;--accent:#0f766e;--accent-hi:#2dd4bf;--ai:#7c3aed;--danger:#dc2626;--ok:#15803d}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .hidden{display:none!important}
 #setup{max-width:520px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px 32px}
 h1{font-size:22px;margin:8px 0 4px}p.muted{color:var(--muted);margin:0 0 16px;font-size:14px}
 label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
-input,select{width:100%;font:inherit;color:var(--text);background:#0f131a;border:1px solid var(--line);border-radius:10px;padding:12px}
+input,select{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:13px 12px}
+input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);border-color:var(--accent-hi)}
 .row{display:flex;gap:8px}.row>*{flex:1}
 .check{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:var(--muted)}.check input{width:auto}
 .btn{display:block;width:100%;margin-top:18px;padding:16px;border:0;border-radius:14px;font:700 17px system-ui;background:var(--accent);color:#fff}
@@ -33,10 +34,10 @@ input,select{width:100%;font:inherit;color:var(--text);background:#0f131a;border
 .msg{position:absolute;left:12px;right:12px;bottom:calc(196px + env(safe-area-inset-bottom));text-align:center;font-size:15px;text-shadow:0 1px 3px #000}
 .chips{position:absolute;left:0;right:0;bottom:calc(132px + env(safe-area-inset-bottom));display:flex;gap:8px;overflow-x:auto;padding:0 12px 6px;scrollbar-width:none}
 .chip{flex:none;padding:9px 14px;border-radius:999px;background:#000a;border:1px solid #fff4;color:#fff;font-size:14px}
-.chip.on{background:var(--accent);border-color:var(--accent)}
+.chip.on{background:var(--ai);border-color:var(--ai)}
 .bar{position:absolute;left:0;right:0;bottom:0;padding:12px 12px max(14px,env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1.3fr 1fr 0.8fr;gap:8px;background:linear-gradient(#0000,#000c)}
 .big{border:0;border-radius:16px;padding:16px 8px;font:700 15px system-ui;color:#fff;background:#ffffff22;backdrop-filter:blur(6px)}
-.big.ia{background:var(--accent)}.big.recording{background:#b91c1c}.big.orig{background:var(--danger)}.big.on{background:var(--ok)}
+.big.ia{background:var(--ai)}.big.recording{background:#b91c1c}.big.orig{background:var(--danger)}.big.on{background:var(--ok)}
 .parody{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(240px + env(safe-area-inset-bottom));background:#c8141eee;color:#fff;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border-radius:8px;font-size:13px;white-space:nowrap}
 #cam{position:absolute;top:calc(56px + env(safe-area-inset-top));right:12px;width:96px;height:128px;object-fit:cover;border-radius:10px;border:2px solid #fff6}
 </style>
@@ -81,12 +82,14 @@ input,select{width:100%;font:inherit;color:var(--text);background:#0f131a;border
 </div></nav>
 <!-- labnav:end -->
 <section id="setup">
-  <h1>AI Live — téléphone</h1>
+  <h1><span style="color:var(--accent-hi)">◆</span> AI Live <span style="color:var(--muted);font-weight:500">· téléphone</span></h1>
   <p class="muted">Filme et transforme-toi par la voix.</p>
   <div class="phase"><b>Phase de test</b> — la transformation s'affiche sur ton téléphone et tu peux enregistrer des essais. Rien n'est publié.</div>
 
   <label>Mot de passe de la console <span style="opacity:.75">(pas la clé Daydream, déjà installée)</span></label><input id="token" type="password" autocomplete="current-password">
   <label>Moteur</label><select id="engine"></select>
+  <label>Qualité du rendu</label><select id="mode"></select>
+  <p class="howto" id="mode-hint"></p>
 
   <details class="later">
     <summary>Diffusion en direct sur des plateformes (après la phase de test)</summary>

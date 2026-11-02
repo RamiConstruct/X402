@@ -82,6 +82,10 @@ async function init() {
     st.catalog.engines.map((e) => `<option value="${esc(e.key)}">${esc(e.name)}</option>`).join("");
   $("#token").value = store.get("token");
   $("#engine").value = store.get("engine") || $("#engine").value;
+  $("#mode").innerHTML = (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}">${esc(m.label)}</option>`).join("");
+  $("#mode").value = store.get("mode") || st.catalog.default_mode || "equilibre";
+  const hint = () => { const m = (st.catalog.modes || []).find((x) => x.key === $("#mode").value); $("#mode-hint").textContent = m ? m.hint : ""; };
+  $("#mode").addEventListener("change", hint); hint();
   $("#format").value = store.get("format") || "horizontal";
   let saved = [];
   try { saved = JSON.parse(store.get("dests") || "[]"); } catch {}
@@ -101,6 +105,7 @@ $("#go").addEventListener("click", async () => {
   const dests = $("#do-bc").checked ? collect() : [];
   const remember = $("#remember-key").checked;
   store.set("token", $("#token").value); store.set("format", $("#format").value); store.set("engine", $("#engine").value);
+  store.set("mode", $("#mode").value);
   store.set("bc", $("#do-bc").checked ? "1" : "");
   store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
   try {
@@ -108,7 +113,8 @@ $("#go").addEventListener("click", async () => {
       video: { facingMode: $("#facing").value, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
       audio: { echoCancellation: true, noiseSuppression: true },
     });
-    const body = { engine: $("#engine").value };
+    const body = { engine: $("#engine").value, mode: $("#mode").value };
+    const tStart = Date.now();
     if (dests.length) body.broadcast = dests.map((d) => ({ platform: d.platform, server_url: d.server, stream_key: d.key, format: $("#format").value }));
     const platform = dests.map((d) => d.platform).join(" + ");
     st.session = await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
@@ -117,6 +123,7 @@ $("#go").addEventListener("click", async () => {
     $("#state").textContent = "Connexion au moteur…";
     st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H());
     $("#state").textContent = "Chargement de l'IA…";
+    $("#ai").addEventListener("playing", () => say(`IA prête en ${((Date.now() - tStart) / 1000).toFixed(1)} s — mode ${st.session.mode_label || ""}`), { once: true });
     st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
     $("#state").textContent = platform ? "● EN DIRECT" : "Test (non publié)";
     $("#state").classList.toggle("rec", !!platform);

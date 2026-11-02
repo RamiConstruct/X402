@@ -1,7 +1,7 @@
 """Test de bout en bout du moteur Daydream (vidéo → WHIP → IA → WHEP, changement de scène en cours).
 
 Usage (sur une machine avec un vrai accès réseau, ex. le serveur) :
-  DAYDREAM_API_KEY=... python ai_live/tools/check_daydream.py video.mp4 dossier_sortie
+  DAYDREAM_API_KEY=... MODE=qualite python ai_live/tools/check_daydream.py video.mp4 dossier_sortie
 Affiche le délai de la 1re image IA, les débits envoyés/reçus et enregistre quelques images (PPM).
 """
 import asyncio, os, sys, time
@@ -20,9 +20,10 @@ async def gather(pc):
     await asyncio.wait_for(done.wait(), 15)
 
 async def main(video, out):
-    eng = StreamEngine(EngineConfig(name="dd", base_url="https://api.daydream.live", api_key=os.environ["DAYDREAM_API_KEY"]))
+    eng = StreamEngine(EngineConfig(name="dd", base_url="https://api.daydream.live", api_key=os.environ["DAYDREAM_API_KEY"], switch_models=True))
+    mode = os.environ.get("MODE")
     scene = Scene()
-    t0 = time.time(); d = await asyncio.to_thread(eng.create, scene); sid = d["id"]
+    t0 = time.time(); d = await asyncio.to_thread(eng.create, scene, None, None, mode); sid = d["id"]
     print(f"flux créé en {time.time()-t0:.1f}s")
     pub = RTCPeerConnection(); player = MediaPlayer(video, options={"stream_loop": "-1"})
     sent = []
@@ -62,7 +63,7 @@ async def main(video, out):
     await asyncio.sleep(8)
     h = SceneHistory(scene); res = apply_command(h, "transforme-moi en chevalier, décor château"); s2 = h.current
     print("commande:", res.ok, res.message[:80], "| prompt:", s2.prompt()[:100] if hasattr(s2, "prompt") else "")
-    try: await asyncio.to_thread(eng.update, sid, s2); print("changement de scène OK")
+    try: await asyncio.to_thread(eng.update, sid, s2, mode); print("changement de scène OK")
     except Exception as e: print("changement de scène ERREUR", str(e)[:200])
     await asyncio.sleep(10)
     w = [t for t in frames if t > time.time() - 10]

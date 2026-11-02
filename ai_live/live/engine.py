@@ -35,7 +35,8 @@ CONTROLNETS = {
     ],
 }
 
-# Modes de rendu proposés à l'utilisateur. Le modèle n'est changé que sur les moteurs qui le
+# Modes de rendu proposés à l'utilisateur. Taille 512 partout : chez Daydream, un flux en 640
+# reste bloqué sur « Loading pipeline… » (mesuré le 2026-11-02), alors que 512 démarre en ~5 s. Le modèle n'est changé que sur les moteurs qui le
 # permettent (Daydream) ; ailleurs, seuls le nombre de passes et la taille s'appliquent.
 QUALITY_MODES: dict[str, dict] = {
     "rapide": {"label": "Rapide", "hint": "le plus fluide, détails plus simples",
@@ -43,7 +44,7 @@ QUALITY_MODES: dict[str, dict] = {
     "equilibre": {"label": "Équilibré", "hint": "le meilleur compromis pour le direct",
                   "model": "stabilityai/sdxl-turbo", "size": 512, "passes": 1},
     "qualite": {"label": "Qualité", "hint": "plus beau et plus stable, un peu moins fluide",
-                "model": "stabilityai/sdxl-turbo", "size": 640, "passes": 2,
+                "model": "stabilityai/sdxl-turbo", "size": 512, "passes": 2,
                 "controlnets": [_DEPTH_XL, _CANNY_XL, _TILE_XL]},
 }
 DEFAULT_MODE = "equilibre"

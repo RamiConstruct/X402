@@ -22,6 +22,8 @@ async function loadCatalog() {
   $("#engine").innerHTML = (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué (Vast.ai / RunPod)</option>` : "") +
     st.catalog.engines.map((e) =>
     `<option value="${esc(e.key)}">${esc(e.name)} — ${esc(e.model)}${e.configured ? "" : " (clé manquante)"}</option>`).join("");
+  $("#mode").innerHTML = (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}" title="${esc(m.hint)}">${esc(m.label)} — ${esc(m.hint)}</option>`).join("");
+  $("#mode").value = st.catalog.default_mode || "equilibre";
   setupGpu();
   for (const [kind, id] of [["character", "#characters"], ["decor", "#decors"], ["style", "#styles"]]) {
     const list = st.catalog[kind === "character" ? "characters" : kind + "s"];
@@ -62,8 +64,10 @@ $("#start").addEventListener("click", async () => {
     st.cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }, audio: false });
     $("#cam").srcObject = st.cam;
     say("Création du flux sur le moteur…");
-    const s = await api("/api/sessions", { method: "POST", body: JSON.stringify({ engine: $("#engine").value }) });
+    const s = await api("/api/sessions", { method: "POST", body: JSON.stringify({ engine: $("#engine").value, mode: $("#mode").value }) });
     render(s);
+    const tStart = Date.now();
+    $("#ai").addEventListener("playing", () => say(`IA prête en ${((Date.now() - tStart) / 1000).toFixed(1)} s (mode ${s.mode_label || "—"})`), { once: true });
     say("Connexion de la caméra au moteur (WHIP)…");
     st.pubPc = await whipPublish(`/api/sessions/${s.id}/whip`, st.cam, headers());
     say("En attente de la sortie IA (premières secondes : chargement du modèle)…");

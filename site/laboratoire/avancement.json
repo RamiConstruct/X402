@@ -5,11 +5,11 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Phase de test avec la vraie IA : Daydream est branché sur la console. Prochaine étape, ton premier essai depuis le téléphone.",
-    "dernier_fait": "Premier vrai rendu IA : vidéo envoyée à Daydream, image IA reçue en 3 à 7 s, commande « chevalier, décor château » appliquée en direct.",
+    "dernier_fait": "Modes Rapide / Équilibré / Qualité (démarrage IA en 5 à 8 s), graine fixe anti-scintillement, commande « autre version », descriptions enrichies, et un seul style visuel sur tout le site.",
     "prochaines_etapes_claude": [
-      "Mesurer la fluidité réelle depuis un téléphone (le test serveur était limité par son processeur : ~5 images/s)",
-      "Régler qualité / vitesse (modèle, intensité, taille d'image) à partir de tes essais",
-      "Afficher le coût Daydream par minute dans la console"
+      "Mesurer la fluidité réelle depuis ton téléphone dans chaque mode",
+      "Régler l'intensité par défaut et les descriptions à partir de tes essais enregistrés",
+      "Style copié d'une image de référence (accepté par Daydream, à intégrer)"
     ],
     "en_attente_de_toi": [
       "Faire ton premier essai : live.labotory.site/mobile.html → moteur « Daydream » → Démarrer, puis dire « transforme-moi en chevalier »",
@@ -173,6 +173,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "AI Live : 3 modes de rendu validés chez Daydream, rendu plus stable (graine fixe, contours), « autre version » ; site harmonisé (palette, boutons, typographie communs)."
+    },
     {
       "date": "2026-11-02",
       "texte": "Premier vrai rendu IA avec Daydream : la commande vocale « chevalier, décor château » transforme l'image en direct."

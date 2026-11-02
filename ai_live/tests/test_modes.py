@@ -19,7 +19,7 @@ def test_modes_daydream():
     eq = scene_params(Scene(), DD, initial=True, mode="equilibre")
     assert eq["model_id"] == "stabilityai/sdxl-turbo" and len(eq["controlnets"]) == 2
     q = scene_params(Scene(), DD, initial=True, mode="qualite")
-    assert q["width"] == q["height"] == 640 and len(q["t_index_list"]) == 2
+    assert q["width"] == q["height"] == 512 and len(q["t_index_list"]) == 2
     assert {c["model_id"].split("-")[1] for c in q["controlnets"]} == {"depth", "canny", "tile"}
     assert q["t_index_list"][0] < q["t_index_list"][1] <= 45
     # Valeurs refusées par l'API Daydream (largeur multiple de 64, ≤ 1024)
@@ -69,6 +69,6 @@ def test_server_mode_roundtrip():
     assert c.post("/api/sessions", json={"engine": "daydream", "mode": "turbo"}).status_code == 400
     s = c.post("/api/sessions", json={"engine": "daydream", "mode": "qualite"}).json()
     assert s["mode"] == "qualite" and s["mode_label"] == "Qualité"
-    assert seen[0]["params"]["width"] == 640
+    assert len(seen[0]["params"]["controlnets"]) == 3
     c.post(f"/api/sessions/{s['id']}/command", json={"text": "plus fort"})
     assert len(seen[-1]["params"]["t_index_list"]) == 2  # les mises à jour gardent le mode

@@ -16,7 +16,7 @@ STRENGTH_T_INDEX = {1: [38], 2: [30], 3: [22], 4: [14], 5: [8]}
 DEFAULT_NEGATIVE = ("blurry, low quality, lowres, jpeg artifacts, noisy, deformed face, distorted face, "
                     "bad anatomy, extra limbs, extra fingers, mutated hands, text, watermark, logo, frame")
 # Finition ajoutée quand aucun style n'est choisi : rendu net et lumineux, stable d'une image à l'autre.
-DEFAULT_FINISH = "cinematic lighting, sharp focus, highly detailed, vibrant colors"
+DEFAULT_FINISH = "cinematic lighting, sharp focus, highly detailed"
 DEFAULT_SEED = 42  # graine fixe : moins de scintillement entre les images
 
 CHARACTERS: dict[str, dict] = {
