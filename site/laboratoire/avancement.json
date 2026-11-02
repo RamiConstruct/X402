@@ -5,7 +5,7 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Optimiser avant d'investir : flux vidéo allégé, mesures réseau, plan d'investissement de 1 000 $ prêt.",
-    "dernier_fait": "Flux vidéo optimisé (512×512, 1,5 Mbit/s, tampon minimal, démarrage parallèle, mesures réseau), langue selon le pays, outils de travail installés.",
+    "dernier_fait": "Mode de rendu automatique : choix au démarrage selon le réseau, envoi allégé sans coupure si le réseau faiblit, mode plus rapide si l'IA ne suit pas.",
     "prochaines_etapes_claude": [
       "Mesurer la fluidité réelle depuis ton téléphone dans chaque mode",
       "Régler l'intensité par défaut et les descriptions à partir de tes essais enregistrés",
@@ -173,6 +173,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "AI Live : mode Auto (réseau + fluidité de l'IA), vérifié dans le navigateur et contre Daydream."
+    },
     {
       "date": "2026-11-02",
       "texte": "Optimisation du flux vidéo, langue du site selon le pays, veille GitHub et plan d'investissement."
