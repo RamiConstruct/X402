@@ -39,6 +39,8 @@ async function whipPublish(url, stream, headers) {
   track.contentHint = "motion";
   const tr = pc.addTransceiver(track, { direction: "sendonly", sendEncodings: [{ maxBitrate: 3_000_000 }] });
   preferH264(tr);
+  const mic = stream.getAudioTracks()[0];  // le son du micro part avec la vidéo (diffusion directe)
+  if (mic) pc.addTransceiver(mic, { direction: "sendonly" });
   await pc.setLocalDescription(await pc.createOffer());
   await gatherIce(pc);
   const answer = await postSdp(url, pc.localDescription.sdp, headers);

@@ -25,6 +25,7 @@ from aiortc.contrib.media import MediaRelay
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 
 from .processors import Processor, make_processor
+from .rtmp import RtmpPusher, mask_url
 
 log = logging.getLogger("live.worker")
 
@@ -35,6 +36,7 @@ class ProcessedTrack(MediaStreamTrack):
     def __init__(self, source: MediaStreamTrack, processor: Processor, stats: dict) -> None:
         super().__init__()
         self.source, self.processor, self.stats = source, processor, stats
+        self.bypass = False   # True = l'image originale est renvoyée telle quelle (retour à l'original)
         self._latest: av.VideoFrame | None = None
         self._new = asyncio.Event()
         self._reader = asyncio.ensure_future(self._read())
@@ -54,6 +56,9 @@ class ProcessedTrack(MediaStreamTrack):
         frame = self._latest
         if frame is None:
             raise asyncio.CancelledError
+        if self.bypass:
+            self.stats["frames_out"] += 1
+            return frame
         t0 = time.perf_counter()
         rgb = frame.to_ndarray(format="rgb24")
         out = await asyncio.get_running_loop().run_in_executor(None, self.processor.process, rgb)
@@ -78,6 +83,10 @@ class Stream:
     relay: MediaRelay = field(default_factory=MediaRelay)
     stats: dict = field(default_factory=lambda: {"frames_in": 0, "frames_out": 0, "last_ms": None})
     created: float = field(default_factory=time.time)
+    rtmp_url: str | None = None           # diffusion directe (même champ que l'API Daydream : output_rtmp_url)
+    output_size: tuple[int, int] = (720, 1280)
+    audio: MediaStreamTrack | None = None
+    pusher: RtmpPusher | None = None
 
 
 def ice_config(raw: str | None) -> RTCConfiguration:
@@ -143,7 +152,15 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
         params = dict(body.get("params") or {})
         sid = "wst_" + secrets.token_hex(12)
         processor = await asyncio.get_running_loop().run_in_executor(None, take_processor, params)
-        streams[sid] = Stream(id=sid, params=params, processor=processor)
+        rtmp = body.get("output_rtmp_url") or None
+        if rtmp and not str(rtmp).startswith(("rtmp://", "rtmps://")):
+            raise HTTPException(400, "output_rtmp_url doit commencer par rtmp:// ou rtmps://")
+        size = str(params.pop("output_size", "720x1280"))
+        try:
+            ow, oh = (int(v) for v in size.lower().split("x"))
+        except ValueError:
+            raise HTTPException(400, "output_size invalide (ex. 720x1280)") from None
+        streams[sid] = Stream(id=sid, params=params, processor=processor, rtmp_url=rtmp, output_size=(ow, oh))
         return {"id": sid, "whip_url": f"{base(req)}/v1/streams/{sid}/whip", "output_playback_id": sid,
                 "pipeline": body.get("pipeline", "streamdiffusion"), "params": params}
 
@@ -151,7 +168,11 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
     async def update(sid: str, req: Request, authorization: str = Header(default="")):
         auth(authorization)
         st = streams.get(sid) or _404()
-        params = (await req.json()).get("params") or {}
+        params = dict((await req.json()).get("params") or {})
+        if "bypass" in params:
+            bypass = bool(params.pop("bypass"))
+            if st.output is not None:
+                st.output.bypass = bypass
         st.params.update(params)
         st.processor.update(params)
         return {"id": sid, "params": st.params}
@@ -160,7 +181,10 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
     def get(sid: str, authorization: str = Header(default="")):
         auth(authorization)
         st = streams.get(sid) or _404()
-        return {"id": sid, "params": st.params, "stats": st.stats}
+        out = {"id": sid, "params": st.params, "stats": st.stats}
+        if st.pusher:
+            out["broadcast"] = {"target": mask_url(st.rtmp_url or ""), **st.pusher.stats}
+        return out
 
     @app.post("/v1/streams/{sid}/whip")
     async def whip(sid: str, req: Request, authorization: str = Header(default="")):
@@ -176,9 +200,16 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
             if track.kind == "video" and st.output is None:
                 st.output = ProcessedTrack(track, st.processor, st.stats)
                 got_video.set()
+            elif track.kind == "audio" and st.audio is None:
+                st.audio = track
 
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer, type="offer"))
         await pc.setLocalDescription(await pc.createAnswer())
+        if st.rtmp_url and st.output is not None and st.pusher is None:
+            w, h = st.output_size
+            st.pusher = RtmpPusher(st.rtmp_url, width=w, height=h)
+            st.pusher.start(st.relay.subscribe(st.output, buffered=False),
+                            st.relay.subscribe(st.audio, buffered=False) if st.audio is not None else None)
         return Response(pc.localDescription.sdp, media_type="application/sdp", status_code=201,
                         headers={"Livepeer-Playback-Url": f"{base(req)}/v1/streams/{sid}/whep",
                                  "Location": f"/v1/streams/{sid}/whip"})
@@ -200,6 +231,8 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
         return Response(pc.localDescription.sdp, media_type="application/sdp", status_code=201)
 
     async def _close(st: Stream) -> None:
+        if st.pusher:
+            await st.pusher.stop()
         if st.output:
             st.output.stop()
         for pc in st.pcs:

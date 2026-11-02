@@ -5,17 +5,17 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "AI LIVE — rendre le live IA utilisable de bout en bout par le fondateur, premier utilisateur.",
-    "dernier_fait": "Console AI LIVE en ligne sur live.labotory.site (protégée par mot de passe), avec un moteur de démonstration sur le serveur ; relais vidéo corrigé pour annoncer l'adresse publique.",
+    "dernier_fait": "Diffusion directe depuis le téléphone : caméra + micro → transformation IA → TikTok, YouTube, Twitch ou Kick, sans PC (page live.labotory.site/mobile.html).",
     "prochaines_etapes_claude": [
-      "Construire et publier l'image Docker du moteur GPU (StreamDiffusion) pour la location à la demande",
+      "Vérifier l'image Docker du moteur GPU (construction GitHub en cours)",
       "Brancher Daydream dès que le compte existe, pour un premier vrai rendu IA",
       "Mesurer images/seconde, latence et coût par minute sur un vrai live"
     ],
     "en_attente_de_toi": [
-      "Tester la console sur live.labotory.site depuis ton téléphone ou ton PC (mot de passe transmis en privé)",
-      "Créer la clé du relais Cloudflare Realtime TURN (tableau de bord Cloudflare → Realtime → TURN)",
+      "Tester live.labotory.site/mobile.html sur ton téléphone (aperçu d'abord, puis diffusion)",
+      "Vérifier si ton compte TikTok a accès à la clé de stream (TikTok LIVE Studio)",
       "Créer un compte daydream.live (crédits gratuits) pour le moteur de référence",
-      "Clés Vast.ai et/ou RunPod avec quelques dollars, quand tu veux louer un GPU",
+      "Créer la clé du relais Cloudflare Realtime TURN",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
     ]
   },
@@ -24,7 +24,7 @@
       "nom": "AI LIVE",
       "resume": "Se transformer en direct pendant un stream (personnage, décor, style) par la voix, avec sortie vers OBS.",
       "etat": "en_cours",
-      "avancement": 65,
+      "avancement": 72,
       "fait": [
         "Console web : caméra, voix en français, personnages, décors, styles, intensité, retour à l'original",
         "Page de sortie pour OBS (transparente au retour à l'original)",
@@ -32,14 +32,17 @@
         "Location de GPU à la demande (Vast.ai, RunPod) avec prix par modèle et libération automatique",
         "Relais vidéo : Cloudflare TURN (principal) et serveur Oracle (secours, installé)",
         "Personnalités publiques uniquement en caricature avec bandeau PARODIE",
-        "Console en ligne sur live.labotory.site avec moteur de démonstration sur le serveur"
+        "Console en ligne sur live.labotory.site avec moteur de démonstration sur le serveur",
+        "Diffusion directe RTMP/RTMPS vers les plateformes depuis le téléphone, son compris, format vertical",
+        "Page téléphone plein écran : bouton Original/IA, voix, personnages, écran maintenu allumé"
       ],
       "pas_encore_teste": [
+        "Diffusion vers une vraie plateforme (TikTok, YouTube…)",
         "Appels réels à Daydream, Vast.ai, RunPod",
         "Moteur StreamDiffusion sur un vrai GPU",
         "UDP du relais Oracle"
       ],
-      "tests": "33 tests automatiques + parcours vérifié dans un navigateur"
+      "tests": "35 tests automatiques (dont diffusion vers une plateforme simulée : H.264 720x1280 + AAC) + parcours téléphone vérifié"
     },
     {
       "nom": "AI STUDIO",
@@ -156,6 +159,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Diffusion directe téléphone → IA → TikTok / YouTube / Twitch / Kick, sans PC."
+    },
     {
       "date": "2026-11-02",
       "texte": "Console AI LIVE en ligne sur live.labotory.site ; relais vidéo corrigé (adresse publique)."

@@ -51,6 +51,7 @@ class EngineConfig:
     height: int = 512
     use_controlnets: bool = True
     usd_per_minute: float | None = None   # tarif à renseigner après vérification (None = inconnu)
+    supports_output_size: bool = False    # worker auto-hébergé : format de diffusion (720x1280…) ; Daydream : non
 
 
 def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool) -> dict:
@@ -63,7 +64,12 @@ def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool) -> dict:
         "delta": 0.7,
         "do_add_noise": True,
     }
+    if cfg.supports_output_size:
+        p["bypass"] = scene.bypass            # worker auto-hébergé : renvoie l'image originale
+    elif scene.bypass:
+        p["t_index_list"] = [49]              # Daydream : pas de bypass natif → retouche minimale
     if initial:
+        p.pop("bypass", None)
         p.update(width=cfg.width, height=cfg.height, num_inference_steps=50)
         cns = CONTROLNETS.get(cfg.model_id) if cfg.use_controlnets else None
         if cns:
@@ -85,8 +91,13 @@ class StreamEngine:
             h["Content-Type"] = "application/json"
         return h
 
-    def create(self, scene: Scene) -> dict:
+    def create(self, scene: Scene, output_rtmp_url: str | None = None, output_size: str | None = None) -> dict:
+        """output_rtmp_url : diffusion directe vers une plateforme (champ officiel de l'API Daydream)."""
         body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=True)}
+        if output_rtmp_url:
+            body["output_rtmp_url"] = output_rtmp_url
+            if output_size and self.cfg.supports_output_size:
+                body["params"]["output_size"] = output_size
         r = self.client.post(f"{self.cfg.base_url}/v1/streams", json=body, headers=self._headers())
         if r.status_code >= 400:
             raise EngineError(f"création du flux refusée (HTTP {r.status_code}) : {r.text[:300]}")

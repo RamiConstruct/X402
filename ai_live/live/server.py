@@ -42,7 +42,8 @@ def engines_from_env() -> dict[str, EngineConfig]:
         "selfhosted": EngineConfig(
             name="Mon GPU (StreamDiffusion auto-hébergé)", base_url=os.environ.get("SELFHOST_URL", "http://127.0.0.1:8890"),
             api_key=os.environ.get("SELFHOST_TOKEN", "local"), model_id=os.environ.get("SELFHOST_MODEL", "stabilityai/sd-turbo"),
-            usd_per_minute=f("SELFHOST_USD_PER_MIN"), use_controlnets=os.environ.get("SELFHOST_CONTROLNETS", "0") == "1"),
+            usd_per_minute=f("SELFHOST_USD_PER_MIN"), use_controlnets=os.environ.get("SELFHOST_CONTROLNETS", "0") == "1",
+            supports_output_size=True),
     }
 
 
@@ -85,6 +86,7 @@ class Session:
     ended_at: float | None = None
     end_reason: str | None = None
     log: list = field(default_factory=list)
+    broadcast: dict | None = None        # {"platform", "target" (clé masquée), "format"} — la clé n'est jamais conservée
 
     def minutes(self) -> float:
         if not self.connected_at:
@@ -94,6 +96,23 @@ class Session:
     def note(self, msg: str) -> None:
         self.log.append({"at": time.time(), "message": msg})
         self.log = self.log[-100:]
+
+
+FORMATS = {"vertical": "720x1280", "horizontal": "1280x720", "carre": "720x720"}
+
+
+def broadcast_url(b: dict) -> tuple[str, dict]:
+    """Construit l'URL RTMP(S) à partir du serveur et de la clé ; renvoie aussi une vue sans la clé."""
+    server = str(b.get("server_url", "")).strip().rstrip("/")
+    key = str(b.get("stream_key", "")).strip()
+    if not server.startswith(("rtmp://", "rtmps://")):
+        raise HTTPException(400, "l'adresse du serveur doit commencer par rtmp:// ou rtmps://")
+    if not key or "/" in key or " " in key:
+        raise HTTPException(400, "clé de stream manquante ou invalide")
+    fmt = b.get("format", "vertical")
+    if fmt not in FORMATS:
+        raise HTTPException(400, "format inconnu (vertical, horizontal, carre)")
+    return f"{server}/{key}", {"platform": str(b.get("platform", "autre"))[:30], "target": f"{server}/***", "format": fmt}
 
 
 class Cmd(BaseModel):
@@ -158,7 +177,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
                 "ended": s.ended_at is not None, "end_reason": s.end_reason, "minutes": round(mins, 2),
                 "usd_per_minute": cfg.usd_per_minute,
                 "estimated_cost_usd": round(mins * cfg.usd_per_minute, 4) if cfg.usd_per_minute is not None else None,
-                "max_minutes": max_minutes, "scene": s.history.current.describe(), "log": s.log[-20:]}
+                "max_minutes": max_minutes, "scene": s.history.current.describe(), "log": s.log[-20:],
+                "broadcast": s.broadcast}
 
     def touch(s: Session) -> None:
         if gpu and s.engine_key.startswith("cloud:") and s.ended_at is None:
@@ -241,7 +261,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             model = MODELS[r.model_key]
             configs[key] = EngineConfig(name=f"GPU loué — {r.gpu_name} ({r.provider})", base_url=r.endpoint,
                                         api_key=r.token, model_id=model.model_id, width=model.width, height=model.height,
-                                        use_controlnets=model.use_controlnets, usd_per_minute=r.client_price_per_min())
+                                        use_controlnets=model.use_controlnets, usd_per_minute=r.client_price_per_min(),
+                                        supports_output_size=True)
             clients[key] = engine_factory(configs[key])
         return key
 
@@ -254,13 +275,18 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         if key not in configs:
             raise HTTPException(400, "moteur inconnu")
         history = SceneHistory()
+        rtmp, bview, size = None, None, None
+        if body.get("broadcast"):
+            rtmp, bview = broadcast_url(body["broadcast"])
+            size = FORMATS[bview["format"]]
         try:
-            data = clients[key].create(history.current)
+            data = clients[key].create(history.current, output_rtmp_url=rtmp, output_size=size)
         except EngineError as e:
             raise HTTPException(502, str(e)) from e
         s = Session(id="ses_" + secrets.token_hex(8), out_key=secrets.token_urlsafe(16), engine_key=key,
                     stream_id=data["id"], whip_url=data["whip_url"], history=history)
-        s.note(f"flux créé sur {configs[key].name}")
+        s.broadcast = bview
+        s.note(f"flux créé sur {configs[key].name}" + (f" — diffusion directe vers {bview['platform']} ({bview['format']})" if bview else ""))
         with lock:
             sessions[s.id], by_out[s.out_key] = s, s
         return view(s)
@@ -305,10 +331,12 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
     def command(sid: str, c: Cmd, x_live_token: str = Header(default="")):
         guard(x_live_token)
         s = get(sid)
-        before = s.history.current.prompt(), s.history.current.t_index_list()
+        state = lambda: (s.history.current.prompt(), s.history.current.t_index_list(),  # noqa: E731
+                         s.history.current.bypass if s.broadcast else None)
+        before = state()
         r = apply_command(s.history, c.text)
         s.note(f"« {c.text[:80]} » → {r.message}")
-        if r.changed and (s.history.current.prompt(), s.history.current.t_index_list()) != before:
+        if r.changed and state() != before:
             push(s)
         return {"ok": r.ok, "message": r.message, "blocked": r.blocked, "session": view(s)}
 
@@ -338,7 +366,10 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         s = get(sid)
         new = s.history.edit()
         new.bypass = bool(body.get("on"))
-        s.history.apply(new)  # aucune requête moteur : la bascule est instantanée côté sortie
+        s.history.apply(new)
+        if s.broadcast:
+            push(s)  # diffusion directe : pas d'OBS, c'est le moteur qui renvoie l'image originale
+        # sinon : aucune requête moteur, la page de sortie OBS devient transparente instantanément
         return view(s)
 
     @app.delete("/api/sessions/{sid}")

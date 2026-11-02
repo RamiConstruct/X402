@@ -95,3 +95,14 @@ def test_parody_adds_negative_photoreal():
 
     make(handler).update("s", Scene(parody_of="Emmanuel Macron"))
     assert "photorealistic" in seen["body"]["params"]["negative_prompt"]
+
+
+def test_bypass_param_per_engine():
+    from live.engine import scene_params
+    s = Scene(character="robot", bypass=True)
+    worker_cfg = EngineConfig(name="w", base_url="x", api_key="k", supports_output_size=True)
+    dd_cfg = EngineConfig(name="d", base_url="x", api_key="k")
+    assert scene_params(s, worker_cfg, initial=False)["bypass"] is True
+    p = scene_params(s, dd_cfg, initial=False)
+    assert "bypass" not in p and p["t_index_list"] == [49]
+    assert "bypass" not in scene_params(s, worker_cfg, initial=True)
