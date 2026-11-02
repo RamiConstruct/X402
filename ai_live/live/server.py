@@ -25,6 +25,7 @@ from .commands import apply_command, set_preset
 from .engine import DEFAULT_MODE, QUALITY_MODES, EngineConfig, EngineError, StreamEngine, resolve_mode
 from .gpu.catalog import MODELS
 from .gpu.manager import GpuError, GpuManager, Limits
+from .references import References
 from .scene import CHARACTERS, DECORS, STYLES, SceneHistory
 
 STATIC = Path(__file__).parent / "static"
@@ -38,7 +39,7 @@ def engines_from_env() -> dict[str, EngineConfig]:
         "daydream": EngineConfig(
             name="Daydream (API hébergée)", base_url=os.environ.get("DAYDREAM_BASE_URL", "https://api.daydream.live"),
             api_key=os.environ.get("DAYDREAM_API_KEY", ""), model_id=os.environ.get("DAYDREAM_MODEL", "stabilityai/sdxl-turbo"),
-            usd_per_minute=f("DAYDREAM_USD_PER_MIN"), switch_models=True),
+            usd_per_minute=f("DAYDREAM_USD_PER_MIN"), switch_models=True, supports_ip_adapter=True),
         "selfhosted": EngineConfig(
             name="Mon GPU (StreamDiffusion auto-hébergé)", base_url=os.environ.get("SELFHOST_URL", "http://127.0.0.1:8890"),
             api_key=os.environ.get("SELFHOST_TOKEN", "local"), model_id=os.environ.get("SELFHOST_MODEL", "stabilityai/sd-turbo"),
@@ -88,6 +89,7 @@ class Session:
     log: list = field(default_factory=list)
     broadcast: list | None = None        # [{"platform", "target" (clé masquée), "format"}] — la clé n'est jamais conservée
     mode: str = DEFAULT_MODE             # rendu : rapide / equilibre / qualite (fixé à la création du flux)
+    face_token: str | None = None        # photo du visage (« garder mon visage ») : en mémoire seulement
 
     def minutes(self) -> float:
         if not self.connected_at:
@@ -136,8 +138,11 @@ class Rent(BaseModel):
 
 def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=StreamEngine,
                access_token: str | None = None, max_minutes: float | None = None,
-               gpu: GpuManager | None | bool = True, ice_servers: list | None = None) -> FastAPI:
+               gpu: GpuManager | None | bool = True, ice_servers: list | None = None,
+               references: References | None = None) -> FastAPI:
     configs = dict(engines or engines_from_env())
+    refs = references or References(public_base=os.environ.get("LIVE_PUBLIC_URL", "https://live.labotory.site"))
+    faces: dict[str, bytes] = {}  # jeton secret → JPEG ; effacé à la désactivation et en fin de session
     gpu = gpu_manager_from_env() if gpu is True else (gpu or None)
     from .turn import ice_from_env
     # Identifiants TURN régénérés à chaque demande (ils expirent) ; le secret reste ici.
@@ -167,9 +172,18 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         if s.ended_at is None and s.minutes() > max_minutes:
             end(s, f"durée maximale atteinte ({max_minutes:.0f} min)")
 
+    def refs_for(s: Session) -> dict:
+        r = {"style_image_url": refs.pick(s.history.current)}
+        if s.face_token and s.face_token in faces:
+            r["face_image_url"] = f"{refs.public_base}/api/face/{s.face_token}.jpg"
+        return r
+
     def end(s: Session, reason: str) -> None:
         if s.ended_at is None:
             s.ended_at, s.end_reason = time.time(), reason
+            if s.face_token:
+                faces.pop(s.face_token, None)
+                s.face_token = None
             clients[s.engine_key].delete(s.stream_id)
             s.note(f"session terminée : {reason}")
 
@@ -179,6 +193,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         rm = resolve_mode(cfg, s.mode)
         return {"id": s.id, "engine": s.engine_key, "engine_name": cfg.name, "model": rm["model"],
                 "mode": s.mode, "mode_label": QUALITY_MODES[s.mode]["label"],
+                "face_locked": bool(s.face_token) and s.history.current.face_lock,
+                "reference": refs.pick(s.history.current) if cfg.supports_ip_adapter and rm["model"] == "stabilityai/sdxl-turbo" else None,
                 "out_url": f"/output.html?k={s.out_key}", "connected": s.connected_at is not None,
                 "ended": s.ended_at is not None, "end_reason": s.end_reason, "minutes": round(mins, 2),
                 "usd_per_minute": cfg.usd_per_minute,
@@ -195,7 +211,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         if s.ended_at is not None:
             raise HTTPException(410, "session terminée")
         try:
-            clients[s.engine_key].update(s.stream_id, s.history.current, mode=s.mode)
+            clients[s.engine_key].update(s.stream_id, s.history.current, mode=s.mode, refs=refs_for(s))
         except EngineError as e:
             s.note(f"mise à jour moteur échouée : {e}")
             raise HTTPException(502, str(e)) from e
@@ -208,6 +224,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
                              "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith("cloud:")],
                 "modes": [{"key": k, "label": v["label"], "hint": v["hint"]} for k, v in QUALITY_MODES.items()],
                 "default_mode": DEFAULT_MODE,
+                "references": refs.counts(),
                 "access_required": bool(access_token), "ice_servers": ice_provider(), "gpu_rental": gpu is not None,
                 "gpu_image_configured": bool(gpu and gpu.image),
                 "models": [{"key": m.key, "label": m.label, "min_vram_gb": m.min_vram_gb, "notes": m.notes,
@@ -298,7 +315,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             urls, bviews = [u for u, _ in built], [v for _, v in built]
             size = FORMATS[fmts.pop()]
         try:
-            data = clients[key].create(history.current, output_rtmp_urls=urls, output_size=size, mode=mode)
+            data = clients[key].create(history.current, output_rtmp_urls=urls, output_size=size, mode=mode,
+                                       refs={"style_image_url": refs.pick(history.current)})
         except EngineError as e:
             raise HTTPException(502, str(e)) from e
         s = Session(id="ses_" + secrets.token_hex(8), out_key=secrets.token_urlsafe(16), engine_key=key,
@@ -409,7 +427,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             raise HTTPException(409, "changement de mode impossible pendant une diffusion directe")
         client = clients[s.engine_key]
         try:
-            data = client.create(s.history.current, mode=mode)
+            data = client.create(s.history.current, mode=mode, refs=refs_for(s))
         except EngineError as e:
             raise HTTPException(502, str(e)) from e
         old, previous = s.stream_id, s.mode
@@ -418,6 +436,46 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         why = " (automatique)" if body.get("reason") == "auto" else ""
         s.note(f"mode {QUALITY_MODES[previous]['label']} → {QUALITY_MODES[mode]['label']}{why}")
         return view(s)
+
+    # --- « Garder mon visage » : photo prise par la caméra au démarrage, transmise au moteur (FaceID) ---
+    @app.post("/api/sessions/{sid}/face")
+    async def set_face(sid: str, request: Request, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        data = await request.body()
+        if not data.startswith(b"\xff\xd8") or len(data) > 400_000:
+            raise HTTPException(400, "photo JPEG attendue (400 Ko maximum)")
+        if s.face_token:
+            faces.pop(s.face_token, None)
+        s.face_token = secrets.token_urlsafe(24)
+        faces[s.face_token] = data
+        sc = s.history.edit()
+        sc.face_lock = True
+        s.history.apply(sc)
+        s.note("visage gardé (photo transmise au moteur, effacée à la fin de la session)")
+        push(s)
+        return view(s)
+
+    @app.delete("/api/sessions/{sid}/face")
+    def clear_face(sid: str, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        if s.face_token:
+            faces.pop(s.face_token, None)
+            s.face_token = None
+        sc = s.history.edit()
+        sc.face_lock = False
+        s.history.apply(sc)
+        s.note("visage libre (photo effacée)")
+        push(s)
+        return view(s)
+
+    @app.get("/api/face/{token}.jpg")
+    def face_image(token: str):
+        data = faces.get(token)
+        if data is None:
+            raise HTTPException(404, "introuvable")
+        return Response(data, media_type="image/jpeg", headers={"cache-control": "no-store"})
 
     @app.delete("/api/sessions/{sid}")
     def stop(sid: str, x_live_token: str = Header(default="")):
@@ -455,6 +513,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
                     pass
         threading.Thread(target=reaper, daemon=True, name="gpu-reaper").start()
 
+    if refs.root.is_dir():
+        app.mount("/refs", StaticFiles(directory=refs.root), name="refs")
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
     app.state.sessions = sessions
     app.state.gpu = gpu

@@ -1,0 +1,435 @@
+{
+  "characters": {
+    "chevalier": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Child_armour_leeds.JPG",
+        "license": "CC BY-SA 4.0",
+        "author": "Geni",
+        "title": "File:Child armour leeds.JPG"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Tower_of_London_(8145556138).jpg",
+        "license": "CC BY 2.0",
+        "author": "Steve Collis from Melbourne, Australia",
+        "title": "File:Tower of London (8145556138).jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Tower_of_London_(8145504357).jpg",
+        "license": "CC BY 2.0",
+        "author": "Steve Collis from Melbourne, Australia",
+        "title": "File:Tower of London (8145504357).jpg"
+      }
+    ],
+    "robot": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Humanoid_Robot_at_International_Exhibitions.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Om Umekar",
+        "title": "File:Humanoid Robot at International Exhibitions.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:044_MNACTEC_(Terrassa),_exposici%C3%B3_temporal_Robots,_robot_androide_LimX_Luna.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Enric",
+        "title": "File:044 MNACTEC (Terrassa), exposició temporal Robots, robot androide LimX Luna.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:225_MNACTEC_(Terrassa),_exposici%C3%B3_temporal_Robots,_humanoide_REEM_(2010).jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Enric",
+        "title": "File:225 MNACTEC (Terrassa), exposició temporal Robots, humanoide REEM (2010).jpg"
+      }
+    ],
+    "viking": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:02018_0647_Wikinger_Reenactment-Gruppen_des_11.Jahrhunderts_-Trzcinica.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Silar",
+        "title": "File:02018 0647 Wikinger Reenactment-Gruppen des 11.Jahrhunderts -Trzcinica.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Wolin_festiwal_2019_38.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Jakub T. Jankiewicz",
+        "title": "File:Wolin festiwal 2019 38.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Wolin_2017_02.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Jakub T. Jankiewicz",
+        "title": "File:Wolin 2017 02.jpg"
+      }
+    ],
+    "astronaute": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Extravehicular_Mobility_Unit_(EMU)_spacesuit_at_National_Air_and_Space_Museum.jpg",
+        "license": "CC BY 4.0",
+        "author": "Chrismofer",
+        "title": "File:Extravehicular Mobility Unit (EMU) spacesuit at National Air and Space Museum.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Replica_of_Apollo-Skylab_spacesuit_(A7L)_on_display_at_NMST.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Tausheef Hassan Auntu",
+        "title": "File:Replica of Apollo-Skylab spacesuit (A7L) on display at NMST.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:20180502_Collins_Gemini_Spacesuit_Cosmosphere.jpg",
+        "license": "CC0",
+        "author": "Balon Greyjoy",
+        "title": "File:20180502 Collins Gemini Spacesuit Cosmosphere.jpg"
+      }
+    ],
+    "samourai": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Suit_of_Mori_family_Samurai_armour,_British_Museum_06.jpg",
+        "license": "CC0",
+        "author": "14GTR",
+        "title": "File:Suit of Mori family Samurai armour, British Museum 06.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Suit_of_Mori_family_Samurai_armour,_British_Museum_03.jpg",
+        "license": "CC0",
+        "author": "14GTR",
+        "title": "File:Suit of Mori family Samurai armour, British Museum 03.jpg"
+      }
+    ],
+    "dessin_anime": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Ohlees_Customized_Animal_Kangaroo_Mascot_Costume.JPG",
+        "license": "CC BY-SA 4.0",
+        "author": "Ohleesmascotcostume",
+        "title": "File:Ohlees Customized Animal Kangaroo Mascot Costume.JPG"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:2011_IIHF_World_Championship_Russia_vs._Slovenia_6-4;_mascot_Goooly.jpg",
+        "license": "CC BY-SA 3.0",
+        "author": "Marián 2",
+        "title": "File:2011 IIHF World Championship Russia vs. Slovenia 6-4; mascot Goooly.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Plague-Rat_Costume_and_Mascot_Head.jpg",
+        "license": "CC BY 4.0",
+        "author": "Tessa Bury",
+        "title": "File:Plague-Rat Costume and Mascot Head.jpg"
+      }
+    ]
+  },
+  "decors": {
+    "cyberpunk": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Buildings_with_colorful_neon_street_signs_at_blue_hour,_Shinjuku,_Tokyo.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Basile Morin",
+        "title": "File:Buildings with colorful neon street signs at blue hour, Shinjuku, Tokyo.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Yasukuni-dori_Avenue_at_night_with_vehicles_and_colorful_neon_street_signs,_Shinjuku,_Tokyo,_Japan.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Basile Morin",
+        "title": "File:Yasukuni-dori Avenue at night with vehicles and colorful neon street signs, Shinjuku, Tokyo, Japan.jpg"
+      }
+    ],
+    "medieval": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Aydon_Castle_2.jpg",
+        "license": "CC BY-SA 2.0",
+        "author": "Mike Quinn",
+        "title": "File:Aydon Castle 2.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Aydon_Castle_(inner_court).jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Hadrianus1959",
+        "title": "File:Aydon Castle (inner court).jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Aydon_castle_heyheydecay.net_3.jpg",
+        "license": "Public domain",
+        "author": "Quevaal",
+        "title": "File:Aydon castle heyheydecay.net 3.jpg"
+      }
+    ],
+    "espace": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:STS-135_final_flyaround_of_ISS_1.jpg",
+        "license": "Public domain",
+        "author": "NASA",
+        "title": "File:STS-135 final flyaround of ISS 1.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Cupola_ISS_open_shutters.jpg",
+        "license": "Public domain",
+        "author": "NASA",
+        "title": "File:Cupola ISS open shutters.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:ISS-43_Cupola_view_of_the_Namib_Sand_Sea.jpg",
+        "license": "Public domain",
+        "author": "NASA/Scott Kelly",
+        "title": "File:ISS-43 Cupola view of the Namib Sand Sea.jpg"
+      }
+    ],
+    "jungle": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Tropical_rainforest_in_Sangha_Trinational.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "JosepMGracia",
+        "title": "File:Tropical rainforest in Sangha Trinational.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Tropical_rainforest,_Koh_Chang,_Thailand.jpg",
+        "license": "CC BY 4.0",
+        "author": "Vyacheslav Argenberg",
+        "title": "File:Tropical rainforest, Koh Chang, Thailand.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Palawan_Island,_Tropical_rainforest,_Philippines.jpg",
+        "license": "CC BY 4.0",
+        "author": "Vyacheslav Argenberg",
+        "title": "File:Palawan Island, Tropical rainforest, Philippines.jpg"
+      }
+    ],
+    "plage": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Koh_Mak_(island),_Thailand,_Palm_trees_on_the_beach.jpg",
+        "license": "CC BY 4.0",
+        "author": "Vyacheslav Argenberg",
+        "title": "File:Koh Mak (island), Thailand, Palm trees on the beach.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Malapascua_(island),_Palm_trees_on_the_sandy_beach,_Philippines.jpg",
+        "license": "CC BY 4.0",
+        "author": "Vyacheslav Argenberg",
+        "title": "File:Malapascua (island), Palm trees on the sandy beach, Philippines.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Malapascua_(island),_Reclining_tropical_palm_trees,_Philippines.jpg",
+        "license": "CC BY 4.0",
+        "author": "Vyacheslav Argenberg",
+        "title": "File:Malapascua (island), Reclining tropical palm trees, Philippines.jpg"
+      }
+    ],
+    "hiver": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Snowy_road_Sosonka_2013_G1.jpg",
+        "license": "Public domain",
+        "author": "George Chernilevsky",
+        "title": "File:Snowy road Sosonka 2013 G1.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Sunlight_in_the_snowy_forest_1.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Antoloji",
+        "title": "File:Sunlight in the snowy forest 1.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Snowy_forest_(43545).jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Kalbome22",
+        "title": "File:Snowy forest (43545).jpg"
+      }
+    ],
+    "desert": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Morocco_Africa_Flickr_Rosino_December_2005_84514010_edited_by_Buchling.jpg",
+        "license": "CC BY-SA 2.0",
+        "author": "Rosa Cabecinhas and Alcino Cunha",
+        "title": "File:Morocco Africa Flickr Rosino December 2005 84514010 edited by Buchling.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Erg_Chebbi_in_the_evening_light.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Thomas Fuhrmann",
+        "title": "File:Erg Chebbi in the evening light.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Erg_Chebbi_Maroc.jpg",
+        "license": "CC BY-SA 2.0",
+        "author": "Rosino",
+        "title": "File:Erg Chebbi Maroc.jpg"
+      }
+    ],
+    "sous_marin": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Coral_reef_fish_swim_above_the_coral_slope.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "jadhav vikram",
+        "title": "File:Coral reef fish swim above the coral slope.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Underwater_photo_of_coral_reef.jpg",
+        "license": "Public domain",
+        "author": "Jerry Reid, U.S. Fish and Wildlife Service",
+        "title": "File:Underwater photo of coral reef.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Chromis_reef_fish_and_staghorn_coral_underwater_scenic.jpg",
+        "license": "Public domain",
+        "author": "Amanda Meyer, U.S. Fish and Wildlife Service",
+        "title": "File:Chromis reef fish and staghorn coral underwater scenic.jpg"
+      }
+    ]
+  },
+  "styles": {
+    "anime": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Anime_girl_portrait.jpg",
+        "license": "Public domain",
+        "author": "Artbreeder",
+        "title": "File:Anime girl portrait.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Orange_short_haired_anime_girl_portrait.jpg",
+        "license": "Public domain",
+        "author": "Artbreeder",
+        "title": "File:Orange short haired anime girl portrait.jpg"
+      }
+    ],
+    "bd": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:PepComicNo71pp35.png",
+        "license": "Public domain",
+        "author": "Joe Edwards",
+        "title": "File:PepComicNo71pp35.png"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:CrimeDoesNotPay55.jpg",
+        "license": "Public domain",
+        "author": "Dan Barry",
+        "title": "File:CrimeDoesNotPay55.jpg"
+      }
+    ],
+    "peinture": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
+        "license": "Public domain",
+        "author": "Vincent van Gogh",
+        "title": "File:Van Gogh - Starry Night - Google Art Project.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Farmhouse_in_Provence,_1888,_Vincent_van_Gogh,_NGA.jpg",
+        "license": "Public domain",
+        "author": "Vincent van Gogh",
+        "title": "File:Farmhouse in Provence, 1888, Vincent van Gogh, NGA.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Vincent_van_Gogh_-_Sunflowers_-_VGM_F458.jpg",
+        "license": "Public domain",
+        "author": "Vincent van Gogh",
+        "title": "File:Vincent van Gogh - Sunflowers - VGM F458.jpg"
+      }
+    ],
+    "aquarelle": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:J._M._W._TURNER_Evesham_Abbey.jpg",
+        "license": "CC0",
+        "author": "J. M. W. Turner",
+        "title": "File:J. M. W. TURNER Evesham Abbey.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:J._M._W._Turner_-_The_Red_Rigi_-_Google_Art_Project.jpg",
+        "license": "Public domain",
+        "author": "J. M. W. Turner",
+        "title": "File:J. M. W. Turner - The Red Rigi - Google Art Project.jpg"
+      },
+      {
+        "file": "3.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:(Barcelona)_Mountain_Peaks_-_William_Turner_-_Tate_Britain.jpg",
+        "license": "Public domain",
+        "author": "Didier Descouens",
+        "title": "File:(Barcelona) Mountain Peaks - William Turner - Tate Britain.jpg"
+      }
+    ],
+    "pixel": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Landscape_pixel_art.png",
+        "license": "CC BY-SA 4.0",
+        "author": "Fahmirayan",
+        "title": "File:Landscape pixel art.png"
+      }
+    ],
+    "film_noir": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Car_used_in_1945_film_Detour.jpeg",
+        "license": "Public domain",
+        "author": "Producers Releasing Corporation (Hollywood, California)\n\n(Life time: Original PRC copyright of November 7, 1945 (LP13599",
+        "title": "File:Car used in 1945 film Detour.jpeg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Tom_Neal-Edmund_MacDonald_in_Detour.jpg",
+        "license": "Public domain",
+        "author": "Film new trailer screenshot (Janus Films)",
+        "title": "File:Tom Neal-Edmund MacDonald in Detour.jpg"
+      }
+    ],
+    "pate_a_modeler": [
+      {
+        "file": "1.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:%D0%A1%D1%82%D0%B5%D0%B6,_%D0%AD%D0%B4%D0%B8%D0%BA_%D0%B8_%D0%B4%D1%80%D1%83%D0%B7%D1%8C%D1%8F.jpg",
+        "license": "CC BY-SA 4.0",
+        "author": "Nikita zernyshkin",
+        "title": "File:Стеж, Эдик и друзья.jpg"
+      },
+      {
+        "file": "2.jpg",
+        "source": "https://commons.wikimedia.org/wiki/File:Plasticine_garden_veg.jpg",
+        "license": "CC BY 2.0",
+        "author": "Nick from Chelmsford, Essex",
+        "title": "File:Plasticine garden veg.jpg"
+      }
+    ]
+  }
+}

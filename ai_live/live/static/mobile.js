@@ -89,6 +89,7 @@ async function init() {
     if ($("#mode").value === "auto") { $("#mode-hint").textContent = "s'adapte tout seul à ton réseau et à la fluidité de l'IA"; return; }
     const m = (st.catalog.modes || []).find((x) => x.key === $("#mode").value); $("#mode-hint").textContent = m ? m.hint : ""; };
   $("#mode").addEventListener("change", hint); hint();
+  $("#face").checked = store.get("face") !== "0";
   $("#format").value = store.get("format") || "horizontal";
   let saved = [];
   try { saved = JSON.parse(store.get("dests") || "[]"); } catch {}
@@ -109,6 +110,7 @@ $("#go").addEventListener("click", async () => {
   const remember = $("#remember-key").checked;
   store.set("token", $("#token").value); store.set("format", $("#format").value); store.set("engine", $("#engine").value);
   store.set("mode", $("#mode").value);
+  store.set("face", $("#face").checked ? "1" : "0");
   store.set("bc", $("#do-bc").checked ? "1" : "");
   store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
   try {
@@ -142,6 +144,7 @@ $("#go").addEventListener("click", async () => {
     st.timers.push(setInterval(tick, 1000));
     st.timers.push(fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`)));
     st.tune = auto ? new AutoTune({ mode, allowModeSwitch: !platform }) : null;
+    if ($("#face").checked) $("#ai").addEventListener("playing", () => setFace(true), { once: true });
     showMode();
     startNet();
     st.timers.push(setInterval(refresh, 5000));
@@ -172,6 +175,39 @@ function startNet() {
   });
 }
 
+// « Garder mon visage » : une photo de la caméra (512×512) est envoyée au moteur, qui garde tes traits (FaceID).
+// Elle reste en mémoire sur le serveur et est effacée quand on désactive ou à la fin de la session.
+async function setFace(on) {
+  if (!st.session) return;
+  if (st.session.mode === "rapide") { say("« Garder mon visage » n'est pas disponible en mode Rapide"); showFace(); return; }
+  try {
+    let r;
+    if (on) {
+      const v = $("#cam"), c = document.createElement("canvas");
+      c.width = c.height = 512;
+      const s = Math.min(v.videoWidth, v.videoHeight) || 512;
+      c.getContext("2d").drawImage(v, (v.videoWidth - s) / 2, (v.videoHeight - s) / 2, s, s, 0, 0, 512, 512);
+      const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.88));
+      r = await fetch(`/api/sessions/${st.session.id}/face`, { method: "POST", headers: H({ "Content-Type": "image/jpeg" }), body: blob });
+    } else {
+      r = await fetch(`/api/sessions/${st.session.id}/face`, { method: "DELETE", headers: H() });
+    }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.detail || r.status);
+    st.session = d;
+    say(on ? "Visage gardé : l'IA change ta tenue en gardant tes traits" : "Visage libre : l'IA s'inspire des images du personnage");
+  } catch (e) { say("Visage : " + e.message); }
+  showFace();
+}
+
+function showFace() {
+  const b = $("#facep"); if (!b || !st.session) return;
+  b.classList.remove("hidden");
+  const on = !!st.session.face_locked;
+  b.textContent = on ? "🙂 Visage gardé" : "🎭 Visage libre";
+  b.style.borderColor = on ? "#2dd4bf" : "";
+}
+
 function showMode() {
   const el = $("#modep"); if (!el || !st.session) return;
   el.classList.remove("hidden");
@@ -188,7 +224,8 @@ async function switchMode(mode) {
     st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H(), { audio: false });
     st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
     showMode(); startNet();
-    say(`Mode ${st.session.mode_label} activé automatiquement`);
+    say(`Mode ${st.session.mode_label} activé automatiquement` + (mode === "rapide" && st.session.face_locked === false ? " (visage gardé indisponible en Rapide)" : ""));
+    showFace();
   } catch (e) {
     say("Changement de mode impossible : " + e.message);
     st.tune = null;  // on n'insiste pas
@@ -209,6 +246,7 @@ function render(s) {
   if (sc.parody_of) $("#parody").textContent = `Parodie IA · ce n'est pas ${sc.parody_of}`;
   document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", (c.dataset.kind === "character" ? sc.character : sc.decor) === c.dataset.key));
   if (s.estimated_cost_usd != null) { $("#cost").classList.remove("hidden"); $("#cost").textContent = `${s.estimated_cost_usd.toFixed(3)} $`; }
+  showFace();
   if (s.ended) { say("Session terminée : " + s.end_reason); teardown(true); }
 }
 async function refresh() { try { render(await api(`/api/sessions/${st.session.id}`)); } catch {} }
@@ -272,3 +310,5 @@ function teardown(back) {
   if (back) { $("#live").classList.add("hidden"); $("#setup").classList.remove("hidden"); document.querySelector(".labnav")?.classList.remove("hidden"); }
 }
 init();
+
+$("#facep").addEventListener("click", () => setFace(!(st.session && st.session.face_locked)));

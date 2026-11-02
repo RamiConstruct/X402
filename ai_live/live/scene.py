@@ -99,6 +99,7 @@ class Scene:
     strength: int = 4
     bypass: bool = False               # True = flux original affiché
     seed: int = DEFAULT_SEED           # change avec la commande « autre version »
+    face_lock: bool = False            # « garder mon visage » (FaceID à partir d'une photo prise au démarrage)
 
     @property
     def parody(self) -> bool:

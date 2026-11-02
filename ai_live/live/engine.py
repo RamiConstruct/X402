@@ -78,9 +78,32 @@ class EngineConfig:
     usd_per_minute: float | None = None   # tarif à renseigner après vérification (None = inconnu)
     supports_output_size: bool = False    # worker auto-hébergé : format de diffusion (720x1280…) ; Daydream : non
     switch_models: bool = False           # True : les modes de rendu peuvent changer de modèle (Daydream)
+    supports_ip_adapter: bool = False     # True : images de référence / FaceID acceptées (Daydream, SDXL seulement)
 
 
-def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool, mode: str | None = None) -> dict:
+# IP-Adapter (vérifié contre l'API Daydream le 2026-11-02) : accepté seulement avec SDXL ; type
+# « regular » (image de référence d'un personnage, d'un style, d'un décor) ou « faceid » (garder le
+# visage à partir d'une photo) ; une seule image à la fois (ip_adapter_style_image_url).
+IP_SDXL = "stabilityai/sdxl-turbo"
+
+
+def ip_adapter_params(scene: Scene, cfg: EngineConfig, model: str, refs: dict | None) -> dict:
+    if not cfg.supports_ip_adapter or model != IP_SDXL or refs is None:
+        return {}
+    face, ref = refs.get("face_image_url"), refs.get("style_image_url")
+    if scene.face_lock and face:
+        return {"ip_adapter": {"type": "faceid", "enabled": True, "scale": 0.7, "weight_type": "linear"},
+                "ip_adapter_style_image_url": face}
+    if ref:
+        style_only = not scene.character and bool(scene.style)
+        return {"ip_adapter": {"type": "regular", "enabled": True, "scale": 0.45 if style_only else 0.55,
+                               "weight_type": "style transfer" if style_only else "linear"},
+                "ip_adapter_style_image_url": ref}
+    return {"ip_adapter": {"type": "regular", "enabled": False, "scale": 0.0}}
+
+
+def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool, mode: str | None = None,
+                 refs: dict | None = None) -> dict:
     m = resolve_mode(cfg, mode)
     p: dict = {
         "model_id": m["model"],
@@ -102,6 +125,7 @@ def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool, mode: str | 
         cns = m["controlnets"]
         if cns:
             p["controlnets"] = [{**c, "preprocessor_params": {}, "enabled": True} for c in cns]
+    p.update(ip_adapter_params(scene, cfg, m["model"], refs))
     return p
 
 
@@ -120,10 +144,10 @@ class StreamEngine:
         return h
 
     def create(self, scene: Scene, output_rtmp_urls: list[str] | None = None, output_size: str | None = None,
-               mode: str | None = None) -> dict:
+               mode: str | None = None, refs: dict | None = None) -> dict:
         """Diffusion directe : la 1re adresse va dans output_rtmp_url (champ officiel de l'API Daydream) ;
         les suivantes (multidiffusion) ne sont gérées que par le worker auto-hébergé."""
-        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=True, mode=mode)}
+        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=True, mode=mode, refs=refs)}
         urls = list(output_rtmp_urls or [])
         if urls:
             body["output_rtmp_url"] = urls[0]
@@ -142,8 +166,8 @@ class StreamEngine:
             raise EngineError("réponse de création incomplète (id / whip_url)")
         return data
 
-    def update(self, stream_id: str, scene: Scene, mode: str | None = None) -> None:
-        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=False, mode=mode)}
+    def update(self, stream_id: str, scene: Scene, mode: str | None = None, refs: dict | None = None) -> None:
+        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=False, mode=mode, refs=refs)}
         r = self.client.patch(f"{self.cfg.base_url}/v1/streams/{stream_id}", json=body, headers=self._headers())
         if r.status_code >= 400:
             raise EngineError(f"mise à jour refusée (HTTP {r.status_code}) : {r.text[:300]}")
