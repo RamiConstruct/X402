@@ -6,6 +6,7 @@ const PRESETS = {
   youtube: "rtmps://a.rtmps.youtube.com/live2",
   twitch: "rtmps://live.twitch.tv:443/app",
   facebook: "rtmps://live-api-s.facebook.com:443/rtmp",
+  restream: "rtmp://live.restream.io/live",
   kick: "", tiktok: "", autre: "",
 };
 const HINTS = {
@@ -19,6 +20,7 @@ const HOWTO = {
   kick: "Clé et Stream URL : tableau de bord Kick → Paramètres → Stream Key (copie les deux).",
   facebook: "Clé : Facebook → Vidéo en direct (Live Producer) → « Clé de stream » ; active la clé persistante pour la réutiliser.",
   tiktok: "TikTok ne donne la clé de stream qu'à certains comptes (abonnés, pays) : vérifie dans TikTok LIVE Studio.",
+  restream: "Clé : tableau de bord Restream → Stream Key. Restream redistribue ton flux vers les chaînes reliées à ton compte (économise ta connexion mobile).",
   autre: "Toute plateforme qui accepte un « encodeur » RTMP/RTMPS : colle l'adresse du serveur et la clé.",
 };
 const st = { session: null, cam: null, pub: null, view: null, t0: 0, timers: [], rec: null, listening: false, wake: null, catalog: null };
@@ -39,6 +41,7 @@ const say = (t) => { $("#msg").textContent = t; clearTimeout(say.t); say.t = set
 
 // ------------------------------------------------------------------ réglages
 const OPTIONS = `<optgroup label="Sans minimum d'abonnés"><option value="youtube">YouTube</option><option value="twitch">Twitch</option><option value="kick">Kick</option><option value="facebook">Facebook</option></optgroup>
+<optgroup label="Multidiffusion"><option value="restream">Restream (un flux → 30+ plateformes)</option></optgroup>
 <optgroup label="Autres"><option value="autre">Autre serveur (RTMP / RTMPS)</option><option value="tiktok">TikTok LIVE (accès restreint selon le compte)</option></optgroup>`;
 
 function destBlock(d, i) {

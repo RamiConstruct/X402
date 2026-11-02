@@ -109,7 +109,10 @@ clients, `LIVE_OWNER_MODE=0` applique la marge du catalogue (`live/gpu/catalog.p
 
 ### Ce qu'il faut faire une fois (décisions et actions humaines)
 
-1. **Construire et publier l'image du worker** (`Dockerfile.worker`) sur une machine avec Docker :
+1. **Image du worker** : construite automatiquement par GitHub Actions (`.github/workflows/live-worker-image.yml`)
+   et publiée sur `ghcr.io/ramiconstruct/x402-live-worker:<branche>` à chaque modification du worker.
+   Rends le paquet **public** (GitHub → Packages → x402-live-worker → Package settings → Change visibility)
+   pour que Vast.ai et RunPod puissent le télécharger. Construction manuelle possible :
    `docker build -f Dockerfile.worker -t ghcr.io/<toi>/ai-live-worker:1 . && docker push …`
    puis `LIVE_WORKER_IMAGE=ghcr.io/<toi>/ai-live-worker:1`. Elle n'a pas encore été construite : le
    premier essai sur un GPU validera versions CUDA/TensorRT.
