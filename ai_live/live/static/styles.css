@@ -46,3 +46,7 @@ input[type=range] { width:100%; }
 .offers th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
 .rental { margin-top:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
 .rental .state { font-weight:700; } .rental .ready { color:var(--ok); }
+/* Pas de débordement horizontal sur téléphone : les éléments de grille peuvent rétrécir */
+main > *, .stage, .controls, .field { min-width: 0; }
+select, input { max-width: 100%; }
+.row > .field { flex: 1 1 160px; }

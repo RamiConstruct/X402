@@ -170,6 +170,10 @@
   "journal": [
     {
       "date": "2026-11-02",
+      "texte": "Menu de navigation commun à toutes les pages du laboratoire."
+    },
+    {
+      "date": "2026-11-02",
       "texte": "AI STUDIO en ligne sur studio.labotory.site ; image du moteur GPU publiée."
     },
     {

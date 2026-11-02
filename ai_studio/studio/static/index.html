@@ -7,6 +7,26 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+<style>
+.labnav{display:flex;align-items:center;gap:14px;padding:8px 16px;background:#101317;color:#e8eaee;font:14px/1.3 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;border-bottom:1px solid #222832;overflow-x:auto;white-space:nowrap;scrollbar-width:none;position:relative;z-index:20}
+.labnav::-webkit-scrollbar{display:none}
+.labnav a{color:#aab2bf;text-decoration:none;padding:6px 10px;border-radius:8px}
+.labnav a:hover,.labnav a:focus-visible{color:#fff;background:#1c2229;outline:none}
+.labnav a[aria-current="page"]{color:#fff;background:#1f3a37}
+.labnav .labnav-brand{font-weight:700;color:#fff;padding-left:0}
+.labnav .labnav-brand span{color:#2dd4bf}
+.labnav-links{display:flex;gap:2px}
+</style>
+<nav class="labnav" aria-label="Navigation du laboratoire">
+  <a class="labnav-brand" href="https://labotory.site/"><span>◆</span> Laboratoire</a>
+  <div class="labnav-links">
+    <a href="https://labotory.site/" data-k="labo">Avancement</a>
+    <a href="https://live.labotory.site/" data-k="live">AI Live</a>
+    <a href="https://live.labotory.site/mobile.html" data-k="mobile">AI Live téléphone</a>
+    <a href="https://studio.labotory.site/" data-k="studio" aria-current="page">AI Studio</a>
+  </div>
+</nav>
+
   <!-- Connexion -->
   <section id="auth" class="auth hidden">
     <div class="auth-card">
