@@ -5,7 +5,7 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Phase de test avec la vraie IA : Daydream est branché sur la console. Prochaine étape, ton premier essai depuis le téléphone.",
-    "dernier_fait": "Modes Rapide / Équilibré / Qualité (démarrage IA en 5 à 8 s), graine fixe anti-scintillement, commande « autre version », descriptions enrichies, et un seul style visuel sur tout le site.",
+    "dernier_fait": "Site disponible en 15 langues (dont l'arabe de droite à gauche), langue détectée automatiquement et sélecteur 🌐 dans le menu.",
     "prochaines_etapes_claude": [
       "Mesurer la fluidité réelle depuis ton téléphone dans chaque mode",
       "Régler l'intensité par défaut et les descriptions à partir de tes essais enregistrés",
@@ -173,6 +173,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Accueil et liste d'attente en 15 langues : français, anglais, espagnol, portugais, allemand, italien, néerlandais, arabe, turc, russe, chinois, japonais, coréen, hindi, indonésien."
+    },
     {
       "date": "2026-11-02",
       "texte": "AI Live : 3 modes de rendu validés chez Daydream, rendu plus stable (graine fixe, contours), « autre version » ; site harmonisé (palette, boutons, typographie communs)."

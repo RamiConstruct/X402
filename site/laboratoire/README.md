@@ -13,7 +13,8 @@ Page publique d'avancement des projets, servie par un Worker Cloudflare (indépe
 
 | Chemin | Contenu |
 |---|---|
-| `/` | Page d'accueil commerciale (AI Live & AI Studio), statique dans `worker.js` (`landing()`) |
+| `/` | Page d'accueil commerciale dans la langue du visiteur (cookie `lang`, sinon `Accept-Language`) |
+| `/fr/`, `/en/`, `/ar/`… | Accueil dans une langue précise (15 langues), mémorisée par cookie ; `landing(lang)` |
 | `/suivi` | Suivi du projet (non indexé), rendu depuis le KV (`render()`) ; `/avancement` redirige ici |
 | `/avancement.json` | Données en lecture (GET) et mise à jour authentifiée (PUT) |
 | `POST /liste-attente` | Formulaire de liste d'attente (accord obligatoire, pot de miel anti-robots, même origine) ; stocké dans le KV sous `attente:<sha256 e-mail>` |
@@ -34,3 +35,16 @@ AI Live / AI Studio et dans `worker.js` (constante `NAV_HTML`). CSS seul, sans J
 3. Vérifier : la page en ligne doit être identique à `apercu.html`.
 
 Règle : page **publique** — jamais de secret, d'adresse IP, d'identifiant ni de donnée personnelle.
+
+## Langues
+
+- Textes : `langues/<code>.json` (une langue par fichier, même structure que `fr.json`).
+- `node site/laboratoire/build_langues.mjs` vérifie qu'aucun texte ne manque et génère `langues.js`
+  (module importé par le Worker). Ajouter une langue = ajouter un fichier JSON puis relancer le script.
+- L'arabe s'affiche de droite à gauche (`"dir": "rtl"`).
+
+## Redéployer le Worker (2 modules)
+
+1. `PUT /_deploy/worker.js` et `PUT /_deploy/langues.js` avec le jeton (stockés 1 h dans le KV sous `deploy:<nom>`).
+2. Envoi des deux modules à l'API Cloudflare (`main_module: worker.js`, `keep_bindings: ["secret_text"]`,
+   binding KV `LABO`), puis suppression des clés `deploy:*`.

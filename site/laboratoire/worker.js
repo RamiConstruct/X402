@@ -1,3 +1,5 @@
+import { LANGS } from "./langues.js";
+
 // « Le Laboratoire » — page publique d'avancement, servie par un Worker Cloudflare sur labotory.site.
 // Les données viennent du KV (binding LABO, clé "avancement") : mettre à jour la page = écrire
 // un nouveau avancement.json dans le KV, sans redéployer. Page indépendante du serveur Oracle.
@@ -77,7 +79,7 @@ h1{font-size:clamp(36px,6.4vw,64px);line-height:1.04;letter-spacing:-.035em;marg
 .ctl{position:absolute;left:10px;right:10px;bottom:14px;z-index:3;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}.ctl b{font-size:11px;color:#fff;text-align:center;padding:10px 0;border-radius:10px;background:#ffffff26}.ctl b:first-child{background:#7c3aed}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}@media(max-width:820px){.grid3,.grid2{grid-template-columns:1fr}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}.card h3{margin:0 0 8px;font-size:20px}.card p{margin:0;color:var(--muted)}
-.prod{padding:30px}.prod .tag{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--accent2)}.prod h3{font-size:28px;margin:6px 0 10px;letter-spacing:-.02em}.prod ul{margin:16px 0 22px;padding:0;list-style:none}.prod li{padding:7px 0 7px 28px;position:relative;border-top:1px solid var(--line)}.prod li::before{content:"✓";position:absolute;left:4px;color:var(--accent);font-weight:800}
+.prod{padding:30px}.prod .tag{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--accent2)}.prod h3{font-size:28px;margin:6px 0 10px;letter-spacing:-.02em}.prod ul{margin:16px 0 22px;padding:0;list-style:none}.prod li{padding-block:7px;padding-inline:28px 0;position:relative;border-top:1px solid var(--line)}.prod li::before{content:"✓";position:absolute;inset-inline-start:4px;color:var(--accent);font-weight:800}
 .num{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--soft);color:var(--accent);margin-bottom:12px}
 .ex{display:flex;flex-wrap:wrap;gap:10px}.ex span{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:9px 16px;font-size:15px}
 .plats{display:flex;flex-wrap:wrap;gap:12px}.plats span{font-weight:700;padding:12px 20px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
@@ -90,110 +92,141 @@ h1{font-size:clamp(36px,6.4vw,64px);line-height:1.04;letter-spacing:-.035em;marg
 .wl .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:600px){.wl .two{grid-template-columns:1fr}}
 .wl .ok{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px;color:var(--muted)}.wl .ok input{margin-top:4px;width:18px;height:18px;flex:none}
 .wl button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:15px 22px;background:#0f766e;color:#fff;cursor:pointer}.wl button:hover{background:#115e59}
-.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.msgbox{padding:14px 16px;border-radius:12px;margin:0 0 16px;font-weight:600}.msgbox.good{background:var(--soft);color:var(--accent)}.msgbox.bad{background:color-mix(in srgb,#dc2626 14%,transparent);color:#dc2626}
+.hp{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.msgbox{padding:14px 16px;border-radius:12px;margin:0 0 16px;font-weight:600}.msgbox.good{background:var(--soft);color:var(--accent)}.msgbox.bad{background:color-mix(in srgb,#dc2626 14%,transparent);color:#dc2626}
 footer{border-top:1px solid var(--line);padding:28px 0 40px;font-size:14px;color:var(--muted)}footer .w{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}footer a{color:var(--muted)}`;
 
-export function landing(etat = "") {
-  const box = etat === "merci" ? `<p class="msgbox good" role="status">Merci, tu es sur la liste ! On te prévient dès que ton accès est prêt.</p>`
-    : etat === "erreur" ? `<p class="msgbox bad" role="alert">Adresse e-mail invalide ou case non cochée. Réessaie.</p>` : "";
-  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Live & AI Studio — transforme ta vidéo par la voix</title>
-<meta name="description" content="AI Live transforme ton live en temps réel, à la voix : personnage, décor, style. AI Studio modifie tes vidéos en décrivant ce que tu veux. Prix affiché avant chaque usage.">
-<meta property="og:title" content="AI Live & AI Studio — transforme ta vidéo par la voix"><meta property="og:description" content="Ton live transformé en direct par l'IA, à la voix. Tes vidéos modifiées en une phrase."><meta property="og:type" content="website">
-<link rel="icon" href="${ICON}"><style>${LCSS}</style></head><body>${nav("accueil")}
+// Menu traduit (CSS commun repris de NAV_HTML) + sélecteur de langue sans JavaScript (CSP du Worker).
+const NAV_CSS = NAV_HTML.slice(0, NAV_HTML.indexOf("</style>")) +
+  ".labnav .in{justify-content:flex-start}.labnav .b{margin-inline-end:auto}.labnav ul{order:2}.labnav .lg{order:3}.labnav label{order:4}" +
+  ".labnav a.cta{margin-left:0;margin-inline-start:6px}" +
+  ".labnav .lg{position:relative;margin-inline-start:8px}.labnav .lg summary{list-style:none;cursor:pointer;padding:8px 11px;border:1px solid #2f3742;border-radius:10px;color:#e6e9ee;white-space:nowrap;font-size:14px}" +
+  ".labnav .lg summary::-webkit-details-marker{display:none}.labnav .lg summary:focus-visible{outline:3px solid #5eead4;outline-offset:2px}.labnav .lg[open] summary{background:#1c2229}" +
+  ".labnav .lg .m{position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:1001;background:#0d1117;border:1px solid #2a313b;border-radius:12px;padding:6px;display:grid;grid-template-columns:repeat(2,minmax(130px,1fr));gap:2px;max-height:72vh;overflow:auto;box-shadow:0 14px 30px rgba(0,0,0,.45)}" +
+  ".labnav .lg .m a{color:#c3cad4;text-decoration:none;padding:9px 11px;border-radius:8px;white-space:nowrap}.labnav .lg .m a:hover,.labnav .lg .m a:focus-visible{background:#1c2229;color:#fff;outline:none}" +
+  ".labnav .lg .m a[aria-current]{background:#1f3a37;color:#fff;font-weight:600}</style>";
+
+function navI18n(T, lang) {
+  const n = T.nav;
+  const langs = Object.entries(LANGS).map(([c, L]) =>
+    `<a href="/${c}/" hreflang="${c}" lang="${c}"${c === lang ? ' aria-current="true"' : ""}>${e(L.name)}</a>`).join("");
+  return `${NAV_CSS}<nav class="labnav" aria-label="${e(n.menu)}"><div class="in">` +
+    `<a class="b" href="/${lang}/"><i>◆</i> Le Laboratoire</a>` +
+    `<input type="checkbox" id="labnav-t" aria-label="${e(n.menu)}"><label for="labnav-t" aria-hidden="true">☰ ${e(n.menu)}</label>` +
+    `<ul><li><a class="l" href="/${lang}/" aria-current="page">${e(n.home)}</a></li>` +
+    `<li><a class="l" href="https://live.labotory.site/">${e(n.live)}</a></li>` +
+    `<li><a class="l" href="https://live.labotory.site/mobile.html">${e(n.phone)}</a></li>` +
+    `<li><a class="l" href="https://studio.labotory.site/">${e(n.studio)}</a></li>` +
+    `<li><a class="l" href="/suivi">${e(n.track)}</a></li>` +
+    `<li><a class="l cta" href="/${lang}/#attente">${e(n.wait)}</a></li></ul>` +
+    `<details class="lg"><summary aria-label="${e(n.lang)}">🌐 ${lang.toUpperCase()}</summary><div class="m">${langs}</div></details>` +
+    `</div></nav>`;
+}
+
+export function landing(lang = "fr", etat = "") {
+  const T = LANGS[lang] || LANGS.fr;
+  const li = (a) => a.map((x) => `<li>${e(x)}</li>`).join("");
+  const cards = (a, icons = []) => a.map(([h, p], i) => `<div class="card"><h3>${icons[i] ? icons[i] + " " : ""}${e(h)}</h3><p>${e(p)}</p></div>`).join("");
+  const box = etat === "merci" ? `<p class="msgbox good" role="status">${e(T.wl.ok)}</p>`
+    : etat === "erreur" ? `<p class="msgbox bad" role="alert">${e(T.wl.err)}</p>` : "";
+  const faq = T.faq.items.map(([q, a]) => `<details><summary>${e(q)}</summary><p>${e(a).replace("{link}", '<a href="#attente">').replace("{/link}", "</a>")}</p></details>`).join("");
+  const alts = Object.keys(LANGS).map((c) => `<link rel="alternate" hreflang="${c}" href="https://labotory.site/${c}/">`).join("") +
+    `<link rel="alternate" hreflang="x-default" href="https://labotory.site/">`;
+  const P = ["streamer", "createur", "entreprise", "curieux"], I = ["les_deux", "live", "studio"];
+  return `<!doctype html><html lang="${lang}" dir="${T.dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${e(T.title)}</title><meta name="description" content="${e(T.desc)}">
+<link rel="canonical" href="https://labotory.site/${lang}/">${alts}
+<meta property="og:title" content="${e(T.title)}"><meta property="og:description" content="${e(T.ogdesc)}"><meta property="og:type" content="website"><meta property="og:locale" content="${e(T.locale)}"><meta property="og:url" content="https://labotory.site/${lang}/">
+<link rel="icon" href="${ICON}"><style>${LCSS}</style></head><body>${navI18n(T, lang)}
 <main>
 <section class="hero"><div class="w"><div>
-<span class="beta">Bêta privée · accès sur invitation</span>
-<h1>Dis-le.<br>Ton live <em>se transforme</em>.</h1>
-<p class="lead">AI Live transforme ta caméra en direct, juste avec ta voix : deviens un chevalier, passe dans un décor cyberpunk, change de style en une phrase. Tu reviens à l'image réelle d'un seul geste.</p>
-<div class="btns"><a class="btn p" href="#attente">Rejoindre la liste d'attente</a><a class="btn" href="#produits">Voir les outils</a></div>
-<p class="note">Fonctionne depuis un téléphone ou un ordinateur. Aucune carte graphique à acheter.</p>
+<span class="beta">${e(T.beta)}</span>
+<h1>${T.h1}</h1>
+<p class="lead">${e(T.lead)}</p>
+<div class="btns"><a class="btn p" href="#attente">${e(T.cta1)}</a><a class="btn" href="#produits">${e(T.cta2)}</a></div>
+<p class="note">${e(T.note)}</p>
 </div>
-<div class="phone" role="img" aria-label="Aperçu : à gauche l'image réelle, à droite l'image transformée par l'IA après la commande vocale « transforme-moi en chevalier »">
-<div class="scr"><span>IA</span></div><div class="half"><span>Réel</span></div><div class="who"></div>
-<div class="say"><small>🎙 commande vocale</small>« Transforme-moi en chevalier, décor château »</div>
-<div class="ctl"><b>🎙 Voix</b><b>⟲ Original</b><b>⏺ Essai</b></div>
+<div class="phone" role="img" aria-label="${e(T.mock.aria)}" dir="ltr">
+<div class="scr"><span>${e(T.mock.ai)}</span></div><div class="half"><span>${e(T.mock.real)}</span></div><div class="who"></div>
+<div class="say" dir="${T.dir}"><small>${e(T.mock.voice)}</small>${e(T.mock.say)}</div>
+<div class="ctl"><b>${e(T.mock.b1)}</b><b>${e(T.mock.b2)}</b><b>${e(T.mock.b3)}</b></div>
 </div></div></section>
 
 <section><div class="w">
-<p class="eyebrow">Pourquoi c'est différent</p><h2>La créativité d'un studio, la simplicité d'une phrase</h2>
-<p class="lead">Pas de logiciel compliqué ni de matériel coûteux. Tu parles, l'IA s'occupe du reste, et tu sais toujours ce que tu paies.</p>
-<div class="grid3">
-<div class="card"><h3>🎙 Piloté à la voix</h3><p>« Plus fort », « ajoute de la neige », « style anime ». Les commandes se combinent, en français, pendant que tu filmes.</p></div>
-<div class="card"><h3>⚡ Pensé pour le direct</h3><p>L'image est transformée en continu, et le bouton « Original » rend la vraie caméra instantanément.</p></div>
-<div class="card"><h3>💶 Prix connu d'avance</h3><p>Tu paies à l'usage. Le tarif est affiché avant de commencer, sans abonnement imposé ni surprise.</p></div>
-</div></div></section>
+<p class="eyebrow">${e(T.why.eyebrow)}</p><h2>${e(T.why.h2)}</h2>
+<p class="lead">${e(T.why.lead)}</p>
+<div class="grid3">${cards(T.why.cards, ["🎙", "⚡", "💶"])}</div></div></section>
 
 <section class="alt" id="produits"><div class="w">
-<p class="eyebrow">Deux outils</p><h2>Pour le direct et pour tes vidéos</h2>
+<p class="eyebrow">${e(T.prods.eyebrow)}</p><h2>${e(T.prods.h2)}</h2>
 <div class="grid2" style="margin-top:28px">
-<article class="card prod" id="live"><span class="tag">AI LIVE</span><h3>Ton live transformé, en temps réel</h3><p>La caméra de ton téléphone ou de ton ordinateur passe par l'IA avant d'arriver à tes spectateurs.</p>
-<ul><li>Personnages, décors et styles en un mot ou à la voix</li><li>Retour à l'image réelle en un geste</li><li>Diffusion vers YouTube, Twitch, Kick et Facebook, jusqu'à 3 à la fois</li><li>Formats horizontal, vertical et carré</li><li>Mode essai : enregistre-toi sans rien publier</li></ul>
-<a class="btn p" href="https://live.labotory.site/mobile.html">Ouvrir AI Live</a></article>
-<article class="card prod" id="studio"><span class="tag">AI STUDIO</span><h3>Tes vidéos modifiées en une phrase</h3><p>Importe une vidéo, décris le changement : l'IA prépare un devis, puis fait le travail.</p>
-<ul><li>« Remplace le ciel par un coucher de soleil »</li><li>Changer d'univers, de saison ou d'ambiance</li><li>Recadrer en vertical pour les formats courts</li><li>Ne modifier qu'un passage précis, sans payer le reste</li><li>Devis avant chaque traitement, remboursé en cas d'échec</li></ul>
-<a class="btn p" href="https://studio.labotory.site/">Ouvrir AI Studio</a></article>
+<article class="card prod" id="live"><span class="tag">AI LIVE</span><h3>${e(T.prods.live.h3)}</h3><p>${e(T.prods.live.p)}</p>
+<ul>${li(T.prods.live.li)}</ul>
+<a class="btn p" href="https://live.labotory.site/mobile.html">${e(T.prods.live.btn)}</a></article>
+<article class="card prod" id="studio"><span class="tag">AI STUDIO</span><h3>${e(T.prods.studio.h3)}</h3><p>${e(T.prods.studio.p)}</p>
+<ul>${li(T.prods.studio.li)}</ul>
+<a class="btn p" href="https://studio.labotory.site/">${e(T.prods.studio.btn)}</a></article>
 </div></div></section>
 
 <section><div class="w">
-<p class="eyebrow">Comment ça marche</p><h2>Trois étapes, et tu es en direct</h2>
-<div class="grid3" style="margin-top:28px">
-<div class="card"><div class="num">1</div><h3>Ouvre AI Live</h3><p>Depuis ton téléphone ou ton ordinateur. Tu choisis la caméra, l'IA démarre.</p></div>
-<div class="card"><div class="num">2</div><h3>Parle</h3><p>Dis ce que tu veux devenir. Change d'avis quand tu veux, l'image suit.</p></div>
-<div class="card"><div class="num">3</div><h3>Diffuse</h3><p>Fais un essai, puis envoie le résultat sur tes plateformes avec ta clé de diffusion, ou via OBS.</p></div>
-</div>
-<h3 style="margin:40px 0 14px">Exemples de commandes</h3>
-<div class="ex"><span>« transforme-moi en chevalier »</span><span>« décor cyberpunk »</span><span>« style anime »</span><span>« ajoute de la neige »</span><span>« plus fort »</span><span>« reviens à l'original »</span></div>
+<p class="eyebrow">${e(T.how.eyebrow)}</p><h2>${e(T.how.h2)}</h2>
+<div class="grid3" style="margin-top:28px">${T.how.steps.map(([h, p], i) => `<div class="card"><div class="num">${i + 1}</div><h3>${e(h)}</h3><p>${e(p)}</p></div>`).join("")}</div>
+<h3 style="margin:40px 0 14px">${e(T.how.exh3)}</h3>
+<div class="ex">${T.how.ex.map((x) => `<span>${e(x)}</span>`).join("")}</div>
 </div></section>
 
 <section class="alt"><div class="w">
-<p class="eyebrow">Plateformes</p><h2>Diffuse là où est ton public</h2>
-<p class="lead">On commence par les plateformes ouvertes à tous, sans nombre minimum d'abonnés. D'autres arriveront ensuite.</p>
-<div class="plats"><span>YouTube</span><span>Twitch</span><span>Kick</span><span>Facebook</span><span>+ via Restream</span></div>
+<p class="eyebrow">${e(T.plat.eyebrow)}</p><h2>${e(T.plat.h2)}</h2>
+<p class="lead">${e(T.plat.lead)}</p>
+<div class="plats"><span>YouTube</span><span>Twitch</span><span>Kick</span><span>Facebook</span><span>${e(T.plat.via)}</span></div>
 </div></section>
 
 <section><div class="w">
-<p class="eyebrow">Pour qui</p><h2>Fait pour celles et ceux qui créent</h2>
-<div class="grid3" style="margin-top:28px">
-<div class="card"><h3>Streamers IRL</h3><p>Change d'univers en marchant dans la rue, sans PC ni montage.</p></div>
-<div class="card"><h3>Créateurs de contenu</h3><p>Des formats originaux pour tes shorts et tes vidéos, en une phrase.</p></div>
-<div class="card"><h3>Humour & animation</h3><p>Personnages, déguisements, ambiances : de quoi surprendre ta communauté à chaque live.</p></div>
-</div></div></section>
+<p class="eyebrow">${e(T.who.eyebrow)}</p><h2>${e(T.who.h2)}</h2>
+<div class="grid3" style="margin-top:28px">${cards(T.who.cards)}</div></div></section>
 
 <section class="alt"><div class="w grid2" style="align-items:center">
-<div><p class="eyebrow">Créer sans tromper</p><h2>Une IA créative, et responsable</h2>
-<p class="lead" style="margin:0">Personne ne peut prendre de façon réaliste l'apparence d'une vraie personne sans son accord. Les parodies de personnalités sont des caricatures, toujours signalées par un bandeau « Parodie IA ». Les contenus sexuels, violents ou haineux sont bloqués.</p></div>
-<div class="card"><h3>Ta vie privée</h3><p>Tes clés de diffusion restent sur ton appareil si tu le choisis, et ne s'affichent jamais en clair. En mode essai, rien n'est publié.</p></div>
+<div><p class="eyebrow">${e(T.eth.eyebrow)}</p><h2>${e(T.eth.h2)}</h2>
+<p class="lead" style="margin:0">${e(T.eth.lead)}</p></div>
+<div class="card"><h3>${e(T.eth.h3)}</h3><p>${e(T.eth.p)}</p></div>
 </div></section>
 
 <section class="faq"><div class="w">
-<p class="eyebrow">Questions fréquentes</p><h2>Tout ce qu'il faut savoir</h2>
-<details><summary>Faut-il un ordinateur puissant ?</summary><p>Non. Le calcul se fait sur des cartes graphiques en ligne, louées seulement pendant ton utilisation. Un téléphone récent suffit.</p></details>
-<details><summary>Combien ça coûte ?</summary><p>Tu paies à l'usage : à la minute pour AI Live selon le modèle choisi, sur devis pour AI Studio. Le prix est toujours affiché avant de commencer.</p></details>
-<details><summary>Sur quelles plateformes puis-je diffuser ?</summary><p>YouTube, Twitch, Kick et Facebook pour commencer, jusqu'à trois en même temps, ou toute plateforme qui accepte une diffusion RTMP (par exemple via Restream ou OBS).</p></details>
-<details><summary>Puis-je essayer sans rien publier ?</summary><p>Oui. Le mode essai affiche la transformation sur ton écran et te permet d'enregistrer des tests. Rien ne part en ligne tant que tu ne lances pas la diffusion.</p></details>
-<details><summary>Est-ce disponible maintenant ?</summary><p>Les deux outils sont en bêta privée et s'ouvrent progressivement, sur invitation. <a href="#attente">Inscris-toi sur la liste d'attente</a> pour être prévenu.</p></details>
+<p class="eyebrow">${e(T.faq.eyebrow)}</p><h2>${e(T.faq.h2)}</h2>
+${faq}
 </div></section>
 
 <section class="alt final" id="attente"><div class="w wl">
-<p class="eyebrow">Liste d'attente</p>
-<h2>Sois parmi les premiers à essayer</h2>
-<p class="lead">Laisse ton e-mail : on ouvre les accès petit à petit, et on te prévient dès que c'est ton tour.</p>
+<p class="eyebrow">${e(T.wl.eyebrow)}</p>
+<h2>${e(T.wl.h2)}</h2>
+<p class="lead">${e(T.wl.lead)}</p>
 ${box}
 <form method="post" action="/liste-attente#attente">
-<label>Ton e-mail<input type="email" name="email" required maxlength="200" autocomplete="email" placeholder="toi@exemple.com"></label>
+<input type="hidden" name="lang" value="${lang}">
+<label>${e(T.wl.email)}<input type="email" name="email" required maxlength="200" autocomplete="email" placeholder="${e(T.wl.ph)}" dir="ltr"></label>
 <div class="two">
-<label>Tu es plutôt…<select name="profil"><option value="streamer">Streamer</option><option value="createur">Créateur de vidéos</option><option value="entreprise">Entreprise / agence</option><option value="curieux">Curieux</option></select></label>
-<label>Ce qui t'intéresse<select name="interet"><option value="les_deux">Les deux</option><option value="live">AI Live</option><option value="studio">AI Studio</option></select></label>
+<label>${e(T.wl.profil)}<select name="profil">${P.map((v, i) => `<option value="${v}">${e(T.wl.profils[i])}</option>`).join("")}</select></label>
+<label>${e(T.wl.interet)}<select name="interet">${I.map((v, i) => `<option value="${v}">${e(T.wl.interets[i])}</option>`).join("")}</select></label>
 </div>
-<div class="hp" aria-hidden="true"><label>Ne pas remplir<input type="text" name="site" tabindex="-1" autocomplete="off"></label></div>
-<label class="ok"><input type="checkbox" name="accord" value="oui" required><span>J'accepte d'être contacté par e-mail au sujet de l'accès à AI Live et AI Studio. Mon adresse ne sert qu'à ça, n'est jamais revendue, et je peux demander sa suppression à tout moment en répondant à un e-mail reçu.</span></label>
-<button type="submit">Rejoindre la liste d'attente</button>
+<div class="hp" aria-hidden="true"><label>—<input type="text" name="site" tabindex="-1" autocomplete="off"></label></div>
+<label class="ok"><input type="checkbox" name="accord" value="oui" required><span>${e(T.wl.accord)}</span></label>
+<button type="submit">${e(T.wl.btn)}</button>
 </form>
 </div></section>
 </main>
-<footer><div class="w"><span>© ${new Date().getUTCFullYear()} Le Laboratoire · AI Live & AI Studio</span><span><a href="#produits">Produits</a> · <a href="#attente">Liste d'attente</a> · <a href="/suivi">Suivi du projet</a></span></div></footer>
+<footer><div class="w"><span>© ${new Date().getUTCFullYear()} Le Laboratoire · AI Live & AI Studio</span><span><a href="#produits">${e(T.foot.products)}</a> · <a href="#attente">${e(T.foot.wait)}</a> · <a href="/suivi">${e(T.foot.track)}</a></span></div></footer>
 </body></html>`;
+}
+
+// Choix de la langue pour « / » : cookie « lang », sinon Accept-Language, sinon anglais (français si aucun en-tête).
+export function pickLang(req) {
+  const ck = (req.headers.get("cookie") || "").match(/(?:^|;\s*)lang=([a-z]{2})/);
+  if (ck && LANGS[ck[1]]) return ck[1];
+  const al = req.headers.get("accept-language");
+  if (!al) return "fr";
+  const prefs = al.split(",").map((p) => { const [t, q] = p.trim().split(";q="); return [t.toLowerCase().slice(0, 2), q ? parseFloat(q) : 1]; })
+    .filter(([t, q]) => t && q > 0).sort((a, b) => b[1] - a[1]);
+  for (const [t] of prefs) if (LANGS[t]) return t;
+  return "en";
 }
 
 const SEC = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin",
@@ -213,24 +246,25 @@ function autorise(req, env) {
 // Liste d'attente : POST /liste-attente (formulaire). Stockée dans le KV (clé « attente:<sha256 e-mail> »),
 // jamais affichée publiquement. Lecture : GET /liste-attente.json avec le même jeton que la mise à jour.
 const PROFILS = ["streamer", "createur", "entreprise", "curieux"], INTERETS = ["les_deux", "live", "studio"];
-const back = (req, etat) => new Response(null, { status: 303, headers: { ...SEC, location: new URL(`/?${etat}#attente`, req.url).toString() } });
+const back = (req, etat, lang = "fr") => new Response(null, { status: 303, headers: { ...SEC, location: new URL(`/${LANGS[lang] ? lang : "fr"}/?${etat}#attente`, req.url).toString() } });
 async function inscrire(req, env) {
   const origin = req.headers.get("origin");
   if (origin && origin !== new URL(req.url).origin) return new Response("Origine refusée", { status: 403, headers: SEC });
   const body = await req.text();
   if (body.length > 4000) return new Response("Trop volumineux", { status: 413, headers: SEC });
   const f = new URLSearchParams(body);
-  if (f.get("site")) return back(req, "merci"); // pot de miel : robot
+  const lang = LANGS[f.get("lang")] ? f.get("lang") : "fr";
+  if (f.get("site")) return back(req, "merci", lang); // pot de miel : robot
   const email = (f.get("email") || "").trim().toLowerCase();
-  if (email.length > 200 || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(email) || f.get("accord") !== "oui") return back(req, "erreur");
+  if (email.length > 200 || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(email) || f.get("accord") !== "oui") return back(req, "erreur", lang);
   const profil = PROFILS.includes(f.get("profil")) ? f.get("profil") : "curieux";
   const interet = INTERETS.includes(f.get("interet")) ? f.get("interet") : "les_deux";
   const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email)))].map((x) => x.toString(16).padStart(2, "0")).join("");
   const key = `attente:${h}`;
   const deja = await env.LABO.get(key, "json");
-  const rec = { email, profil, interet, accord: true, inscrit_le: deja?.inscrit_le || new Date().toISOString(), maj_le: new Date().toISOString(), pays: req.cf?.country || null };
+  const rec = { email, profil, interet, langue: lang, accord: true, inscrit_le: deja?.inscrit_le || new Date().toISOString(), maj_le: new Date().toISOString(), pays: req.cf?.country || null };
   await env.LABO.put(key, JSON.stringify(rec), { metadata: { inscrit_le: rec.inscrit_le } });
-  return back(req, "merci");
+  return back(req, "merci", lang);
 }
 async function exporter(req, env) {
   if (!autorise(req, env)) return new Response("Non autorisé", { status: 401, headers: SEC });
@@ -242,6 +276,16 @@ async function exporter(req, env) {
   } while (cursor);
   out.sort((a, b) => a.inscrit_le.localeCompare(b.inscrit_le));
   return new Response(JSON.stringify({ total: out.length, inscrits: out }, null, 2), { headers: { ...SEC, "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+}
+
+// Dépôt d'un module pour redéploiement : PUT /_deploy/<nom> (même jeton) → clé KV « deploy:<nom> ».
+async function deposer(req, env, name) {
+  if (!autorise(req, env)) return new Response("Non autorisé", { status: 401, headers: SEC });
+  if (!/^[a-z0-9_.-]{1,40}$/.test(name)) return new Response("Nom invalide", { status: 400, headers: SEC });
+  const body = await req.text();
+  if (body.length > 5_000_000) return new Response("Trop volumineux", { status: 413, headers: SEC });
+  await env.LABO.put(`deploy:${name}`, body, { expirationTtl: 3600 });
+  return new Response(JSON.stringify({ ok: true, taille: body.length }), { headers: { ...SEC, "content-type": "application/json" } });
 }
 
 // Mise à jour : PUT /avancement.json avec « Authorization: Bearer <LABO_UPDATE_TOKEN> » (secret du Worker).
@@ -263,12 +307,21 @@ export default {
     const path = new URL(req.url).pathname;
     if (req.method === "PUT" && path === "/avancement.json") return update(req, env);
     if (req.method === "POST" && path === "/liste-attente") return inscrire(req, env);
+    if (req.method === "PUT" && path.startsWith("/_deploy/")) return deposer(req, env, path.slice(9));
     if (path === "/liste-attente.json") return exporter(req, env);
     if (req.method !== "GET" && req.method !== "HEAD") return new Response("Méthode non autorisée", { status: 405, headers: SEC });
     const html = { ...SEC, "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" };
+    const q = new URL(req.url).searchParams, etat = q.has("merci") ? "merci" : q.has("erreur") ? "erreur" : "";
     if (path === "/" || path === "/index.html") {
-      const q = new URL(req.url).searchParams, etat = q.has("merci") ? "merci" : q.has("erreur") ? "erreur" : "";
-      return new Response(landing(etat), { headers: etat ? { ...html, "cache-control": "no-store", "x-robots-tag": "noindex" } : html });
+      const lang = pickLang(req);
+      if (etat) return Response.redirect(new URL(`/${lang}/?${etat}#attente`, req.url).toString(), 303);
+      return new Response(landing(lang), { headers: { ...html, "content-language": lang, vary: "Accept-Language, Cookie", "cache-control": "private, max-age=60" } });
+    }
+    const m = path.match(/^\/([a-z]{2})(\/)?$/);
+    if (m && LANGS[m[1]]) {
+      if (!m[2]) return Response.redirect(new URL(`/${m[1]}/${new URL(req.url).search}`, req.url).toString(), 301);
+      const h = { ...html, "content-language": m[1], "set-cookie": `lang=${m[1]}; Path=/; Max-Age=31536000; SameSite=Lax; Secure` };
+      return new Response(landing(m[1], etat), { headers: etat ? { ...h, "cache-control": "no-store", "x-robots-tag": "noindex" } : h });
     }
     if (path === "/avancement" || path === "/suivi/") return Response.redirect(new URL("/suivi", req.url).toString(), 301);
     const data = (env.LABO && await env.LABO.get("avancement", "json")) || FALLBACK;

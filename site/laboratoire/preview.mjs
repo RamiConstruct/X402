@@ -1,6 +1,7 @@
 // Aperçu local : node site/laboratoire/preview.mjs → site/laboratoire/apercu.html (suivi) et apercu-accueil.html
 import { readFileSync, writeFileSync } from "node:fs";
 import worker, { render, landing } from "./worker.js";
+// landing(lang) : une langue de langues/*.json (fr par défaut)
 const here = new URL(".", import.meta.url);
 const data = JSON.parse(readFileSync(new URL("avancement.json", here), "utf8"));
 writeFileSync(new URL("apercu.html", here), render(data));
