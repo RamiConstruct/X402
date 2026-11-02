@@ -14,7 +14,7 @@
     "en_attente_de_toi": [
       "Faire un premier essai sur live.labotory.site/mobile.html et enregistrer une courte vidéo",
       "Créer un compte daydream.live (crédits gratuits) pour avoir un vrai rendu IA pendant les essais",
-      "Rendre public le paquet x402-live-worker sur GitHub (pour la location de GPU)",
+      "Rendre public le paquet x402-live-worker : GitHub → ton profil → Packages → x402-live-worker → Package settings → Change visibility → Public",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
     ]
   },
@@ -153,7 +153,7 @@
     {
       "element": "Image du moteur GPU",
       "etat": "ok",
-      "note": "construite et publiée par GitHub Actions ; à rendre publique pour Vast.ai / RunPod"
+      "note": "construite et vérifiée (imports OK) par GitHub Actions ; encore privée : à rendre publique pour Vast.ai / RunPod"
     },
     {
       "element": "AI STUDIO en ligne (studio.labotory.site)",
@@ -167,6 +167,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Image du moteur GPU : construction réussie avec contrôle des imports (StreamDiffusion, WebRTC, diffusion RTMP)."
+    },
     {
       "date": "2026-11-02",
       "texte": "Liste d'attente : formulaire sur l'accueil, accord explicite, protection anti-robots, export privé."
