@@ -95,20 +95,21 @@ h1{font-size:clamp(36px,6.4vw,64px);line-height:1.04;letter-spacing:-.035em;marg
 .hp{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}.msgbox{padding:14px 16px;border-radius:12px;margin:0 0 16px;font-weight:600}.msgbox.good{background:var(--soft);color:var(--accent)}.msgbox.bad{background:color-mix(in srgb,#dc2626 14%,transparent);color:#dc2626}
 footer{border-top:1px solid var(--line);padding:28px 0 40px;font-size:14px;color:var(--muted)}footer .w{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}footer a{color:var(--muted)}`;
 
+const LANG_SCRIPT = 'document.querySelectorAll(".lgf select").forEach(function(s){s.addEventListener("change",function(){s.form.submit()})});document.querySelectorAll(".lgf button").forEach(function(b){b.hidden=true});';
 // Menu traduit (CSS commun repris de NAV_HTML) + sélecteur de langue sans JavaScript (CSP du Worker).
 const NAV_CSS = NAV_HTML.slice(0, NAV_HTML.indexOf("</style>")) +
-  ".labnav .in{justify-content:flex-start}.labnav .b{margin-inline-end:auto}.labnav ul{order:2}.labnav .lg{order:3}.labnav label{order:4}" +
+  ".labnav .in{justify-content:flex-start}.labnav .b{margin-inline-end:auto}.labnav ul{order:2}.labnav .lgf{order:3}.labnav label{order:4}" +
   ".labnav a.cta{margin-left:0;margin-inline-start:6px}" +
-  ".labnav .lg{position:relative;margin-inline-start:8px}.labnav .lg summary{list-style:none;cursor:pointer;padding:8px 11px;border:1px solid #2f3742;border-radius:10px;color:#e6e9ee;white-space:nowrap;font-size:14px}" +
-  ".labnav .lg summary::-webkit-details-marker{display:none}.labnav .lg summary:focus-visible{outline:3px solid #5eead4;outline-offset:2px}.labnav .lg[open] summary{background:#1c2229}" +
-  ".labnav .lg .m{position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:1001;background:#0d1117;border:1px solid #2a313b;border-radius:12px;padding:6px;display:grid;grid-template-columns:repeat(2,minmax(130px,1fr));gap:2px;max-height:72vh;overflow:auto;box-shadow:0 14px 30px rgba(0,0,0,.45)}" +
-  ".labnav .lg .m a{color:#c3cad4;text-decoration:none;padding:9px 11px;border-radius:8px;white-space:nowrap}.labnav .lg .m a:hover,.labnav .lg .m a:focus-visible{background:#1c2229;color:#fff;outline:none}" +
-  ".labnav .lg .m a[aria-current]{background:#1f3a37;color:#fff;font-weight:600}</style>";
+  ".labnav .lgf{position:relative;display:flex;align-items:center;margin-inline-start:8px;color:#9aa1ad;font-size:13px}" +
+  ".labnav .lgf span{position:absolute;inset-inline-start:8px;pointer-events:none;font-size:13px}" +
+  ".labnav .lgf select{appearance:none;-webkit-appearance:none;background:transparent;color:#c3cad4;border:1px solid #2f3742;border-radius:9px;padding:6px 10px;padding-inline-start:28px;font:inherit;font-size:13px;max-width:132px;cursor:pointer}" +
+  ".labnav .lgf select:hover{border-color:#5eead4;color:#fff}.labnav .lgf select:focus-visible{outline:3px solid #5eead4;outline-offset:2px}" +
+  ".labnav .lgf option{background:#0d1117;color:#e6e9ee}.labnav .lgf button{margin-inline-start:4px;background:#1c2229;color:#e6e9ee;border:1px solid #2f3742;border-radius:8px;padding:5px 8px;font:inherit;font-size:12px}" +
+  "@media (max-width:860px){.labnav .lgf select{max-width:92px}}</style>";
 
 function navI18n(T, lang) {
   const n = T.nav;
-  const langs = Object.entries(LANGS).map(([c, L]) =>
-    `<a href="/${c}/" hreflang="${c}" lang="${c}"${c === lang ? ' aria-current="true"' : ""}>${e(L.name)}</a>`).join("");
+  const opts = Object.entries(LANGS).map(([c, L]) => `<option value="${c}"${c === lang ? " selected" : ""}>${e(L.name)}</option>`).join("");
   return `${NAV_CSS}<nav class="labnav" aria-label="${e(n.menu)}"><div class="in">` +
     `<a class="b" href="/${lang}/"><i>◆</i> Le Laboratoire</a>` +
     `<input type="checkbox" id="labnav-t" aria-label="${e(n.menu)}"><label for="labnav-t" aria-hidden="true">☰ ${e(n.menu)}</label>` +
@@ -118,7 +119,7 @@ function navI18n(T, lang) {
     `<li><a class="l" href="https://studio.labotory.site/">${e(n.studio)}</a></li>` +
     `<li><a class="l" href="/suivi">${e(n.track)}</a></li>` +
     `<li><a class="l cta" href="/${lang}/#attente">${e(n.wait)}</a></li></ul>` +
-    `<details class="lg"><summary aria-label="${e(n.lang)}">🌐 ${lang.toUpperCase()}</summary><div class="m">${langs}</div></details>` +
+    `<form class="lgf" action="/langue" method="get"><span aria-hidden="true">🌐</span><select name="l" aria-label="${e(n.lang)}">${opts}</select><button type="submit">OK</button></form>` +
     `</div></nav>`;
 }
 
@@ -214,15 +215,40 @@ ${box}
 </div></section>
 </main>
 <footer><div class="w"><span>© ${new Date().getUTCFullYear()} Le Laboratoire · AI Live & AI Studio</span><span><a href="#produits">${e(T.foot.products)}</a> · <a href="#attente">${e(T.foot.wait)}</a> · <a href="/suivi">${e(T.foot.track)}</a></span></div></footer>
+<script>${LANG_SCRIPT}</script>
 </body></html>`;
 }
 
-// Choix de la langue pour « / » : cookie « lang », sinon Accept-Language, sinon anglais (français si aucun en-tête).
+// Pays (déduit de l'adresse IP par Cloudflare : request.cf.country) → langue du site.
+const COUNTRY_LANG = (() => {
+  const m = {};
+  const add = (lang, list) => list.split(" ").forEach((c) => (m[c] = lang));
+  add("fr", "FR BE LU MC CH SN CI ML BF NE TG BJ GN CM GA CG CD MG HT DZ MA TN RE GP MQ GF YT NC PF");
+  add("es", "ES MX AR CO PE VE CL EC GT CU BO DO HN PY SV NI CR PA UY PR GQ");
+  add("pt", "BR PT AO MZ CV GW ST TL");
+  add("de", "DE AT LI");
+  add("it", "IT SM VA");
+  add("nl", "NL SR");
+  add("ar", "SA AE EG IQ JO KW LB LY OM QA SY YE BH SD PS MR SO DJ KM");
+  add("tr", "TR CY");
+  add("ru", "RU BY KZ KG");
+  add("zh", "CN TW HK MO SG");
+  add("ja", "JP");
+  add("ko", "KR");
+  add("hi", "IN");
+  add("id", "ID");
+  return m;
+})();
+
+// Choix de la langue pour « / » : 1) choix mémorisé (cookie « lang »), 2) pays de l'adresse IP,
+// 3) langue du navigateur, 4) anglais.
 export function pickLang(req) {
   const ck = (req.headers.get("cookie") || "").match(/(?:^|;\s*)lang=([a-z]{2})/);
   if (ck && LANGS[ck[1]]) return ck[1];
+  const byIp = COUNTRY_LANG[(req.cf && req.cf.country) || ""];
+  if (byIp && LANGS[byIp]) return byIp;
   const al = req.headers.get("accept-language");
-  if (!al) return "fr";
+  if (!al) return req.cf && req.cf.country ? "en" : "fr";
   const prefs = al.split(",").map((p) => { const [t, q] = p.trim().split(";q="); return [t.toLowerCase().slice(0, 2), q ? parseFloat(q) : 1]; })
     .filter(([t, q]) => t && q > 0).sort((a, b) => b[1] - a[1]);
   for (const [t] of prefs) if (LANGS[t]) return t;
@@ -230,7 +256,7 @@ export function pickLang(req) {
 }
 
 const SEC = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin",
-  "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" };
+  "content-security-policy": "default-src 'none'; script-src 'sha256-i4TiM8KqFeo5CGWg/5tCq3wjUiANzqGc4ohv5Qtu3QA='; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" };
 const FALLBACK = { intention: "", mis_a_jour: "—", maintenant: { focus: "Données d'avancement indisponibles pour le moment." } };
 
 function autorise(req, env) {
@@ -316,6 +342,11 @@ export default {
       const lang = pickLang(req);
       if (etat) return Response.redirect(new URL(`/${lang}/?${etat}#attente`, req.url).toString(), 303);
       return new Response(landing(lang), { headers: { ...html, "content-language": lang, vary: "Accept-Language, Cookie", "cache-control": "private, max-age=60" } });
+    }
+    if (path === "/langue") {
+      const l = q.get("l");
+      const to = LANGS[l] ? l : pickLang(req);
+      return new Response(null, { status: 302, headers: { ...SEC, location: `/${to}/`, "set-cookie": `lang=${to}; Path=/; Max-Age=31536000; SameSite=Lax; Secure` } });
     }
     const m = path.match(/^\/([a-z]{2})(\/)?$/);
     if (m && LANGS[m[1]]) {
