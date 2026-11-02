@@ -1,16 +1,16 @@
-# Déployer la page de suivi sur laboratory.site
+# Déployer la page de suivi sur labotory.site
 
 Page **publique** (décision de l'utilisateur), servie par un Worker Cloudflare
 avec fichiers statiques, sur l'offre gratuite.
 
 | Adresse | Contenu |
 |---|---|
-| `projets.laboratory.site` | page générale (tous les projets) |
-| `labo.laboratory.site` | laboratoire de trading |
-| `x402.laboratory.site` | atelier x402 |
-| `vendeur.laboratory.site` | bot vendeur x402 (en attente) |
+| `projets.labotory.site` | page générale (tous les projets) |
+| `labo.labotory.site` | laboratoire de trading |
+| `x402.labotory.site` | atelier x402 |
+| `vendeur.labotory.site` | bot vendeur x402 (en attente) |
 
-Le domaine racine `laboratory.site` n'est **pas** utilisé : il peut déjà servir
+Le domaine racine `labotory.site` n'est **pas** utilisé : il peut déjà servir
 le VPS. Cloudflare refuse un « Custom Domain » sur un nom qui a déjà un
 enregistrement CNAME : supprimer d'abord un éventuel CNAME existant sur l'un de
 ces sous-domaines.
@@ -20,7 +20,7 @@ ces sous-domaines.
 1. **Jeton API** limité, créé dans Cloudflare : *My Profile → API Tokens →
    Create Token*, avec les permissions *Account · Workers Scripts · Edit* et
    *Zone · Workers Routes · Edit* + *Zone · DNS · Edit* limitées à la zone
-   `laboratory.site`.
+   `labotory.site`.
 2. Dans les réglages de l'environnement Claude Code (jamais dans le chat ni
    dans le dépôt) :
    - `CLOUDFLARE_API_TOKEN` = le jeton ;

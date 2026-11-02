@@ -3,10 +3,10 @@
 // viennent de l'environnement (CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN),
 // jamais de ce fichier.
 // Les « Custom Domains » créent eux-mêmes les enregistrements DNS. Le domaine
-// racine laboratory.site n'est PAS utilisé : il peut déjà servir le VPS.
+// racine labotory.site n'est PAS utilisé : il peut déjà servir le VPS.
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "laboratory-projets",
+  "name": "labotory-projets",
   "main": "./worker/index.js",
   "compatibility_date": "2026-10-29",
   "workers_dev": false,
@@ -17,9 +17,9 @@
     "not_found_handling": "404-page"
   },
   "routes": [
-    { "pattern": "projets.laboratory.site", "custom_domain": true },
-    { "pattern": "labo.laboratory.site", "custom_domain": true },
-    { "pattern": "x402.laboratory.site", "custom_domain": true },
-    { "pattern": "vendeur.laboratory.site", "custom_domain": true }
+    { "pattern": "projets.labotory.site", "custom_domain": true },
+    { "pattern": "labo.labotory.site", "custom_domain": true },
+    { "pattern": "x402.labotory.site", "custom_domain": true },
+    { "pattern": "vendeur.labotory.site", "custom_domain": true }
   ]
 }
