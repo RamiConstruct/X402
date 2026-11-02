@@ -92,6 +92,7 @@ class Session:
     face_token: str | None = None        # photo du visage (« garder mon visage ») : en mémoire seulement
     use_refs: bool = False               # images de référence (expérimental, à activer explicitement)
     ip_used: bool = False                # l'IP-Adapter a déjà été activé sur ce flux (il faudra l'éteindre)
+    pending: bool = False                # changement de scène en attente (flux pas encore prêt chez le moteur)
 
     def minutes(self) -> float:
         if not self.connected_at:
@@ -222,9 +223,24 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             raise HTTPException(410, "session terminée")
         try:
             clients[s.engine_key].update(s.stream_id, s.history.current, mode=s.mode, refs=refs_for(s))
+            s.pending = False
         except EngineError as e:
+            if "not ready" in str(e).lower() or "STREAMS/NOT_FOUND" in str(e):
+                # Le moteur démarre encore (caméra pas encore reçue) : la scène est gardée et sera
+                # envoyée dès que la sortie IA est prête, au lieu de perdre la commande.
+                s.pending = True
+                return
             s.note(f"mise à jour moteur échouée : {e}")
             raise HTTPException(502, str(e)) from e
+
+    def flush_pending(s: Session) -> None:
+        if s.pending and s.ended_at is None:
+            try:
+                clients[s.engine_key].update(s.stream_id, s.history.current, mode=s.mode, refs=refs_for(s))
+                s.pending = False
+                s.note("changement de scène en attente appliqué")
+            except EngineError:
+                pass  # encore trop tôt : on réessaiera au prochain changement ou à la prochaine lecture
 
     @app.get("/api/catalog")
     def catalog():
@@ -360,6 +376,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             raise HTTPException(409, "la caméra n'est pas encore connectée")
         try:
             answer = await asyncio.to_thread(clients[s.engine_key].whep, s.whep_url, offer)
+            await asyncio.to_thread(flush_pending, s)  # la sortie IA est prête : appliquer ce qui attendait
             return Response(answer, media_type="application/sdp")
         except EngineError as e:
             raise HTTPException(502, str(e)) from e

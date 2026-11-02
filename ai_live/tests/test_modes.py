@@ -118,3 +118,31 @@ def test_switch_mode_refused_while_broadcasting_or_unknown():
         {"platform": "youtube", "server_url": "rtmp://a.example/live", "stream_key": "k1", "format": "horizontal"}]}).json()
     r = c.post(f"/api/sessions/{b['id']}/mode", json={"mode": "rapide"})
     assert r.status_code == 409
+
+
+def test_command_before_stream_ready_is_kept_then_applied():
+    calls = {"patch": 0}
+
+    def handler(req):
+        if req.method == "POST" and req.url.path == "/v1/streams":
+            return httpx.Response(200, json={"id": "s1", "whip_url": "https://w/whip"})
+        if req.method == "PATCH":
+            calls["patch"] += 1
+            if calls["patch"] == 1:
+                return httpx.Response(404, json={"error": "Stream not ready yet", "code": "STREAMS/NOT_FOUND"})
+            calls["last"] = json.loads(req.content)
+            return httpx.Response(200, json={})
+        if req.url.path.endswith("/whip"):
+            return httpx.Response(201, text="v=0 answer", headers={"livepeer-playback-url": "https://w/whep"})
+        if req.url.path.endswith("/whep"):
+            return httpx.Response(201, text="v=0 play")
+        return httpx.Response(200, json={})
+
+    factory = lambda cfg: StreamEngine(cfg, client=httpx.Client(transport=httpx.MockTransport(handler)), sleep=lambda s: None)  # noqa: E731
+    c = TestClient(create_app(engines={"daydream": DD}, engine_factory=factory, access_token="", gpu=False))
+    s = c.post("/api/sessions", json={"engine": "daydream"}).json()
+    r = c.post(f"/api/sessions/{s['id']}/command", json={"text": "transforme-moi en pirate"})
+    assert r.status_code == 200 and r.json()["ok"]  # plus d'erreur 502 pendant le chargement
+    c.post(f"/api/sessions/{s['id']}/whip", content=b"v=0 offer", headers={"content-type": "application/sdp"})
+    c.post(f"/api/sessions/{s['id']}/whep", content=b"v=0 offer", headers={"content-type": "application/sdp"})
+    assert "pirate" in calls["last"]["params"]["prompt"]  # appliqué dès que la sortie IA est prête
