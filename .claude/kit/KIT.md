@@ -40,3 +40,19 @@ Attribution : Superpowers © 2025 Jesse Vincent ; skills © Cloudflare,
 
 Vérifié le 2026-11-03 : chaque `SKILL.md` a un nom et une description, aucun nom
 en double, aucun renvoi `superpowers:` restant.
+
+## Carte du code : code-review-graph
+
+Serveur MCP local (tirth8205/code-review-graph, v2.3.9 figée, MIT) qui construit
+une carte du code (fonctions, appels, imports, tests) pour que Claude lise
+seulement les fichiers utiles au lieu de tout parcourir.
+
+- `.mcp.json` : lance le serveur via `uvx`, limité à 11 outils qui ne touchent pas au code
+  (les 19 autres, dont celui qui applique des refactorisations, sont désactivés par `CRG_TOOLS`).
+- `.claude/settings.json` : construit la carte au démarrage de chaque session
+  (environ 4 s) et la met à jour après chaque modification de fichier.
+  Si `uvx` est absent, les hooks ne font rien.
+- `.code-review-graphignore` : exclut `.claude/` et `fixtures/` de la carte.
+- `CLAUDE.md` : dit à Claude d'interroger la carte avant de fouiller les fichiers.
+- Les 4 skills que l'installeur génère (debug-issue, explore-codebase,
+  refactor-safely, review-changes) ont été retirés : ils doublaient Superpowers.

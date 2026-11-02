@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 120,
+            "command": "cat >/dev/null || true; command -v uvx >/dev/null 2>&1 || exit 0; R=\"$(git rev-parse --show-toplevel 2>/dev/null)\" || exit 0; uvx --quiet --from code-review-graph==2.3.9 code-review-graph update --skip-flows --repo \"$R\" >/dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 30,
+            "command": "cat >/dev/null || true; command -v uvx >/dev/null 2>&1 || exit 0; R=\"$(git rev-parse --show-toplevel 2>/dev/null)\" || exit 0; uvx --quiet --from code-review-graph==2.3.9 code-review-graph update --skip-flows --repo \"$R\" >/dev/null 2>&1 || true"
+          }
+        ]
+      }
+    ]
+  }
+}
