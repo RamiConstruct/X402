@@ -26,6 +26,7 @@ MAX_PORT=49800
 MAX_BPS=$((3 * 1024 * 1024))   # ~24 Mb/s par session TURN : large pour un flux 512–1080p
 SECRET_FILE=/etc/ai-live-turn.secret
 CF_API_TOKEN="${CF_API_TOKEN:-}"
+URL_HOST=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,6 +34,7 @@ while [[ $# -gt 0 ]]; do
     --domain) DOMAIN="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
     --cf-token) CF_API_TOKEN="$2"; shift 2 ;;
+    --hostname) URL_HOST="$2"; shift 2 ;;   # nom utilisé dans les URLs TURN, sans TLS (ex. turn.labotory.site)
     *) echo "option inconnue : $1"; exit 2 ;;
   esac
 done
@@ -213,7 +215,7 @@ else
   echo "    ⚠ aucun processus n'écoute sur $PORT — voir : journalctl -u coturn -n 50"; exit 1
 fi
 
-HOST="${DOMAIN:-$PUBLIC_IP}"
+HOST="${DOMAIN:-${URL_HOST:-$PUBLIC_IP}}"
 URLS="[\"turn:$HOST:$PORT?transport=udp\",\"turn:$HOST:$PORT?transport=tcp\""
 [[ -n "$DOMAIN" ]] && URLS="$URLS,\"turns:$DOMAIN:$TLS_PORT?transport=tcp\""
 URLS="$URLS]"
