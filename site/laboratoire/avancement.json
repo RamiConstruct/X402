@@ -5,15 +5,15 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Optimiser avant d'investir : flux vidéo allégé, mesures réseau, plan d'investissement de 1 000 $ prêt.",
-    "dernier_fait": "Mode de rendu automatique : choix au démarrage selon le réseau, envoi allégé sans coupure si le réseau faiblit, mode plus rapide si l'IA ne suit pas.",
+    "dernier_fait": "Bibliothèque de 55 images de référence libres et option « garder mon visage » (expérimentales, à tester depuis le téléphone) ; une commande donnée pendant le chargement n'est plus perdue.",
     "prochaines_etapes_claude": [
       "Mesurer la fluidité réelle depuis ton téléphone dans chaque mode",
       "Régler l'intensité par défaut et les descriptions à partir de tes essais enregistrés",
       "Style copié d'une image de référence (accepté par Daydream, à intégrer)"
     ],
     "en_attente_de_toi": [
-      "Faire ton premier essai : live.labotory.site/mobile.html → moteur « Daydream » → Démarrer, puis dire « transforme-moi en chevalier »",
-      "Faire un premier essai sur live.labotory.site/mobile.html et enregistrer une courte vidéo",
+      "Tester les options expérimentales (Images de référence, Garder mon visage) sur live.labotory.site/mobile.html",
+      "Créer une instance Oracle Ampere A1 gratuite (le serveur actuel n'a qu'1 Go de mémoire)",
       "Rendre public le paquet x402-live-worker : GitHub → ton profil → Packages → x402-live-worker → Package settings → Change visibility → Public",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
     ]
@@ -173,6 +173,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Images de référence (55 photos libres, crédits publiés) et « garder mon visage » en option expérimentale ; le petit serveur a saturé pendant un test vidéo puis est revenu."
+    },
     {
       "date": "2026-11-02",
       "texte": "AI Live : mode Auto (réseau + fluidité de l'IA), vérifié dans le navigateur et contre Daydream."

@@ -23,6 +23,7 @@ mesure des coûts réels.
 | **P1** | Paiement Stripe (gratuit à l'ouverture, commission par vente) + statut d'entreprise | Encaisser | 0–100 $ selon le pays |
 | **P1** | E-mails (domaine labotory.site, service d'envoi type Resend/Postmark, offre gratuite au début) | Inviter la liste d'attente, reçus, récupération de compte | 0–20 $ |
 | **P1** | Pages légales (CGU, confidentialité, cookies) — je rédige, relecture par un juriste conseillée | Obligatoire avant d'encaisser en Europe | 0–150 $ |
+| **P1** | Serveur plus solide : passer de la petite instance Oracle (1 Go de mémoire, saturée pendant les tests vidéo du 2026-11-02) à une instance Ampere A1 (offre gratuite Oracle jusqu'à 4 cœurs / 24 Go) ou un VPS 4 Go | La console ne doit jamais tomber pendant un live ; permet aussi les tests vidéo | 0–10 $/mois |
 | **P2** | Relais vidéo Cloudflare (TURN) pour les réseaux difficiles (4G, entreprises) | Moins d'échecs de connexion ; coût quasi nul au début | 20 $ |
 | **P2** | Supervision (erreurs, disponibilité) — offres gratuites | Savoir avant les clients quand ça casse | 0 $ |
 | **P3** | Contenu de démonstration : 10 à 20 vidéos courtes faites avec AI Live | Le produit se vend en le montrant | 50 $ (GPU/crédits) |
@@ -66,6 +67,8 @@ mode essai, mesures réseau affichées, 3 modes de rendu, graine fixe anti-scint
 - **Ajustement automatique** du mode (Rapide/Équilibré/Qualité) selon la qualité réseau mesurée.
 
 ## Ce dont j'aurai besoin de toi
+
+- Créer une instance Oracle « VM.Standard.A1.Flex » (gratuite, 2 à 4 cœurs, 12 à 24 Go) : je migre tout dessus.
 
 - Crédits Daydream et/ou clé Vast.ai ou RunPod (avec un plafond de dépense côté fournisseur).
 - Rendre public le paquet GitHub `x402-live-worker`.
