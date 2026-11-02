@@ -151,7 +151,10 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
 
     def guard(x_live_token: str) -> None:
         if access_token and not secrets.compare_digest(x_live_token, access_token):
-            raise HTTPException(401, "jeton d'accès requis")
+            if x_live_token.startswith("sk_"):
+                raise HTTPException(401, "Ceci est une clé Daydream : elle est déjà installée sur le serveur. "
+                                         "Ici, il faut le mot de passe de la console.")
+            raise HTTPException(401, "Mot de passe de la console incorrect" if x_live_token else "Mot de passe de la console requis")
 
     def get(sid: str) -> Session:
         s = sessions.get(sid)
