@@ -5,7 +5,7 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "AI LIVE — rendre le live IA utilisable de bout en bout par le fondateur, premier utilisateur.",
-    "dernier_fait": "Diffusion directe depuis le téléphone : caméra + micro → transformation IA → TikTok, YouTube, Twitch ou Kick, sans PC (page live.labotory.site/mobile.html).",
+    "dernier_fait": "Multidiffusion : un seul live envoyé à jusqu'à 3 plateformes à la fois (YouTube, Twitch, Kick, Facebook…), depuis le téléphone, sans PC.",
     "prochaines_etapes_claude": [
       "Vérifier l'image Docker du moteur GPU (construction GitHub en cours)",
       "Brancher Daydream dès que le compte existe, pour un premier vrai rendu IA",
@@ -24,7 +24,7 @@
       "nom": "AI LIVE",
       "resume": "Se transformer en direct pendant un stream (personnage, décor, style) par la voix, avec sortie vers OBS.",
       "etat": "en_cours",
-      "avancement": 72,
+      "avancement": 75,
       "fait": [
         "Console web : caméra, voix en français, personnages, décors, styles, intensité, retour à l'original",
         "Page de sortie pour OBS (transparente au retour à l'original)",
@@ -35,7 +35,8 @@
         "Console en ligne sur live.labotory.site avec moteur de démonstration sur le serveur",
         "Diffusion directe RTMP/RTMPS vers les plateformes depuis le téléphone, son compris, format vertical",
         "Page téléphone plein écran : bouton Original/IA, voix, personnages, écran maintenu allumé",
-        "Plateformes sans minimum d'abonnés en premier (YouTube, Twitch, Kick, Facebook), adresses chiffrées préremplies"
+        "Plateformes sans minimum d'abonnés en premier (YouTube, Twitch, Kick, Facebook), adresses chiffrées préremplies",
+        "Multidiffusion vers 3 plateformes simultanées (un encodeur par plateforme : une panne n'arrête pas les autres)"
       ],
       "pas_encore_teste": [
         "Diffusion vers une vraie plateforme (TikTok, YouTube…)",
@@ -43,7 +44,7 @@
         "Moteur StreamDiffusion sur un vrai GPU",
         "UDP du relais Oracle"
       ],
-      "tests": "35 tests automatiques (dont diffusion vers une plateforme simulée : H.264 720x1280 + AAC) + parcours téléphone vérifié"
+      "tests": "36 tests automatiques (dont diffusion vers 1 et 2 plateformes simulées) + parcours téléphone vérifié"
     },
     {
       "nom": "AI STUDIO",
@@ -160,6 +161,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Multidiffusion : jusqu'à 3 plateformes en même temps depuis le téléphone."
+    },
     {
       "date": "2026-11-02",
       "texte": "Plateformes sans restriction d'abonnés mises en avant (YouTube, Twitch, Kick, Facebook)."

@@ -38,47 +38,76 @@ async function api(path, opts = {}) {
 const say = (t) => { $("#msg").textContent = t; clearTimeout(say.t); say.t = setTimeout(() => ($("#msg").textContent = ""), 4000); };
 
 // ------------------------------------------------------------------ réglages
+const OPTIONS = `<optgroup label="Sans minimum d'abonnés"><option value="youtube">YouTube</option><option value="twitch">Twitch</option><option value="kick">Kick</option><option value="facebook">Facebook</option></optgroup>
+<optgroup label="Autres"><option value="autre">Autre serveur (RTMP / RTMPS)</option><option value="tiktok">TikTok LIVE (accès restreint selon le compte)</option></optgroup>`;
+
+function destBlock(d, i) {
+  const el = document.createElement("div");
+  el.className = "dest";
+  el.innerHTML = `<div class="dest-head"><span>Plateforme ${i + 1}</span>${i ? '<button type="button" aria-label="Retirer">×</button>' : ""}</div>
+    <select class="d-platform">${OPTIONS}</select><p class="howto"></p>
+    <label>Adresse du serveur</label><input class="d-server" inputmode="url" autocapitalize="off" spellcheck="false">
+    <label>Clé de stream</label><input class="d-key" type="password" autocapitalize="off" spellcheck="false">`;
+  const sel = el.querySelector(".d-platform"), srv = el.querySelector(".d-server");
+  sel.value = d.platform || "youtube";
+  srv.value = d.server || PRESETS[sel.value] || "";
+  el.querySelector(".d-key").value = d.key || "";
+  const hint = () => { srv.placeholder = HINTS[sel.value] || PRESETS[sel.value] || ""; el.querySelector(".howto").textContent = HOWTO[sel.value] || ""; };
+  sel.addEventListener("change", () => { srv.value = PRESETS[sel.value] || ""; hint(); if (sel.value === "tiktok") $("#format").value = "vertical"; });
+  hint();
+  el.querySelector(".dest-head button")?.addEventListener("click", () => { el.remove(); renumber(); });
+  return el;
+}
+function renumber() {
+  document.querySelectorAll(".dest").forEach((el, i) => (el.querySelector(".dest-head span").textContent = `Plateforme ${i + 1}`));
+  $("#add").classList.toggle("hidden", document.querySelectorAll(".dest").length >= 3);
+}
+function collect() {
+  return [...document.querySelectorAll(".dest")].map((el) => ({
+    platform: el.querySelector(".d-platform").value, server: el.querySelector(".d-server").value.trim(), key: el.querySelector(".d-key").value.trim() }));
+}
+$("#add").addEventListener("click", () => { $("#dests").appendChild(destBlock({}, document.querySelectorAll(".dest").length)); renumber(); });
+$("#do-bc").addEventListener("change", () => {
+  $("#bc").classList.toggle("hidden", !$("#do-bc").checked);
+  if ($("#do-bc").checked && !document.querySelector(".dest")) { $("#dests").appendChild(destBlock({}, 0)); renumber(); }
+});
+
 async function init() {
   st.catalog = await (await fetch("/api/catalog")).json();
   setIceServers(st.catalog.ice_servers);
   $("#engine").innerHTML = (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué</option>` : "") +
     st.catalog.engines.map((e) => `<option value="${esc(e.key)}">${esc(e.name)}</option>`).join("");
   $("#token").value = store.get("token");
-  $("#platform").value = store.get("platform");
-  $("#server").value = store.get("server");
-  $("#key").value = store.get("key");
-  $("#remember-key").checked = !!store.get("key");
-  $("#format").value = store.get("format") || "vertical";
   $("#engine").value = store.get("engine") || $("#engine").value;
-  onPlatform(false);
+  $("#format").value = store.get("format") || "horizontal";
+  let saved = [];
+  try { saved = JSON.parse(store.get("dests") || "[]"); } catch {}
+  saved.forEach((d, i) => $("#dests").appendChild(destBlock(d, i)));
+  $("#remember-key").checked = saved.some((d) => d.key);
+  $("#do-bc").checked = store.get("bc") === "1" && saved.length > 0;
+  $("#bc").classList.toggle("hidden", !$("#do-bc").checked);
+  renumber();
   $("#chips").innerHTML = st.catalog.characters.slice(0, 8).map((c) => `<button class="chip" data-kind="character" data-key="${esc(c.key)}">${esc(c.label)}</button>`).join("") +
     st.catalog.decors.slice(0, 6).map((c) => `<button class="chip" data-kind="decor" data-key="${esc(c.key)}">${esc(c.label)}</button>`).join("");
   document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => preset(c)));
 }
-function onPlatform(fill = true) {
-  const p = $("#platform").value;
-  $("#bc").classList.toggle("hidden", !p);
-  if (fill && PRESETS[p]) $("#server").value = PRESETS[p];
-  $("#server").placeholder = HINTS[p] || PRESETS[p] || "";
-  $("#howto").textContent = HOWTO[p] || "";
-  if (fill) $("#format").value = (p === "tiktok") ? "vertical" : (p ? "horizontal" : $("#format").value);
-}
-$("#platform").addEventListener("change", () => onPlatform(true));
 
 // ------------------------------------------------------------------ démarrage
 $("#go").addEventListener("click", async () => {
   $("#err").textContent = ""; $("#go").disabled = true;
-  const platform = $("#platform").value;
-  store.set("token", $("#token").value); store.set("platform", platform); store.set("server", $("#server").value);
-  store.set("format", $("#format").value); store.set("engine", $("#engine").value);
-  store.set("key", $("#remember-key").checked ? $("#key").value : "");
+  const dests = $("#do-bc").checked ? collect() : [];
+  const remember = $("#remember-key").checked;
+  store.set("token", $("#token").value); store.set("format", $("#format").value); store.set("engine", $("#engine").value);
+  store.set("bc", $("#do-bc").checked ? "1" : "");
+  store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
   try {
     st.cam = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: $("#facing").value, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
       audio: { echoCancellation: true, noiseSuppression: true },
     });
     const body = { engine: $("#engine").value };
-    if (platform) body.broadcast = { platform, server_url: $("#server").value.trim(), stream_key: $("#key").value.trim(), format: $("#format").value };
+    if (dests.length) body.broadcast = dests.map((d) => ({ platform: d.platform, server_url: d.server, stream_key: d.key, format: $("#format").value }));
+    const platform = dests.map((d) => d.platform).join(" + ");
     st.session = await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
     $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden");
     $("#cam").srcObject = st.cam;

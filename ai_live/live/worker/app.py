@@ -83,10 +83,10 @@ class Stream:
     relay: MediaRelay = field(default_factory=MediaRelay)
     stats: dict = field(default_factory=lambda: {"frames_in": 0, "frames_out": 0, "last_ms": None})
     created: float = field(default_factory=time.time)
-    rtmp_url: str | None = None           # diffusion directe (même champ que l'API Daydream : output_rtmp_url)
+    rtmp_urls: list = field(default_factory=list)  # diffusion directe (1re = output_rtmp_url de l'API Daydream ; jusqu'à 3)
     output_size: tuple[int, int] = (720, 1280)
     audio: MediaStreamTrack | None = None
-    pusher: RtmpPusher | None = None
+    pushers: list = field(default_factory=list)
 
 
 def ice_config(raw: str | None) -> RTCConfiguration:
@@ -152,15 +152,18 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
         params = dict(body.get("params") or {})
         sid = "wst_" + secrets.token_hex(12)
         processor = await asyncio.get_running_loop().run_in_executor(None, take_processor, params)
-        rtmp = body.get("output_rtmp_url") or None
-        if rtmp and not str(rtmp).startswith(("rtmp://", "rtmps://")):
-            raise HTTPException(400, "output_rtmp_url doit commencer par rtmp:// ou rtmps://")
+        urls = ([body["output_rtmp_url"]] if body.get("output_rtmp_url") else []) + list(body.get("output_rtmp_urls") or [])
+        urls = list(dict.fromkeys(str(u) for u in urls))  # sans doublons, ordre conservé
+        if len(urls) > 3:
+            raise HTTPException(400, "3 destinations de diffusion au maximum")
+        if any(not u.startswith(("rtmp://", "rtmps://")) for u in urls):
+            raise HTTPException(400, "les adresses de diffusion doivent commencer par rtmp:// ou rtmps://")
         size = str(params.pop("output_size", "720x1280"))
         try:
             ow, oh = (int(v) for v in size.lower().split("x"))
         except ValueError:
             raise HTTPException(400, "output_size invalide (ex. 720x1280)") from None
-        streams[sid] = Stream(id=sid, params=params, processor=processor, rtmp_url=rtmp, output_size=(ow, oh))
+        streams[sid] = Stream(id=sid, params=params, processor=processor, rtmp_urls=urls, output_size=(ow, oh))
         return {"id": sid, "whip_url": f"{base(req)}/v1/streams/{sid}/whip", "output_playback_id": sid,
                 "pipeline": body.get("pipeline", "streamdiffusion"), "params": params}
 
@@ -182,8 +185,8 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
         auth(authorization)
         st = streams.get(sid) or _404()
         out = {"id": sid, "params": st.params, "stats": st.stats}
-        if st.pusher:
-            out["broadcast"] = {"target": mask_url(st.rtmp_url or ""), **st.pusher.stats}
+        if st.pushers:
+            out["broadcast"] = [{"target": mask_url(p.url), **p.stats} for p in st.pushers]
         return out
 
     @app.post("/v1/streams/{sid}/whip")
@@ -205,11 +208,13 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
 
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer, type="offer"))
         await pc.setLocalDescription(await pc.createAnswer())
-        if st.rtmp_url and st.output is not None and st.pusher is None:
+        if st.rtmp_urls and st.output is not None and not st.pushers:
             w, h = st.output_size
-            st.pusher = RtmpPusher(st.rtmp_url, width=w, height=h)
-            st.pusher.start(st.relay.subscribe(st.output, buffered=False),
-                            st.relay.subscribe(st.audio, buffered=False) if st.audio is not None else None)
+            for url in st.rtmp_urls:  # un encodeur par plateforme : une plateforme en panne n'arrête pas les autres
+                pusher = RtmpPusher(url, width=w, height=h)
+                pusher.start(st.relay.subscribe(st.output, buffered=False),
+                             st.relay.subscribe(st.audio, buffered=False) if st.audio is not None else None)
+                st.pushers.append(pusher)
         return Response(pc.localDescription.sdp, media_type="application/sdp", status_code=201,
                         headers={"Livepeer-Playback-Url": f"{base(req)}/v1/streams/{sid}/whep",
                                  "Location": f"/v1/streams/{sid}/whip"})
@@ -231,8 +236,8 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
         return Response(pc.localDescription.sdp, media_type="application/sdp", status_code=201)
 
     async def _close(st: Stream) -> None:
-        if st.pusher:
-            await st.pusher.stop()
+        for pusher in st.pushers:
+            await pusher.stop()
         if st.output:
             st.output.stop()
         for pc in st.pcs:

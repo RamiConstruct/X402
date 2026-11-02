@@ -86,7 +86,7 @@ class Session:
     ended_at: float | None = None
     end_reason: str | None = None
     log: list = field(default_factory=list)
-    broadcast: dict | None = None        # {"platform", "target" (clé masquée), "format"} — la clé n'est jamais conservée
+    broadcast: list | None = None        # [{"platform", "target" (clé masquée), "format"}] — la clé n'est jamais conservée
 
     def minutes(self) -> float:
         if not self.connected_at:
@@ -275,18 +275,26 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         if key not in configs:
             raise HTTPException(400, "moteur inconnu")
         history = SceneHistory()
-        rtmp, bview, size = None, None, None
+        urls, bviews, size = [], None, None
         if body.get("broadcast"):
-            rtmp, bview = broadcast_url(body["broadcast"])
-            size = FORMATS[bview["format"]]
+            dests = body["broadcast"] if isinstance(body["broadcast"], list) else [body["broadcast"]]
+            if not 1 <= len(dests) <= 3:
+                raise HTTPException(400, "entre 1 et 3 destinations de diffusion")
+            built = [broadcast_url(d) for d in dests]
+            fmts = {v["format"] for _, v in built}
+            if len(fmts) > 1:
+                raise HTTPException(400, "toutes les destinations doivent avoir le même format")
+            urls, bviews = [u for u, _ in built], [v for _, v in built]
+            size = FORMATS[fmts.pop()]
         try:
-            data = clients[key].create(history.current, output_rtmp_url=rtmp, output_size=size)
+            data = clients[key].create(history.current, output_rtmp_urls=urls, output_size=size)
         except EngineError as e:
             raise HTTPException(502, str(e)) from e
         s = Session(id="ses_" + secrets.token_hex(8), out_key=secrets.token_urlsafe(16), engine_key=key,
                     stream_id=data["id"], whip_url=data["whip_url"], history=history)
-        s.broadcast = bview
-        s.note(f"flux créé sur {configs[key].name}" + (f" — diffusion directe vers {bview['platform']} ({bview['format']})" if bview else ""))
+        s.broadcast = bviews
+        s.note(f"flux créé sur {configs[key].name}" + (
+            f" — diffusion directe vers {', '.join(b['platform'] for b in bviews)} ({bviews[0]['format']})" if bviews else ""))
         with lock:
             sessions[s.id], by_out[s.out_key] = s, s
         return view(s)

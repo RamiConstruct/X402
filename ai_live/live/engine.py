@@ -91,13 +91,20 @@ class StreamEngine:
             h["Content-Type"] = "application/json"
         return h
 
-    def create(self, scene: Scene, output_rtmp_url: str | None = None, output_size: str | None = None) -> dict:
-        """output_rtmp_url : diffusion directe vers une plateforme (champ officiel de l'API Daydream)."""
+    def create(self, scene: Scene, output_rtmp_urls: list[str] | None = None, output_size: str | None = None) -> dict:
+        """Diffusion directe : la 1re adresse va dans output_rtmp_url (champ officiel de l'API Daydream) ;
+        les suivantes (multidiffusion) ne sont gérées que par le worker auto-hébergé."""
         body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=True)}
-        if output_rtmp_url:
-            body["output_rtmp_url"] = output_rtmp_url
-            if output_size and self.cfg.supports_output_size:
-                body["params"]["output_size"] = output_size
+        urls = list(output_rtmp_urls or [])
+        if urls:
+            body["output_rtmp_url"] = urls[0]
+            if self.cfg.supports_output_size:
+                if len(urls) > 1:
+                    body["output_rtmp_urls"] = urls[1:]
+                if output_size:
+                    body["params"]["output_size"] = output_size
+            elif len(urls) > 1:
+                raise EngineError("ce moteur ne diffuse que vers une seule plateforme à la fois")
         r = self.client.post(f"{self.cfg.base_url}/v1/streams", json=body, headers=self._headers())
         if r.status_code >= 400:
             raise EngineError(f"création du flux refusée (HTTP {r.status_code}) : {r.text[:300]}")

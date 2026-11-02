@@ -54,7 +54,7 @@ async def test_direct_broadcast_vertical_with_audio(worker, tmp_path):
                 assert bad.status_code == 400
                 s = (await http.post("/api/sessions", json={"engine": "selfhosted", "broadcast": {
                     "platform": "test", "server_url": f"rtmp://127.0.0.1:{rport}/live", "stream_key": "CLE", "format": "vertical"}})).json()
-                assert s["broadcast"]["target"].endswith("/***") and "CLE" not in json.dumps(s)  # la clé n'est jamais renvoyée
+                assert s["broadcast"][0]["target"].endswith("/***") and "CLE" not in json.dumps(s)  # la clé n'est jamais renvoyée
 
                 pc = RTCPeerConnection()
                 pc.addTrack(GreyCamera())
@@ -78,3 +78,44 @@ async def test_direct_broadcast_vertical_with_audio(worker, tmp_path):
     assert streams["video"]["codec_name"] == "h264"
     assert (streams["video"]["width"], streams["video"]["height"]) == (720, 1280)
     assert streams["audio"]["codec_name"] == "aac"
+
+
+@pytest.mark.asyncio
+async def test_multistream_two_platforms(worker, tmp_path):
+    ports = [free_port(), free_port()]
+    outs = [tmp_path / "a.flv", tmp_path / "b.flv"]
+    listeners = [subprocess.Popen(["ffmpeg", "-loglevel", "error", "-listen", "1", "-i", f"rtmp://127.0.0.1:{p}/app/K{i}",
+                                   "-c", "copy", "-t", "4", "-y", str(o)]) for i, (p, o) in enumerate(zip(ports, outs))]
+    engines = {"selfhosted": EngineConfig(name="local", base_url=worker.url, api_key="tok", model_id="demo",
+                                          use_controlnets=False, supports_output_size=True)}
+    port = free_port()
+    try:
+        with ServerThread(create_app(engines=engines, gpu=False, access_token=""), port) as console:
+            async with httpx.AsyncClient(base_url=console.url, timeout=30) as http:
+                dests = [{"platform": f"p{i}", "server_url": f"rtmp://127.0.0.1:{p}/app", "stream_key": f"K{i}", "format": "horizontal"}
+                         for i, p in enumerate(ports)]
+                mixed = [dict(dests[0]), {**dests[1], "format": "vertical"}]
+                assert (await http.post("/api/sessions", json={"engine": "selfhosted", "broadcast": mixed})).status_code == 400
+                s = (await http.post("/api/sessions", json={"engine": "selfhosted", "broadcast": dests})).json()
+                assert [b["platform"] for b in s["broadcast"]] == ["p0", "p1"]
+                pc = RTCPeerConnection()
+                pc.addTrack(GreyCamera())
+                pc.addTrack(Tone())
+                await pc.setLocalDescription(await pc.createOffer())
+                await wait_ice(pc)
+                r = await http.post(f"/api/sessions/{s['id']}/whip", content=pc.localDescription.sdp,
+                                    headers={"Content-Type": "application/sdp"})
+                await pc.setRemoteDescription(RTCSessionDescription(sdp=r.text, type="answer"))
+                for lst in listeners:
+                    await asyncio.get_running_loop().run_in_executor(None, lst.wait, 30)
+                await http.delete(f"/api/sessions/{s['id']}")
+                await pc.close()
+    finally:
+        for lst in listeners:
+            if lst.poll() is None:
+                lst.kill()
+    for o in outs:
+        probe = json.loads(subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-of", "json", str(o)],
+                                          capture_output=True, text=True, check=True).stdout)
+        kinds = {st["codec_type"]: st for st in probe["streams"]}
+        assert (kinds["video"]["width"], kinds["video"]["height"]) == (1280, 720) and kinds["audio"]["codec_name"] == "aac"
