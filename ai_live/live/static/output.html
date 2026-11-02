@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>AI Live — sortie OBS</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; }
+  video { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .12s; }
+  video.hidden { opacity: 0; }
+  .parody { position: absolute; left: 0; right: 0; bottom: 4%; text-align: center; pointer-events: none; }
+  .parody span { display: inline-block; background: rgba(200, 20, 30, .92); color: #fff; font: 800 clamp(16px, 3.4vw, 42px)/1.2 system-ui, sans-serif;
+    padding: .3em .8em; border-radius: .3em; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 4px 18px rgba(0,0,0,.35); }
+  .status { position: absolute; top: 8px; left: 8px; font: 13px system-ui; color: #fff; background: rgba(0,0,0,.5); padding: 4px 8px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<video id="v" autoplay playsinline muted></video>
+<div class="parody" id="parody" hidden><span id="parody-text">Parodie · Contenu généré par IA</span></div>
+<div class="status" id="status">Connexion…</div>
+<script src="/rtc.js"></script>
+<script>
+"use strict";
+// À ajouter dans OBS comme « Source navigateur » AU-DESSUS de ta source caméra :
+// quand tu dis « retour à l'original », cette page devient transparente et ta vraie caméra apparaît.
+const key = new URLSearchParams(location.search).get("k");
+const v = document.getElementById("v"), status = document.getElementById("status");
+let pc = null, connecting = false;
+
+async function connect() {
+  if (connecting) return; connecting = true;
+  try {
+    if (pc) pc.close();
+    pc = await whepPlay(`/api/out/${encodeURIComponent(key)}/whep`, v);
+    pc.onconnectionstatechange = () => { if (["failed", "disconnected", "closed"].includes(pc.connectionState)) setTimeout(connect, 1500); };
+    status.hidden = true;
+  } catch (e) { status.hidden = false; status.textContent = "En attente du live… (" + e.message + ")"; setTimeout(connect, 2000); }
+  connecting = false;
+}
+
+async function poll() {
+  try {
+    const r = await fetch(`/api/out/${encodeURIComponent(key)}`);
+    if (r.ok) {
+      const s = await r.json();
+      v.classList.toggle("hidden", s.bypass || s.ended);
+      document.getElementById("parody").hidden = !s.parody || s.bypass;
+      if (s.parody_of) document.getElementById("parody-text").textContent = `Parodie IA · ce n'est pas ${s.parody_of}`;
+      if (s.connected && !pc && !connecting) connect();
+    }
+  } catch {}
+  setTimeout(poll, 400);
+}
+if (!key) status.textContent = "Lien de sortie invalide";
+else fetch("/api/catalog").then((r) => r.json()).then((c) => setIceServers(c.ice_servers)).catch(() => {}).finally(poll);
+</script>
+</body>
+</html>

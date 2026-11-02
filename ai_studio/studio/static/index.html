@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Studio</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Connexion -->
+  <section id="auth" class="auth hidden">
+    <div class="auth-card">
+      <div class="brand"><span class="logo">◆</span> AI Studio</div>
+      <p class="muted">Modifiez vos vidéos en décrivant ce que vous voulez. Prix affiché avant chaque traitement.</p>
+      <form id="auth-form">
+        <label>E-mail<input type="email" name="email" required autocomplete="email"></label>
+        <label>Mot de passe<input type="password" name="password" required minlength="10" autocomplete="current-password"></label>
+        <div class="row">
+          <button type="submit" data-mode="login" class="btn primary">Se connecter</button>
+          <button type="submit" data-mode="register" class="btn">Créer un compte</button>
+        </div>
+        <p id="auth-error" class="error"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- Application -->
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div class="brand"><span class="logo">◆</span> AI Studio</div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="editor">Éditeur</button>
+        <button class="tab" data-tab="jobs">Tâches</button>
+        <button class="tab" data-tab="ledger">Crédits</button>
+        <button class="tab" data-tab="engines">Moteurs</button>
+      </nav>
+      <div class="account">
+        <span class="balance" id="balance">—</span>
+        <button id="dev-topup" class="btn small hidden" title="Mode développement uniquement">+ 500 crédits de test</button>
+        <button id="logout" class="btn small ghost">Déconnexion</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Éditeur -->
+      <section id="tab-editor" class="tab-panel">
+        <aside class="sidebar">
+          <label class="upload">
+            <input type="file" id="file" accept="video/mp4,video/quicktime,video/webm,.mkv,.m4v">
+            <span class="upload-inner"><strong>Importer une vidéo</strong><small>MP4, MOV, WebM · ≤ 60 s pour le pilote</small></span>
+          </label>
+          <div id="upload-status" class="muted small"></div>
+          <h3>Projets</h3>
+          <ul id="projects" class="projects"></ul>
+        </aside>
+
+        <section class="workspace">
+          <div id="empty" class="empty">
+            <h2>Importez une vidéo pour commencer</h2>
+            <p class="muted">Exemples : « Remplace le ciel par un coucher de soleil », « Passe en format vertical », « Supprime les voitures entre 0:03 et 0:08 ».</p>
+          </div>
+
+          <div id="editor" class="hidden">
+            <div class="player-wrap">
+              <video id="player" controls playsinline preload="metadata"></video>
+              <div class="player-meta">
+                <span id="asset-meta" class="muted small"></span>
+                <div class="compare hidden" id="compare">
+                  <button class="btn small" data-view="before">Avant</button>
+                  <button class="btn small active" data-view="after">Après</button>
+                </div>
+                <a id="download" class="btn small" download>Télécharger</a>
+              </div>
+            </div>
+
+            <div class="range">
+              <div class="range-head">
+                <strong>Plage à modifier</strong>
+                <span class="muted small">Le reste de la vidéo n'est pas retraité ni facturé.</span>
+              </div>
+              <div class="range-row">
+                <label>Début (s)<input type="number" id="start" min="0" step="0.1" value="0"></label>
+                <button class="btn small" id="mark-in">⇤ Position actuelle</button>
+                <label>Fin (s)<input type="number" id="end" min="0" step="0.1"></label>
+                <button class="btn small" id="mark-out">Position actuelle ⇥</button>
+                <button class="btn small ghost" id="whole">Toute la vidéo</button>
+              </div>
+              <div class="range-bar"><div id="range-fill"></div></div>
+            </div>
+
+            <div class="prompt">
+              <label for="prompt"><strong>Décrivez la modification</strong></label>
+              <textarea id="prompt" rows="3" maxlength="1000" placeholder="Ex. : transforme la scène en hiver enneigé et passe en noir et blanc"></textarea>
+              <div class="chips" id="chips">
+                <button class="chip">Remplace le ciel par un ciel étoilé</button>
+                <button class="chip">Transforme la scène en univers cyberpunk</button>
+                <button class="chip">Passe la vidéo en format vertical</button>
+                <button class="chip">Étalonnage cinéma</button>
+                <button class="chip">Noir et blanc et ralenti</button>
+              </div>
+              <div class="row">
+                <button class="btn primary" id="get-quote">Obtenir un devis</button>
+                <span id="quote-error" class="error"></span>
+              </div>
+            </div>
+
+            <div id="quote" class="quote hidden"></div>
+            <div id="job" class="job hidden"></div>
+
+            <div class="versions">
+              <h3>Versions</h3>
+              <ol id="versions"></ol>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section id="tab-jobs" class="tab-panel hidden">
+        <h2>Tâches</h2>
+        <table class="table"><thead><tr><th>Date</th><th>Statut</th><th>Étapes</th><th>Réservé</th><th>Débité</th><th>Coût réel</th><th>Erreur</th></tr></thead><tbody id="jobs-body"></tbody></table>
+      </section>
+
+      <section id="tab-ledger" class="tab-panel hidden">
+        <h2>Mouvements de crédits</h2>
+        <p class="muted small">1 crédit = 0,01 USD. Les crédits sont réservés à l'acceptation d'un devis, débités au coût réel (jamais au-delà du devis) et remboursés automatiquement en cas d'échec.</p>
+        <table class="table"><thead><tr><th>Date</th><th>Type</th><th>Montant</th><th>Détail</th></tr></thead><tbody id="ledger-body"></tbody></table>
+      </section>
+
+      <section id="tab-engines" class="tab-panel hidden">
+        <h2>Moteurs</h2>
+        <p class="muted small">Chaque moteur est décrit par un manifeste (capacités, limites, tarif daté). Le routeur choisit automatiquement selon le mode demandé.</p>
+        <div id="engines" class="engines"></div>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

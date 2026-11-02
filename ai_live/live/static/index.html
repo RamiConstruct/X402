@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Live</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">●</span> AI Live <a href="/mobile.html" style="font-size:13px;font-weight:400;color:var(--muted);margin-left:8px">📱 version téléphone</a></div>
+  <div class="meta">
+    <span id="engine-badge" class="badge">—</span>
+    <span id="timer" class="badge">00:00</span>
+    <span id="cost" class="badge">coût : —</span>
+    <span id="fps" class="badge">— i/s</span>
+  </div>
+</header>
+
+<main>
+  <section class="stage">
+    <div class="screens">
+      <figure><video id="cam" autoplay playsinline muted></video><figcaption>Ta caméra</figcaption></figure>
+      <figure class="ai"><video id="ai" autoplay playsinline muted></video><div id="ai-parody" class="parody" hidden>Parodie · IA</div><figcaption>Sortie IA (ce que voient tes spectateurs)</figcaption></figure>
+    </div>
+
+    <div class="controls">
+      <div class="row">
+        <label class="field">Moteur
+          <select id="engine"></select>
+        </label>
+        <label class="field" id="token-field" hidden>Jeton d'accès
+          <input id="token" type="password" autocomplete="off">
+        </label>
+        <button id="start" class="btn primary">▶ Démarrer le live IA</button>
+        <button id="stop" class="btn" disabled>■ Arrêter</button>
+      </div>
+      <div class="row big">
+        <button id="original" class="btn danger" disabled>⟲ RETOUR À L'ORIGINAL</button>
+        <button id="resume" class="btn" disabled>✦ Réactiver l'IA</button>
+        <button id="mic" class="btn" disabled>🎙 Écoute vocale : off</button>
+      </div>
+      <div class="row">
+        <input id="cmd" class="grow" placeholder="Commande : « transforme-moi en chevalier », « décor cyberpunk », « style anime », « ajoute de la neige », « plus fort »…" disabled>
+        <button id="send" class="btn" disabled>Envoyer</button>
+      </div>
+      <p id="msg" class="msg"></p>
+    </div>
+
+    <div class="controls" id="gpu-box" hidden>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>GPU à la demande (Vast.ai / RunPod)</strong>
+        <span class="muted small">Tu paies la machine à la minute ; elle est libérée automatiquement si tu ne l'utilises plus.</span>
+      </div>
+      <div class="row">
+        <label class="field grow">Modèle
+          <select id="gpu-model"></select>
+        </label>
+        <button id="gpu-quote" class="btn">Voir les GPU disponibles</button>
+      </div>
+      <p id="gpu-model-notes" class="muted small"></p>
+      <p id="gpu-warn" class="msg err" hidden></p>
+      <table class="offers" id="gpu-offers" hidden>
+        <thead><tr><th>GPU</th><th>Fournisseur</th><th>Lieu</th><th>$/heure</th><th>Prix/min</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="gpu-rental" class="rental" hidden></div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <h3>Personnages</h3><div class="chips" id="characters"></div>
+    <h3>Décors</h3><div class="chips" id="decors"></div>
+    <h3>Styles</h3><div class="chips" id="styles"></div>
+    <h3>Intensité <span id="strength-val" class="muted">4/5</span></h3>
+    <input type="range" id="strength" min="1" max="5" value="4" disabled>
+    <h3>Prompt actuel</h3>
+    <p id="prompt" class="mono muted">—</p>
+    <h3>Sortie pour OBS</h3>
+    <div class="obs">
+      <input id="obs-url" readonly placeholder="Démarre le live pour obtenir l'URL">
+      <button id="copy" class="btn small" disabled>Copier</button>
+    </div>
+    <p class="muted small">Dans OBS : ajoute ta caméra, puis une « Source navigateur » avec cette URL <b>au-dessus</b> (même taille). Le bouton « Retour à l'original » rend la sortie transparente : ta vraie caméra apparaît instantanément.</p>
+    <h3>Journal</h3>
+    <ul id="log" class="log"></ul>
+  </aside>
+</main>
+<script src="/rtc.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

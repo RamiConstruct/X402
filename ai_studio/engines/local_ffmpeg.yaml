@@ -1,0 +1,22 @@
+# Opérations de montage locales (FFmpeg) : aucun fournisseur externe, coût = calcul CPU estimé.
+id: local.ffmpeg
+provider: local
+adapter: local_ffmpeg
+display_name: "Montage local (FFmpeg)"
+capabilities: [format.vertical, format.square, style.bw, style.cinematic, style.warm, style.cool, speed.slow, speed.fast, audio.mute]
+enabled: true
+paid: false
+simulated: false
+quality: 70
+speed_factor: 0.5
+limits:
+  max_duration_s: 600
+pricing:
+  unit: second
+  usd_per_unit: "0.0005"     # estimation du coût CPU/stockage, à recalibrer avec la télémétrie
+  min_charge_usd: "0"
+  markup: "2"
+  min_price_credits: 1
+  verified_on: null
+  source: "estimation interne"
+notes: "Opérations déterministes, aucune donnée ne quitte le serveur."

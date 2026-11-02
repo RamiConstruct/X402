@@ -1,0 +1,48 @@
+:root { --bg:#0b0d12; --panel:#141821; --line:#252b37; --text:#e9edf3; --muted:#97a1b2; --accent:#7c6cff; --danger:#e5484d; --ok:#30a46c; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+.top { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+.brand { font-weight:700; font-size:17px; } .logo { color:var(--danger); }
+.meta { display:flex; gap:6px; flex-wrap:wrap; }
+.badge { background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:3px 10px; font-size:13px; color:var(--muted); white-space:nowrap; }
+.badge.live { color:#fff; background:var(--danger); border-color:var(--danger); }
+main { display:grid; grid-template-columns:1fr 340px; gap:16px; padding:16px; max-width:1500px; margin:0 auto; }
+@media (max-width:1000px) { main { grid-template-columns:1fr; } }
+.screens { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media (max-width:700px) { .screens { grid-template-columns:1fr; } }
+figure { margin:0; position:relative; background:#000; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+figure.ai { border-color:var(--accent); }
+video { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#000; }
+figcaption { position:absolute; top:8px; left:8px; font-size:12px; background:rgba(0,0,0,.55); padding:3px 8px; border-radius:6px; }
+.parody { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); background:rgba(200,20,30,.92); color:#fff; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:4px 12px; border-radius:6px; font-size:14px; }
+.controls { margin-top:14px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+.row { display:flex; gap:8px; align-items:end; flex-wrap:wrap; margin-bottom:10px; }
+.row.big .btn { padding:12px 16px; font-weight:700; }
+.grow { flex:1; min-width:200px; }
+.field { display:flex; flex-direction:column; font-size:12px; color:var(--muted); gap:4px; }
+input, select { background:#0f131a; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 10px; font:inherit; }
+.btn { background:#1b2130; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 14px; cursor:pointer; font:inherit; }
+.btn:hover:not(:disabled) { border-color:var(--accent); }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.danger { background:var(--danger); border-color:var(--danger); color:#fff; }
+.btn.on { background:var(--ok); border-color:var(--ok); color:#fff; }
+.btn.small { padding:6px 10px; font-size:13px; }
+.msg { min-height:1.3em; margin:4px 0 0; color:var(--muted); } .msg.err { color:var(--danger); }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; align-self:start; }
+.panel h3 { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:14px 0 8px; }
+.panel h3:first-child { margin-top:0; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip { background:transparent; color:var(--text); border:1px solid var(--line); border-radius:999px; padding:4px 10px; font-size:13px; cursor:pointer; }
+.chip.active { background:var(--accent); border-color:var(--accent); }
+.chip:disabled { opacity:.45; cursor:not-allowed; }
+input[type=range] { width:100%; }
+.mono { font-family:ui-monospace,Consolas,monospace; font-size:12px; word-break:break-word; }
+.muted { color:var(--muted); } .small { font-size:12px; }
+.obs { display:flex; gap:6px; } .obs input { flex:1; min-width:0; font-size:12px; }
+.log { list-style:none; padding:0; margin:0; font-size:12px; color:var(--muted); max-height:180px; overflow:auto; display:grid; gap:3px; }
+.offers { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+.offers th, .offers td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+.offers th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+.rental { margin-top:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.rental .state { font-weight:700; } .rental .ready { color:var(--ok); }

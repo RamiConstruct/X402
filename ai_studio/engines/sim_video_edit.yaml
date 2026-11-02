@@ -1,0 +1,27 @@
+# Simulateur hors ligne d'un moteur d'édition générative payant.
+# Il applique un effet visible (FFmpeg) et facture AU PRIX d'un moteur réel pour
+# tester de bout en bout devis, réservation, capture et remboursement sans dépenser.
+# Les jobs qui l'utilisent sont marqués "simulation" dans l'interface.
+id: sim.video_edit
+provider: simulator
+adapter: simulated
+display_name: "Simulateur d'édition générative (hors ligne)"
+capabilities: [edit.prompt]
+enabled: true
+paid: false
+simulated: true
+quality: 10
+speed_factor: 0.2
+limits:
+  max_duration_s: 30
+pricing:
+  unit: second
+  usd_per_unit: "0.28"       # calqué sur Runway Aleph pour des devis réalistes
+  min_charge_usd: "0.56"
+  markup: "1.8"
+  min_price_credits: 1
+  verified_on: null
+  source: "simulation — reprend le tarif public Aleph indiqué dans docs/ai_live_studio"
+params:
+  fail_if_prompt_contains: "__echec_simule__"   # permet de tester le remboursement automatique
+notes: "Ne produit pas une vraie édition : sert uniquement à valider le parcours et la facturation."
