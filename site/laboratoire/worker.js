@@ -56,10 +56,31 @@ const SEC = { "x-content-type-options": "nosniff", "referrer-policy": "strict-or
   "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" };
 const FALLBACK = { intention: "", mis_a_jour: "—", maintenant: { focus: "Données d'avancement indisponibles pour le moment." } };
 
+// Mise à jour : PUT /avancement.json avec « Authorization: Bearer <LABO_UPDATE_TOKEN> » (secret du Worker).
+async function update(req, env) {
+  const auth = req.headers.get("authorization") || "";
+  const tok = env.LABO_UPDATE_TOKEN || "";
+  const enc = new TextEncoder();
+  const a = enc.encode(auth), b = enc.encode(`Bearer ${tok}`);
+  let same = tok.length >= 24 && a.length === b.length;
+  for (let i = 0; same && i < a.length; i++) same = a[i] === b[i];
+  if (!same) return new Response("Non autorisé", { status: 401, headers: SEC });
+  const body = await req.text();
+  if (body.length > 100_000) return new Response("Trop volumineux", { status: 413, headers: SEC });
+  let d;
+  try { d = JSON.parse(body); } catch { return new Response("JSON invalide", { status: 400, headers: SEC }); }
+  if (!d || typeof d !== "object" || !d.maintenant || !Array.isArray(d.projets) || !Array.isArray(d.journal)) {
+    return new Response("Structure invalide (maintenant, projets, journal requis)", { status: 400, headers: SEC });
+  }
+  await env.LABO.put("avancement", JSON.stringify(d));
+  return new Response(JSON.stringify({ ok: true, mis_a_jour: d.mis_a_jour }), { headers: { ...SEC, "content-type": "application/json" } });
+}
+
 export default {
   async fetch(req, env) {
-    if (req.method !== "GET" && req.method !== "HEAD") return new Response("Méthode non autorisée", { status: 405, headers: SEC });
     const path = new URL(req.url).pathname;
+    if (req.method === "PUT" && path === "/avancement.json") return update(req, env);
+    if (req.method !== "GET" && req.method !== "HEAD") return new Response("Méthode non autorisée", { status: 405, headers: SEC });
     const data = (env.LABO && await env.LABO.get("avancement", "json")) || FALLBACK;
     if (path === "/avancement.json") return new Response(JSON.stringify(data, null, 2), { headers: { ...SEC, "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=30" } });
     if (path === "/" || path === "/index.html") return new Response(render(data), { headers: { ...SEC, "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=30" } });

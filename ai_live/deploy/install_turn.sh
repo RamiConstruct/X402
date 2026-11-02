@@ -134,7 +134,9 @@ echo "==> Configuration /etc/turnserver.conf"
 cat > /etc/turnserver.conf <<CONF
 # AI LIVE — relais TURN (généré par install_turn.sh)
 listening-port=$PORT
+# relay-ip : adresses relayées sur l interface reliée à l IP publique (sinon 127.0.0.1 pour un client local)
 external-ip=$EXTERNAL
+$( [[ -n "$PRIVATE_IP" && "$PRIVATE_IP" != "$PUBLIC_IP" ]] && echo "relay-ip=$PRIVATE_IP" )
 min-port=$MIN_PORT
 max-port=$MAX_PORT
 realm=ai-live

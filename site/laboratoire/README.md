@@ -12,8 +12,11 @@ Page publique d'avancement des projets, servie par un Worker Cloudflare (indépe
 ## Mettre à jour la page
 
 1. Modifier `avancement.json` (date `mis_a_jour`, `maintenant`, projets, ajout en tête du `journal`).
-2. Écrire ce JSON dans le KV `laboratoire`, clé `avancement` (API Cloudflare ou
-   `npx wrangler kv key put --binding LABO avancement --path avancement.json --remote`).
+2. Envoyer le fichier (le jeton est un secret du Worker, copie sur le serveur dans `/root/labo/update.token`) :
+   ```bash
+   curl -X PUT -H "Authorization: Bearer $LABO_UPDATE_TOKEN" --data-binary @site/laboratoire/avancement.json https://labotory.site/avancement.json
+   ```
+   (ou `npx wrangler kv key put --binding LABO avancement --path avancement.json --remote`).
    La page change en moins d'une minute, sans redéploiement.
 3. Vérifier : la page en ligne doit être identique à `apercu.html`.
 
