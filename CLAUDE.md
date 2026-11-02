@@ -9,6 +9,12 @@ Avant de proposer un nouveau lot, lis `docs/VISION.md` : c'est la boussole du d√
 MCP tools to narrow scope, then read the source.** The graph is cheaper than scanning files and
 gives you structural context (callers, dependents, test coverage) that file search cannot.
 
+### Token budget (read this first)
+
+- Always call the graph tools with `detail_level: "minimal"` first (about 200 tokens instead of
+  about 16,000 for an impact radius on this repo). Ask for `"standard"` only for the one result you need in full.
+- If a tool answers `stale_graph`, call `build_or_update_graph_tool`, then retry.
+
 ### When to use graph tools FIRST
 
 - **Exploring code**: `semantic_search_nodes_tool` or `query_graph_tool` instead of Grep
