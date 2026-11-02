@@ -174,3 +174,15 @@ def test_runway_adapter_failure(settings, clip, tmp_path):
 def test_media_probe(clip):
     pr = media.probe(clip)
     assert pr.width == 640 and pr.has_audio
+
+
+def test_invite_code_required(settings, tmp_path):
+    from fastapi.testclient import TestClient
+    from studio.api import create_app
+    from studio.service import Studio
+    settings.invite_code = "code-secret-123"
+    with TestClient(create_app(settings, Studio(settings))) as c:
+        r = c.post("/api/auth/register", json={"email": "x@example.com", "password": "motdepasse-solide"})
+        assert r.status_code == 403
+        r = c.post("/api/auth/register", json={"email": "x@example.com", "password": "motdepasse-solide", "invite": "code-secret-123"})
+        assert r.status_code == 200

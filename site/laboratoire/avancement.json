@@ -5,14 +5,15 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "AI LIVE — rendre le live IA utilisable de bout en bout par le fondateur, premier utilisateur.",
-    "dernier_fait": "Multidiffusion : un seul live envoyé à jusqu'à 3 plateformes à la fois (YouTube, Twitch, Kick, Facebook…), depuis le téléphone, sans PC.",
+    "dernier_fait": "AI STUDIO en ligne sur studio.labotory.site ; image du moteur GPU construite et publiée automatiquement.",
     "prochaines_etapes_claude": [
-      "Vérifier l'image Docker du moteur GPU (construction GitHub en cours)",
       "Brancher Daydream dès que le compte existe, pour un premier vrai rendu IA",
-      "Mesurer images/seconde, latence et coût par minute sur un vrai live"
+      "Premier live réel : mesurer images/seconde, latence et coût par minute",
+      "Tester l'image GPU sur une machine louée dès qu'une clé Vast.ai ou RunPod est disponible"
     ],
     "en_attente_de_toi": [
       "Tester live.labotory.site/mobile.html sur ton téléphone (aperçu d'abord, puis diffusion)",
+      "Rendre public le paquet x402-live-worker sur GitHub (Packages → Package settings → Change visibility)",
       "Récupérer une clé de stream YouTube, Twitch, Kick ou Facebook (aucun minimum d'abonnés) pour le premier vrai live",
       "Créer un compte daydream.live (crédits gratuits) pour le moteur de référence",
       "Créer la clé du relais Cloudflare Realtime TURN",
@@ -50,11 +51,12 @@
       "nom": "AI STUDIO",
       "resume": "Modifier une vidéo par une phrase, avec prix affiché avant exécution et versions non destructives.",
       "etat": "en_cours",
-      "avancement": 35,
+      "avancement": 40,
       "fait": [
         "Import vidéo, devis Économique / Qualité, crédits réservés puis débités au coût réel",
         "Modification d'une plage seulement, cache, remboursement automatique en cas d'échec",
-        "Montage local (vertical, noir et blanc, ciné…) et simulateur de moteur génératif"
+        "Montage local (vertical, noir et blanc, ciné…) et simulateur de moteur génératif",
+        "En ligne sur studio.labotory.site (création de compte sur code d'invitation), parcours complet vérifié depuis Internet"
       ],
       "pas_encore_teste": [
         "Fournisseurs génératifs réels (Runway, fal.ai)",
@@ -151,8 +153,13 @@
     },
     {
       "element": "Image du moteur GPU",
-      "etat": "attente",
-      "note": "à construire"
+      "etat": "ok",
+      "note": "construite et publiée par GitHub Actions ; à rendre publique pour Vast.ai / RunPod"
+    },
+    {
+      "element": "AI STUDIO en ligne (studio.labotory.site)",
+      "etat": "ok",
+      "note": "code d'invitation requis ; simulateur et montage local, aucun fournisseur payant"
     },
     {
       "element": "Console AI LIVE en ligne",
@@ -161,6 +168,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "AI STUDIO en ligne sur studio.labotory.site ; image du moteur GPU publiée."
+    },
     {
       "date": "2026-11-02",
       "texte": "Multidiffusion : jusqu'à 3 plateformes en même temps depuis le téléphone."

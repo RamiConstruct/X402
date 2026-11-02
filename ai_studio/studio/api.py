@@ -20,6 +20,7 @@ STATIC = Path(__file__).parent / "static"
 class Credentials(BaseModel):
     email: str
     password: str
+    invite: str = ""
 
 
 class QuoteRequest(BaseModel):
@@ -72,7 +73,7 @@ def create_app(settings: Settings | None = None, studio: Studio | None = None) -
 
     @app.post("/api/auth/register")
     def register(c: Credentials):
-        user, token = studio.register(c.email, c.password)
+        user, token = studio.register(c.email, c.password, c.invite)
         return {"token": token, "account": studio.account(user)}
 
     @app.post("/api/auth/login")

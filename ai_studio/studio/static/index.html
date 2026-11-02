@@ -15,6 +15,7 @@
       <form id="auth-form">
         <label>E-mail<input type="email" name="email" required autocomplete="email"></label>
         <label>Mot de passe<input type="password" name="password" required minlength="10" autocomplete="current-password"></label>
+        <label>Code d'invitation <span class="muted">(création de compte uniquement)</span><input type="password" name="invite" autocomplete="off"></label>
         <div class="row">
           <button type="submit" data-mode="login" class="btn primary">Se connecter</button>
           <button type="submit" data-mode="register" class="btn">Créer un compte</button>

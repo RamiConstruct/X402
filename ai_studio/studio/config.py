@@ -36,6 +36,8 @@ class Settings:
     allow_paid_providers: bool = field(default_factory=lambda: _bool("STUDIO_ALLOW_PAID_PROVIDERS", False))
     dev_mode: bool = field(default_factory=lambda: _bool("STUDIO_DEV_MODE", True))
     signup_credits: int = field(default_factory=lambda: _int("STUDIO_SIGNUP_CREDITS", 100))
+    # Si défini, la création de compte exige ce code d'invitation (plateforme privée).
+    invite_code: str = field(default_factory=lambda: os.environ.get("STUDIO_INVITE_CODE", ""))
     max_upload_mb: int = field(default_factory=lambda: _int("STUDIO_MAX_UPLOAD_MB", 200))
     max_duration_s: int = field(default_factory=lambda: _int("STUDIO_MAX_DURATION_S", 60))
     max_job_credits: int = field(default_factory=lambda: _int("STUDIO_MAX_JOB_CREDITS", 3000))

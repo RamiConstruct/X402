@@ -1,6 +1,7 @@
 """Logique métier : comptes, imports, devis, acceptation, exécution, règlement."""
 from __future__ import annotations
 
+import secrets
 import shutil
 import tempfile
 import threading
@@ -46,7 +47,9 @@ class Studio:
         self.adapters = {name: cls() for name, cls in ADAPTERS.items()}
 
     # ------------------------------------------------------------------ comptes
-    def register(self, email: str, password: str) -> tuple[User, str]:
+    def register(self, email: str, password: str, invite: str = "") -> tuple[User, str]:
+        if self.settings.invite_code and not secrets.compare_digest(invite or "", self.settings.invite_code):
+            raise ServiceError("code d'invitation requis ou incorrect", 403)
         email = (email or "").strip().lower()
         if "@" not in email or len(email) > 320:
             raise ServiceError("adresse e-mail invalide")

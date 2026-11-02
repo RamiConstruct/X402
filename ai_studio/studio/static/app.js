@@ -33,7 +33,7 @@ $("#auth-form").addEventListener("submit", async (e) => {
   const f = new FormData(e.target);
   $("#auth-error").textContent = "";
   try {
-    const r = await api(`/api/auth/${mode}`, { method: "POST", body: JSON.stringify({ email: f.get("email"), password: f.get("password") }) });
+    const r = await api(`/api/auth/${mode}`, { method: "POST", body: JSON.stringify({ email: f.get("email"), password: f.get("password"), invite: f.get("invite") || "" }) });
     state.token = r.token; saveToken(r.token); await boot();
   } catch (err) { $("#auth-error").textContent = err.message; }
 });
