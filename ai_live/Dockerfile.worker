@@ -11,7 +11,9 @@ RUN pip install --no-cache-dir "git+https://github.com/daydreamlive/StreamDiffus
 WORKDIR /app
 COPY pyproject.toml ./
 COPY live ./live
-RUN pip install --no-cache-dir ".[worker]" \
+# pip d'Ubuntu 22.04 (22.0) ne lit pas les métadonnées PEP 621 (paquet « UNKNOWN ») : on le met à jour d'abord.
+RUN python -m pip install --no-cache-dir --upgrade "pip>=24" \
+    && python -m pip install --no-cache-dir ".[worker]" \
     && python -c "import live.worker.app, live.worker.rtmp, streamdiffusion; print('imports OK')"
 ENV WORKER_PROCESSOR=streamdiffusion
 EXPOSE 8890
