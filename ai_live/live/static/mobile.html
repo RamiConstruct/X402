@@ -104,7 +104,11 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
   </div>
   </details>
 
-  <div class="check"><input type="checkbox" id="face" checked><span>Garder mon visage <span style="opacity:.75">— l'IA change ta tenue et le décor mais garde tes traits (modes Équilibré et Qualité)</span></span></div>
+  <details class="later"><summary>Options expérimentales (en test)</summary>
+  <div class="check"><input type="checkbox" id="refs"><span>Images de référence <span style="opacity:.75">— l'IA s'inspire de photos du personnage choisi (Équilibré / Qualité)</span></span></div>
+  <div class="check"><input type="checkbox" id="face"><span>Garder mon visage <span style="opacity:.75">— l'IA change ta tenue mais garde tes traits (Équilibré / Qualité)</span></span></div>
+  <p class="howto">Si l'image IA n'apparaît pas au bout de 30 s avec ces options, arrête et relance sans elles.</p>
+  </details>
   <div class="row">
     <div><label>Caméra</label><select id="facing"><option value="environment">Arrière (IRL)</option><option value="user">Avant (selfie)</option></select></div>
   </div>
@@ -126,7 +130,7 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
     <button id="stop" class="big">■ Fin</button>
   </div>
 </section>
-<script src="/rtc.js?v=34f7eb8a"></script>
-<script src="/mobile.js?v=34f7eb8a"></script>
+<script src="/rtc.js?v=94a3e93b"></script>
+<script src="/mobile.js?v=94a3e93b"></script>
 </body>
 </html>

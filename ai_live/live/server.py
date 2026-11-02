@@ -90,6 +90,8 @@ class Session:
     broadcast: list | None = None        # [{"platform", "target" (clé masquée), "format"}] — la clé n'est jamais conservée
     mode: str = DEFAULT_MODE             # rendu : rapide / equilibre / qualite (fixé à la création du flux)
     face_token: str | None = None        # photo du visage (« garder mon visage ») : en mémoire seulement
+    use_refs: bool = False               # images de référence (expérimental, à activer explicitement)
+    ip_used: bool = False                # l'IP-Adapter a déjà été activé sur ce flux (il faudra l'éteindre)
 
     def minutes(self) -> float:
         if not self.connected_at:
@@ -172,11 +174,19 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         if s.ended_at is None and s.minutes() > max_minutes:
             end(s, f"durée maximale atteinte ({max_minutes:.0f} min)")
 
-    def refs_for(s: Session) -> dict:
-        r = {"style_image_url": refs.pick(s.history.current)}
-        if s.face_token and s.face_token in faces:
+    def refs_for(s: Session) -> dict | None:
+        """None = ne rien envoyer à propos de l'IP-Adapter (flux jamais concerné) ;
+        {} = l'éteindre (il avait été activé) ; sinon les images à utiliser."""
+        r = {}
+        if s.use_refs:
+            r["style_image_url"] = refs.pick(s.history.current)
+        if s.face_token and s.face_token in faces and s.history.current.face_lock:
             r["face_image_url"] = f"{refs.public_base}/api/face/{s.face_token}.jpg"
-        return r
+        r = {k: v for k, v in r.items() if v}
+        if r:
+            s.ip_used = True
+            return r
+        return {} if s.ip_used else None
 
     def end(s: Session, reason: str) -> None:
         if s.ended_at is None:
@@ -194,7 +204,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         return {"id": s.id, "engine": s.engine_key, "engine_name": cfg.name, "model": rm["model"],
                 "mode": s.mode, "mode_label": QUALITY_MODES[s.mode]["label"],
                 "face_locked": bool(s.face_token) and s.history.current.face_lock,
-                "reference": refs.pick(s.history.current) if cfg.supports_ip_adapter and rm["model"] == "stabilityai/sdxl-turbo" else None,
+                "reference": refs.pick(s.history.current) if s.use_refs and cfg.supports_ip_adapter and rm["model"] == "stabilityai/sdxl-turbo" else None,
                 "out_url": f"/output.html?k={s.out_key}", "connected": s.connected_at is not None,
                 "ended": s.ended_at is not None, "end_reason": s.end_reason, "minutes": round(mins, 2),
                 "usd_per_minute": cfg.usd_per_minute,
@@ -315,12 +325,15 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             urls, bviews = [u for u, _ in built], [v for _, v in built]
             size = FORMATS[fmts.pop()]
         try:
+            use_refs = bool(body.get("references"))
+            first = refs.pick(history.current) if use_refs else None
             data = clients[key].create(history.current, output_rtmp_urls=urls, output_size=size, mode=mode,
-                                       refs={"style_image_url": refs.pick(history.current)})
+                                       refs={"style_image_url": first} if first else None)
         except EngineError as e:
             raise HTTPException(502, str(e)) from e
         s = Session(id="ses_" + secrets.token_hex(8), out_key=secrets.token_urlsafe(16), engine_key=key,
-                    stream_id=data["id"], whip_url=data["whip_url"], history=history, mode=mode)
+                    stream_id=data["id"], whip_url=data["whip_url"], history=history, mode=mode, use_refs=use_refs,
+                    ip_used=bool(first))
         s.broadcast = bviews
         s.note(f"flux créé sur {configs[key].name} — mode {QUALITY_MODES[mode]['label']}" + (
             f" — diffusion directe vers {', '.join(b['platform'] for b in bviews)} ({bviews[0]['format']})" if bviews else ""))
@@ -427,7 +440,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             raise HTTPException(409, "changement de mode impossible pendant une diffusion directe")
         client = clients[s.engine_key]
         try:
-            data = client.create(s.history.current, mode=mode, refs=refs_for(s))
+            s.ip_used = False  # nouveau flux : rien d'activé tant qu'on n'envoie pas d'image
+            data = client.create(s.history.current, mode=mode, refs=refs_for(s) or None)
         except EngineError as e:
             raise HTTPException(502, str(e)) from e
         old, previous = s.stream_id, s.mode

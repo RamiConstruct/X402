@@ -89,7 +89,8 @@ async function init() {
     if ($("#mode").value === "auto") { $("#mode-hint").textContent = "s'adapte tout seul à ton réseau et à la fluidité de l'IA"; return; }
     const m = (st.catalog.modes || []).find((x) => x.key === $("#mode").value); $("#mode-hint").textContent = m ? m.hint : ""; };
   $("#mode").addEventListener("change", hint); hint();
-  $("#face").checked = store.get("face") !== "0";
+  $("#face").checked = store.get("face") === "1";
+  $("#refs").checked = store.get("refs") === "1";
   $("#format").value = store.get("format") || "horizontal";
   let saved = [];
   try { saved = JSON.parse(store.get("dests") || "[]"); } catch {}
@@ -111,6 +112,7 @@ $("#go").addEventListener("click", async () => {
   store.set("token", $("#token").value); store.set("format", $("#format").value); store.set("engine", $("#engine").value);
   store.set("mode", $("#mode").value);
   store.set("face", $("#face").checked ? "1" : "0");
+  store.set("refs", $("#refs").checked ? "1" : "0");
   store.set("bc", $("#do-bc").checked ? "1" : "");
   store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
   try {
@@ -118,7 +120,7 @@ $("#go").addEventListener("click", async () => {
     const auto = $("#mode").value === "auto";
     let mode = $("#mode").value;
     if (auto) { const net = await probeNetwork(); mode = pickInitialMode(net); st.probe = net; }
-    const body = { engine: $("#engine").value, mode };
+    const body = { engine: $("#engine").value, mode, references: $("#refs").checked };
     if (dests.length) body.broadcast = dests.map((d) => ({ platform: d.platform, server_url: d.server, stream_key: d.key, format: $("#format").value }));
     const platform = dests.map((d) => d.platform).join(" + ");
     // Caméra et création du flux IA en parallèle (le moteur commence à se préparer pendant l'ouverture de la caméra).

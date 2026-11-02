@@ -75,7 +75,11 @@ def test_face_upload_flow(tmp_path):
                      references=make_refs(tmp_path))
     c = TestClient(app)
     h = {"X-Live-Token": "tok"}
-    s = c.post("/api/sessions", json={"engine": "daydream", "mode": "equilibre"}, headers=h).json()
+    # par défaut (option expérimentale non cochée) : aucune image de référence envoyée
+    s0 = c.post("/api/sessions", json={"engine": "daydream", "mode": "equilibre"}, headers=h).json()
+    c.post(f"/api/sessions/{s0['id']}/command", json={"text": "transforme-moi en chevalier"}, headers=h)
+    assert "ip_adapter" not in seen[-1]["params"]  # rien du tout n'est envoyé (évite tout chargement inutile)
+    s = c.post("/api/sessions", json={"engine": "daydream", "mode": "equilibre", "references": True}, headers=h).json()
     c.post(f"/api/sessions/{s['id']}/command", json={"text": "transforme-moi en chevalier"}, headers=h)
     assert seen[-1]["params"]["ip_adapter"]["type"] == "regular"
     assert c.post(f"/api/sessions/{s['id']}/face", content=b"\xff\xd8jpg", headers={**h, "content-type": "image/jpeg"}).status_code == 200
