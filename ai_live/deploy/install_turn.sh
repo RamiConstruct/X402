@@ -5,6 +5,11 @@
 #   sudo bash ai_live/deploy/install_turn.sh  # IP publique détectée automatiquement
 #   sudo bash install_turn.sh --ip 203.0.113.7 --domain turn.mondomaine.com   # + TLS (port 5349)
 #
+#   Avec Cloudflare (DNS + certificat automatiques, sans ouvrir le port 80) :
+#   sudo CF_API_TOKEN=<jeton> bash ai_live/deploy/install_turn.sh --domain turn.labotory.site
+#   Jeton : Cloudflare → My Profile → API Tokens → modèle « Edit zone DNS », limité à ta zone.
+#   L'enregistrement est créé en « DNS only » (nuage gris) : le proxy Cloudflare ne relaie pas TURN.
+#
 # Sécurité :
 #  * identifiants TEMPORAIRES (use-auth-secret) : la console fabrique des mots de passe valables
 #    quelques heures à partir d'un secret ; le secret ne quitte jamais tes serveurs ;
@@ -20,12 +25,14 @@ MIN_PORT=49160
 MAX_PORT=49800
 MAX_BPS=$((3 * 1024 * 1024))   # ~24 Mb/s par session TURN : large pour un flux 512–1080p
 SECRET_FILE=/etc/ai-live-turn.secret
+CF_API_TOKEN="${CF_API_TOKEN:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --ip) PUBLIC_IP="$2"; shift 2 ;;
     --domain) DOMAIN="$2"; shift 2 ;;
     --port) PORT="$2"; shift 2 ;;
+    --cf-token) CF_API_TOKEN="$2"; shift 2 ;;
     *) echo "option inconnue : $1"; exit 2 ;;
   esac
 done
@@ -55,19 +62,62 @@ if [[ -n "$PRIVATE_IP" && "$PRIVATE_IP" != "$PUBLIC_IP" ]]; then
   EXTERNAL="$PUBLIC_IP/$PRIVATE_IP"   # VPS derrière un NAT (AWS, GCP, Oracle…)
 fi
 
+cf_api() {  # $1 = méthode, $2 = chemin, $3 = corps JSON (optionnel) → JSON sur stdout
+  curl -fsS -X "$1" "https://api.cloudflare.com/client/v4$2" -H "Authorization: Bearer $CF_API_TOKEN" \
+       -H "Content-Type: application/json" ${3:+--data "$3"}
+}
+
+if [[ -n "$DOMAIN" && -n "$CF_API_TOKEN" ]]; then
+  echo "==> DNS Cloudflare : $DOMAIN → $PUBLIC_IP (DNS only)"
+  apt-get install -y -q python3 >/dev/null
+  ZONE_ID=""
+  CANDIDATE="$DOMAIN"
+  while [[ "$CANDIDATE" == *.* && -z "$ZONE_ID" ]]; do   # turn.labotory.site → labotory.site
+    ZONE_ID="$(cf_api GET "/zones?name=$CANDIDATE" | python3 -c 'import sys,json; r=json.load(sys.stdin)["result"]; print(r[0]["id"] if r else "")')"
+    [[ -z "$ZONE_ID" ]] && CANDIDATE="${CANDIDATE#*.}"
+  done
+  [[ -n "$ZONE_ID" ]] || { echo "Zone Cloudflare introuvable pour $DOMAIN (orthographe ? droits du jeton ?)"; exit 1; }
+  BODY="{\"type\":\"A\",\"name\":\"$DOMAIN\",\"content\":\"$PUBLIC_IP\",\"ttl\":300,\"proxied\":false,\"comment\":\"AI LIVE - relais TURN (DNS only)\"}"
+  REC_ID="$(cf_api GET "/zones/$ZONE_ID/dns_records?type=A&name=$DOMAIN" | python3 -c 'import sys,json; r=json.load(sys.stdin)["result"]; print(r[0]["id"] if r else "")')"
+  if [[ -n "$REC_ID" ]]; then
+    cf_api PUT "/zones/$ZONE_ID/dns_records/$REC_ID" "$BODY" >/dev/null && echo "    enregistrement mis à jour"
+  else
+    cf_api POST "/zones/$ZONE_ID/dns_records" "$BODY" >/dev/null && echo "    enregistrement créé"
+  fi
+fi
+
 TLS_BLOCK="no-tls
 no-dtls"
 if [[ -n "$DOMAIN" ]]; then
   CERT="/etc/letsencrypt/live/$DOMAIN/fullchain.pem"
   KEY="/etc/letsencrypt/live/$DOMAIN/privkey.pem"
   if [[ ! -f "$CERT" ]]; then
-    echo "==> Certificat TLS pour $DOMAIN (Let's Encrypt, le port 80 doit être libre)"
-    apt-get install -y -q certbot
-    certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d "$DOMAIN"
+    if [[ -n "$CF_API_TOKEN" ]]; then
+      echo "==> Certificat TLS pour $DOMAIN (Let's Encrypt, validation DNS Cloudflare)"
+      apt-get install -y -q certbot python3-certbot-dns-cloudflare
+      install -d -m 700 /root/.secrets
+      printf 'dns_cloudflare_api_token = %s\n' "$CF_API_TOKEN" > /root/.secrets/cloudflare.ini
+      chmod 600 /root/.secrets/cloudflare.ini
+      certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini \
+        --dns-cloudflare-propagation-seconds 30 --non-interactive --agree-tos --register-unsafely-without-email -d "$DOMAIN"
+    else
+      echo "==> Certificat TLS pour $DOMAIN (Let's Encrypt, le port 80 doit être libre)"
+      apt-get install -y -q certbot
+      certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d "$DOMAIN"
+    fi
   fi
   install -d -m 750 -o turnserver -g turnserver /etc/coturn/certs
   install -m 640 -o turnserver -g turnserver "$CERT" /etc/coturn/certs/fullchain.pem
   install -m 640 -o turnserver -g turnserver "$KEY" /etc/coturn/certs/privkey.pem
+  # Renouvellement automatique : recopie les certificats et redémarre coturn
+  install -d /etc/letsencrypt/renewal-hooks/deploy
+  cat > /etc/letsencrypt/renewal-hooks/deploy/ai-live-coturn.sh <<HOOK
+#!/bin/sh
+install -m 640 -o turnserver -g turnserver /etc/letsencrypt/live/$DOMAIN/fullchain.pem /etc/coturn/certs/fullchain.pem
+install -m 640 -o turnserver -g turnserver /etc/letsencrypt/live/$DOMAIN/privkey.pem /etc/coturn/certs/privkey.pem
+systemctl restart coturn 2>/dev/null || true
+HOOK
+  chmod 755 /etc/letsencrypt/renewal-hooks/deploy/ai-live-coturn.sh
   TLS_BLOCK="tls-listening-port=$TLS_PORT
 cert=/etc/coturn/certs/fullchain.pem
 pkey=/etc/coturn/certs/privkey.pem
@@ -163,7 +213,8 @@ else
   echo "    ⚠ aucun processus n'écoute sur $PORT — voir : journalctl -u coturn -n 50"; exit 1
 fi
 
-URLS="[\"turn:$PUBLIC_IP:$PORT?transport=udp\",\"turn:$PUBLIC_IP:$PORT?transport=tcp\""
+HOST="${DOMAIN:-$PUBLIC_IP}"
+URLS="[\"turn:$HOST:$PORT?transport=udp\",\"turn:$HOST:$PORT?transport=tcp\""
 [[ -n "$DOMAIN" ]] && URLS="$URLS,\"turns:$DOMAIN:$TLS_PORT?transport=tcp\""
 URLS="$URLS]"
 

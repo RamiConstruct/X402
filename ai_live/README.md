@@ -164,7 +164,8 @@ Contenus sexuels, violents ou haineux : refusés avant tout envoi au moteur.
 | `LIVE_ACCESS_TOKEN` | protège la console si elle est exposée sur Internet (elle dépense tes crédits) |
 | `LIVE_MAX_SESSION_MIN` (déf. 60) | coupe automatiquement une session trop longue |
 | `VAST_API_KEY`, `RUNPOD_API_KEY`, `LIVE_WORKER_IMAGE`, `LIVE_GPU_MAX_USD_H`, `LIVE_GPU_IDLE_MIN`, `LIVE_GPU_MAX_HOURS`, `LIVE_OWNER_MODE`, `LIVE_DATA_DIR` | location de GPU |
-| `LIVE_TURN_SECRET`, `LIVE_TURN_URLS` | relais TURN (identifiants temporaires générés par la console) ; `LIVE_ICE_SERVERS` pour une liste statique |
+| `LIVE_CF_TURN_KEY_ID`, `LIVE_CF_TURN_API_TOKEN` | relais Cloudflare Realtime TURN (recommandé) |
+| `LIVE_TURN_SECRET`, `LIVE_TURN_URLS` | relais TURN du VPS (identifiants temporaires générés par la console) ; `LIVE_ICE_SERVERS` pour une liste statique |
 | `WORKER_PROCESSOR` (`demo` / `streamdiffusion`), `WORKER_TOKEN`, `WORKER_PUBLIC_URL`, `WORKER_WARMUP_PARAMS`, `WORKER_ICE_SERVERS`, `SD_ACCELERATION`, `SD_ENGINE_DIR` | worker |
 
 ## Limites connues

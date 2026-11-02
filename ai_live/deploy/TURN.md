@@ -1,4 +1,20 @@
-# Installer le relais vidéo TURN sur ton VPS
+# Relais vidéo TURN : Cloudflare (principal) + ton VPS (secours)
+
+## Option recommandée : Cloudflare Realtime TURN (aucun serveur à gérer)
+
+Réseau mondial (la vidéo passe par le point Cloudflare le plus proche de là où tu streames),
+ports 443 qui traversent les Wi-Fi filtrés, IP de ton VPS jamais exposée. Tarif (doc Cloudflare,
+sept. 2026) : **1 000 Go/mois gratuits**, puis 0,05 $/Go — soit plusieurs centaines d'heures de live par mois.
+
+1. Cloudflare → *Realtime* → *TURN Server* → **Create** : note le *Turn Token ID* et l'*API Token* (affiché une seule fois).
+2. Console AI LIVE :
+   ```powershell
+   $env:LIVE_CF_TURN_KEY_ID='…'; $env:LIVE_CF_TURN_API_TOKEN='…'; python -m live
+   ```
+La console génère des identifiants temporaires pour le navigateur, OBS et les GPU loués.
+Si Cloudflare ne répond pas, la console bascule automatiquement sur le relais du VPS (s'il est configuré).
+
+## Option secours : coturn sur ton VPS, relié à ton domaine Cloudflare
 
 **Pourquoi** : la vidéo temps réel (WebRTC) a besoin d'un chemin réseau entre ton navigateur
 et le GPU loué. Les machines Vast.ai sont derrière un NAT, RunPod n'accepte pas l'UDP, et les
@@ -20,9 +36,21 @@ git checkout claude/ai-live-studio-architecture-2td5sl
 ```bash
 sudo bash ai_live/deploy/install_turn.sh
 ```
-Options : `--ip 203.0.113.7` si l'IP n'est pas détectée ; `--domain turn.mondomaine.com` pour
-ajouter TURN chiffré sur le port 5349 (utile sur les réseaux très filtrés ; le nom de domaine
-doit pointer vers le VPS et le port 80 doit être libre pour Let's Encrypt).
+Options : `--ip 203.0.113.7` si l'IP n'est pas détectée.
+
+**Avec ton domaine Cloudflare** (recommandé) :
+```bash
+sudo CF_API_TOKEN='<jeton>' bash ai_live/deploy/install_turn.sh --domain turn.labotory.site
+```
+- Jeton : Cloudflare → *My Profile* → *API Tokens* → *Create Token* → modèle **Edit zone DNS**, limité à la zone `labotory.site`.
+- Le script crée ou met à jour l'enregistrement `turn.labotory.site → IP du VPS` en **DNS only (nuage gris)** :
+  le proxy Cloudflare ne transporte pas TURN (UDP). Conséquence : l'IP de ton VPS devient visible
+  publiquement via ce sous-domaine ; si ton site sur le domaine racine passe par le même VPS en se
+  cachant derrière le proxy, préfère l'option Cloudflare TURN ci-dessus.
+- Il obtient le certificat Let's Encrypt par **validation DNS** (pas besoin d'ouvrir le port 80),
+  active TURN chiffré sur le port 5349 et installe le renouvellement automatique.
+
+Sans jeton, `--domain` fonctionne aussi mais exige que le DNS pointe déjà vers le VPS et que le port 80 soit libre.
 
 Le script :
 - installe coturn, génère un **secret** (`/etc/ai-live-turn.secret`) ;
@@ -93,6 +121,9 @@ coturn consomme très peu de CPU. Le facteur limitant est la **bande passante** 
 Un VPS avec 1 Gb/s de port et quelques To de trafic mensuel suffit largement pour toi seul.
 
 ## Testé
+- Partie DNS Cloudflare du script : testée avec une API Cloudflare simulée (recherche de zone depuis le
+  sous-domaine, création en DNS only). Non testée : appel réel et validation DNS de certbot.
+- Cloudflare Realtime TURN côté console : contrat d'appel testé avec une API simulée (filtrage du port 53, cache).
 
 Le script a été exécuté sur Ubuntu 24.04 (conteneur) : installation, configuration, démarrage,
 puis allocation relayée réussie en UDP et en TCP avec des identifiants temporaires, et refus
