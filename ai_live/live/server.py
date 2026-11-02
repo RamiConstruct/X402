@@ -22,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .commands import apply_command, set_preset
-from .engine import EngineConfig, EngineError, StreamEngine
+from .engine import DEFAULT_MODE, QUALITY_MODES, EngineConfig, EngineError, StreamEngine, resolve_mode
 from .gpu.catalog import MODELS
 from .gpu.manager import GpuError, GpuManager, Limits
 from .scene import CHARACTERS, DECORS, STYLES, SceneHistory
@@ -38,7 +38,7 @@ def engines_from_env() -> dict[str, EngineConfig]:
         "daydream": EngineConfig(
             name="Daydream (API hébergée)", base_url=os.environ.get("DAYDREAM_BASE_URL", "https://api.daydream.live"),
             api_key=os.environ.get("DAYDREAM_API_KEY", ""), model_id=os.environ.get("DAYDREAM_MODEL", "stabilityai/sdxl-turbo"),
-            usd_per_minute=f("DAYDREAM_USD_PER_MIN")),
+            usd_per_minute=f("DAYDREAM_USD_PER_MIN"), switch_models=True),
         "selfhosted": EngineConfig(
             name="Mon GPU (StreamDiffusion auto-hébergé)", base_url=os.environ.get("SELFHOST_URL", "http://127.0.0.1:8890"),
             api_key=os.environ.get("SELFHOST_TOKEN", "local"), model_id=os.environ.get("SELFHOST_MODEL", "stabilityai/sd-turbo"),
@@ -87,6 +87,7 @@ class Session:
     end_reason: str | None = None
     log: list = field(default_factory=list)
     broadcast: list | None = None        # [{"platform", "target" (clé masquée), "format"}] — la clé n'est jamais conservée
+    mode: str = DEFAULT_MODE             # rendu : rapide / equilibre / qualite (fixé à la création du flux)
 
     def minutes(self) -> float:
         if not self.connected_at:
@@ -175,7 +176,9 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
     def view(s: Session) -> dict:
         cfg = configs[s.engine_key]
         mins = s.minutes()
-        return {"id": s.id, "engine": s.engine_key, "engine_name": cfg.name, "model": cfg.model_id,
+        rm = resolve_mode(cfg, s.mode)
+        return {"id": s.id, "engine": s.engine_key, "engine_name": cfg.name, "model": rm["model"],
+                "mode": s.mode, "mode_label": QUALITY_MODES[s.mode]["label"],
                 "out_url": f"/output.html?k={s.out_key}", "connected": s.connected_at is not None,
                 "ended": s.ended_at is not None, "end_reason": s.end_reason, "minutes": round(mins, 2),
                 "usd_per_minute": cfg.usd_per_minute,
@@ -192,7 +195,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         if s.ended_at is not None:
             raise HTTPException(410, "session terminée")
         try:
-            clients[s.engine_key].update(s.stream_id, s.history.current)
+            clients[s.engine_key].update(s.stream_id, s.history.current, mode=s.mode)
         except EngineError as e:
             s.note(f"mise à jour moteur échouée : {e}")
             raise HTTPException(502, str(e)) from e
@@ -203,6 +206,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
                 "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
                              "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith("cloud:")],
+                "modes": [{"key": k, "label": v["label"], "hint": v["hint"]} for k, v in QUALITY_MODES.items()],
+                "default_mode": DEFAULT_MODE,
                 "access_required": bool(access_token), "ice_servers": ice_provider(), "gpu_rental": gpu is not None,
                 "gpu_image_configured": bool(gpu and gpu.image),
                 "models": [{"key": m.key, "label": m.label, "min_vram_gb": m.min_vram_gb, "notes": m.notes,
@@ -278,6 +283,9 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         if key not in configs:
             raise HTTPException(400, "moteur inconnu")
         history = SceneHistory()
+        mode = body.get("mode") or DEFAULT_MODE
+        if mode not in QUALITY_MODES:
+            raise HTTPException(400, "mode de rendu inconnu (rapide, equilibre, qualite)")
         urls, bviews, size = [], None, None
         if body.get("broadcast"):
             dests = body["broadcast"] if isinstance(body["broadcast"], list) else [body["broadcast"]]
@@ -290,13 +298,13 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             urls, bviews = [u for u, _ in built], [v for _, v in built]
             size = FORMATS[fmts.pop()]
         try:
-            data = clients[key].create(history.current, output_rtmp_urls=urls, output_size=size)
+            data = clients[key].create(history.current, output_rtmp_urls=urls, output_size=size, mode=mode)
         except EngineError as e:
             raise HTTPException(502, str(e)) from e
         s = Session(id="ses_" + secrets.token_hex(8), out_key=secrets.token_urlsafe(16), engine_key=key,
-                    stream_id=data["id"], whip_url=data["whip_url"], history=history)
+                    stream_id=data["id"], whip_url=data["whip_url"], history=history, mode=mode)
         s.broadcast = bviews
-        s.note(f"flux créé sur {configs[key].name}" + (
+        s.note(f"flux créé sur {configs[key].name} — mode {QUALITY_MODES[mode]['label']}" + (
             f" — diffusion directe vers {', '.join(b['platform'] for b in bviews)} ({bviews[0]['format']})" if bviews else ""))
         with lock:
             sessions[s.id], by_out[s.out_key] = s, s

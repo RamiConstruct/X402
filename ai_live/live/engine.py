@@ -22,18 +22,42 @@ import httpx
 
 from .scene import DEFAULT_NEGATIVE, Scene
 
-# ControlNets validés par Daydream pour chaque modèle (repris du plugin officiel) :
-# ils conservent ta pose et la profondeur de la scène pendant la transformation.
+# ControlNets acceptés par Daydream (validation de l'API vérifiée le 2026-11-02) : ils conservent
+# la profondeur (depth), les contours (canny) et la continuité d'une image à l'autre (tile + feedback).
+_DEPTH_XL = {"model_id": "xinsir/controlnet-depth-sdxl-1.0", "preprocessor": "depth_tensorrt", "conditioning_scale": 0.45}
+_TILE_XL = {"model_id": "xinsir/controlnet-tile-sdxl-1.0", "preprocessor": "feedback", "conditioning_scale": 0.21}
+_CANNY_XL = {"model_id": "xinsir/controlnet-canny-sdxl-1.0", "preprocessor": "canny", "conditioning_scale": 0.22}
 CONTROLNETS = {
-    "stabilityai/sdxl-turbo": [
-        {"model_id": "xinsir/controlnet-depth-sdxl-1.0", "preprocessor": "depth_tensorrt", "conditioning_scale": 0.45},
-        {"model_id": "xinsir/controlnet-tile-sdxl-1.0", "preprocessor": "feedback", "conditioning_scale": 0.21},
-    ],
+    "stabilityai/sdxl-turbo": [_DEPTH_XL, _TILE_XL],
     "stabilityai/sd-turbo": [
         {"model_id": "thibaud/controlnet-sd21-depth-diffusers", "preprocessor": "depth_tensorrt", "conditioning_scale": 0.45},
         {"model_id": "thibaud/controlnet-sd21-openpose-diffusers", "preprocessor": "openpose", "conditioning_scale": 0.4},
     ],
 }
+
+# Modes de rendu proposés à l'utilisateur. Le modèle n'est changé que sur les moteurs qui le
+# permettent (Daydream) ; ailleurs, seuls le nombre de passes et la taille s'appliquent.
+QUALITY_MODES: dict[str, dict] = {
+    "rapide": {"label": "Rapide", "hint": "le plus fluide, détails plus simples",
+               "model": "stabilityai/sd-turbo", "size": 512, "passes": 1},
+    "equilibre": {"label": "Équilibré", "hint": "le meilleur compromis pour le direct",
+                  "model": "stabilityai/sdxl-turbo", "size": 512, "passes": 1},
+    "qualite": {"label": "Qualité", "hint": "plus beau et plus stable, un peu moins fluide",
+                "model": "stabilityai/sdxl-turbo", "size": 640, "passes": 2,
+                "controlnets": [_DEPTH_XL, _CANNY_XL, _TILE_XL]},
+}
+DEFAULT_MODE = "equilibre"
+
+
+def resolve_mode(cfg: "EngineConfig", mode: str | None) -> dict:
+    """Paramètres effectifs (modèle, taille, passes, ControlNets) d'un mode pour un moteur donné."""
+    m = QUALITY_MODES.get(mode or DEFAULT_MODE, QUALITY_MODES[DEFAULT_MODE])
+    model = m["model"] if cfg.switch_models else cfg.model_id
+    size = m["size"] if cfg.switch_models else cfg.width
+    cns = (m.get("controlnets") if model == m["model"] else None) or CONTROLNETS.get(model)
+    return {"key": mode if mode in QUALITY_MODES else DEFAULT_MODE, "model": model, "width": size,
+            "height": size if cfg.switch_models else cfg.height, "passes": m["passes"],
+            "controlnets": cns if cfg.use_controlnets else None}
 
 
 class EngineError(RuntimeError):
@@ -52,17 +76,20 @@ class EngineConfig:
     use_controlnets: bool = True
     usd_per_minute: float | None = None   # tarif à renseigner après vérification (None = inconnu)
     supports_output_size: bool = False    # worker auto-hébergé : format de diffusion (720x1280…) ; Daydream : non
+    switch_models: bool = False           # True : les modes de rendu peuvent changer de modèle (Daydream)
 
 
-def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool) -> dict:
+def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool, mode: str | None = None) -> dict:
+    m = resolve_mode(cfg, mode)
     p: dict = {
-        "model_id": cfg.model_id,
+        "model_id": m["model"],
         "prompt": scene.prompt(),
         "negative_prompt": DEFAULT_NEGATIVE + (", photorealistic, photo" if scene.parody else ""),
-        "t_index_list": scene.t_index_list(),
+        "t_index_list": scene.t_index_list(m["passes"]),
         "guidance_scale": 1.0,
         "delta": 0.7,
         "do_add_noise": True,
+        "seed": scene.seed,
     }
     if cfg.supports_output_size:
         p["bypass"] = scene.bypass            # worker auto-hébergé : renvoie l'image originale
@@ -70,8 +97,8 @@ def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool) -> dict:
         p["t_index_list"] = [49]              # Daydream : pas de bypass natif → retouche minimale
     if initial:
         p.pop("bypass", None)
-        p.update(width=cfg.width, height=cfg.height, num_inference_steps=50)
-        cns = CONTROLNETS.get(cfg.model_id) if cfg.use_controlnets else None
+        p.update(width=m["width"], height=m["height"], num_inference_steps=50)
+        cns = m["controlnets"]
         if cns:
             p["controlnets"] = [{**c, "preprocessor_params": {}, "enabled": True} for c in cns]
     return p
@@ -91,10 +118,11 @@ class StreamEngine:
             h["Content-Type"] = "application/json"
         return h
 
-    def create(self, scene: Scene, output_rtmp_urls: list[str] | None = None, output_size: str | None = None) -> dict:
+    def create(self, scene: Scene, output_rtmp_urls: list[str] | None = None, output_size: str | None = None,
+               mode: str | None = None) -> dict:
         """Diffusion directe : la 1re adresse va dans output_rtmp_url (champ officiel de l'API Daydream) ;
         les suivantes (multidiffusion) ne sont gérées que par le worker auto-hébergé."""
-        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=True)}
+        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=True, mode=mode)}
         urls = list(output_rtmp_urls or [])
         if urls:
             body["output_rtmp_url"] = urls[0]
@@ -113,8 +141,8 @@ class StreamEngine:
             raise EngineError("réponse de création incomplète (id / whip_url)")
         return data
 
-    def update(self, stream_id: str, scene: Scene) -> None:
-        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=False)}
+    def update(self, stream_id: str, scene: Scene, mode: str | None = None) -> None:
+        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=False, mode=mode)}
         r = self.client.patch(f"{self.cfg.base_url}/v1/streams/{stream_id}", json=body, headers=self._headers())
         if r.status_code >= 400:
             raise EngineError(f"mise à jour refusée (HTTP {r.status_code}) : {r.text[:300]}")

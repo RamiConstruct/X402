@@ -57,7 +57,7 @@ class StreamDiffusionProcessor(Processor):
     """Enveloppe `StreamDiffusionWrapper` (daydreamlive/StreamDiffusion).
 
     Paramètres acceptés : ceux de l'API Daydream (model_id, prompt, negative_prompt,
-    t_index_list, guidance_scale, delta, width, height, num_inference_steps, controlnets).
+    t_index_list, guidance_scale, delta, width, height, num_inference_steps, controlnets, seed).
     """
 
     def __init__(self, params: dict) -> None:
@@ -84,6 +84,7 @@ class StreamDiffusionProcessor(Processor):
                                 "preprocessor_params": c.get("preprocessor_params") or {}, "enabled": True}
                                for c in cns] or None,
             enable_similar_image_filter=True,
+            seed=int(params.get("seed", 42)),  # graine fixe : rendu plus stable d'une image à l'autre
         )
         self.wrapper.prepare(prompt=params.get("prompt", "a person"),
                              negative_prompt=params.get("negative_prompt", ""),

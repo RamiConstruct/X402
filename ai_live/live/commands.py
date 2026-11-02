@@ -93,7 +93,15 @@ def _apply_one(history: SceneHistory, text: str) -> Result:
         history.apply(Scene())
         return Result(True, "scène réinitialisée", True)
 
-    # 2) Intensité
+    # 2) Variante : même scène, nouvelle graine (autre interprétation par l'IA)
+    if re.search(r"\b(autre (version|variante|essai|interpretation)|variante|une autre|change (de )?version|re ?genere)\b", t):
+        s = history.edit()
+        s.seed = (s.seed * 1103515245 + 12345) % 2_147_483_647 or 1
+        s.bypass = False
+        history.apply(s)
+        return Result(True, "nouvelle variante", True)
+
+    # 2b) Intensité
     if re.search(r"plus (fort|intense|extreme)|encore plus|a fond|maximum", t):
         s = history.edit()
         s.strength = min(5, s.strength + 1)
