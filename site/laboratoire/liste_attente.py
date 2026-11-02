@@ -11,7 +11,7 @@ import urllib.request
 
 req = urllib.request.Request(
     "https://labotory.site/liste-attente.json",
-    headers={"Authorization": f"Bearer {os.environ['LABO_UPDATE_TOKEN']}"},
+    headers={"Authorization": f"Bearer {os.environ['LABO_UPDATE_TOKEN']}", "User-Agent": "labo-export/1.0"},
 )
 data = json.load(urllib.request.urlopen(req, timeout=30))
 w = csv.writer(sys.stdout)
