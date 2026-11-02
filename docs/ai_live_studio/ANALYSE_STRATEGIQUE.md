@@ -64,7 +64,7 @@ d'exécution qui partagent le même cerveau (intention → capacités → moteur
 
 Ton modèle : revendre du calcul et des API avec marge, puis réinternaliser le calcul quand le volume le justifie.
 
-### 1.2 Les sept corrections stratégiques que je recommande
+### 1.2 Les huit corrections stratégiques que je recommande
 
 1. **Le « routage multi-fournisseurs » n'est pas un produit, c'est une commodité.** fal.ai, Replicate,
    Runware, WaveSpeed, Atlas Cloud, AIML API, CometAPI… agrègent déjà des dizaines de modèles vidéo derrière
@@ -105,10 +105,16 @@ Ton modèle : revendre du calcul et des API avec marge, puis réinternaliser le 
    **Pilote B (Live) en spike technique** mesuré (latence, i/s, coût/min) avant d'investir.
 
 7. **Les GPU propres en Algérie : pas avant d'avoir un volume *batch* stable.** Le seuil de rentabilité
-   d'un GPU possédé est autour de **60–70 % d'utilisation continue** (§10.4). Et la latence
-   Alger ↔ Sydney (~300 ms+) exclut le live pour des clients australiens. Une infra en Algérie peut avoir
-   du sens pour les rendus *batch* de Studio (non sensibles à la latence) et/ou un marché MENA/francophone —
-   à étudier après le product-market fit, en vérifiant douanes, contrôle des exports US et convertibilité.
+   d'un GPU possédé est autour de **60–70 % d'utilisation continue** (§10.4). Géographiquement, l'Algérie
+   est bien placée pour l'**Europe et le Maghreb/Moyen-Orient** (câbles sous-marins vers Marseille,
+   latence typique 20–60 ms **[HYP à mesurer]**), mais trop loin pour du live en Asie-Pacifique ou aux
+   Amériques. Elle a du sens pour les rendus *batch* de Studio (mondiaux) et pour du live EU/MENA — à
+   étudier après le product-market fit, en vérifiant douanes, contrôle des exports US et convertibilité.
+
+8. **Toi et tes utilisateurs êtes partout sur Terre : le live doit être multi-région dès la conception.**
+   Aucune hypothèse de ville fixe. Chaque session live choisit automatiquement la région GPU la plus proche
+   du point d'ingestion (mesure de RTT au démarrage), la plateforme fonctionne sans aucune machine chez toi,
+   et tout le développement se fait depuis le cloud. Voir §5.3 et §10.6.
 
 ### 1.3 Positionnement proposé
 
@@ -263,11 +269,14 @@ de dollars de l'heure. Les modèles 1–2 B ou propriétaires optimisés (Lucy) 
 | **fal.ai** | API modèles + serverless + temps réel WebRTC | à l'usage | Fournisseur n°1 pour démarrer (et héberge Lucy realtime) |
 | **Replicate** | API modèles + déploiements | à l'usage | Alternative/repli |
 | **Lambda, CoreWeave, Crusoe, Together** | Cloud GPU | réservé/contrat | Phase 3 (réservé) |
-| **AWS (ap-southeast-2 Sydney), Azure Australia East, GCP australia-southeast1** | Hyperscalers | chers | **GPU proches de Sydney** pour le live si latence critique |
+| **AWS, Azure, GCP, Oracle** | Hyperscalers, ~30+ régions GPU chacun | chers | **Couverture mondiale** : régions de repli là où les GPU spécialisés manquent (Amérique du Sud, Afrique, Moyen-Orient, Océanie) |
 
-**Point Sydney** : RTT Sydney → US-Ouest ≈ 140–160 ms, → Singapour ≈ 90–100 ms. Acceptable pour du broadcast
-(cf. §1.2-3), gênant pour du miroir interactif. Teste la disponibilité de GPU en Australie (hyperscalers,
-hôtes Vast.ai locaux, fournisseurs australiens) pendant le spike Live.
+**Point géographie (utilisateurs nomades, partout sur Terre)** : les GPU bon marché sont concentrés aux
+États-Unis et en Europe, puis en Asie (Singapour, Japon, Inde). Ordres de grandeur de RTT : intra-continent
+20–60 ms, transatlantique 70–100 ms, Europe ↔ Asie 150–250 ms, Amériques ↔ Asie-Pacifique 140–200 ms.
+Pour du **broadcast**, même 200 ms restent acceptables (cf. §1.2-3) ; pour un **miroir interactif** il faut
+une région à < 50 ms. Conséquence : le registre des moteurs doit connaître **la région de chaque pool GPU**
+et le routeur choisir par session (§5.3). Ne t'engage jamais sur une seule région.
 
 ### 3.5 Voix et LLM
 
@@ -399,14 +408,16 @@ et **ce n'est pas du temps réel**. Utile pour rediffusions, highlights, clips a
 Génération de mondes contrôlables en continu (lignée Genie, Decart Oasis, etc.). À surveiller pour
 les mini-séries interactives (§7), pas pour les pilotes.
 
-### 5.3 Flux mobile IRL (Sydney à pied)
+### 5.3 Flux mobile IRL (n'importe où sur Terre)
 
 ```
 Téléphone Android (caméra + micro Hollyland)
   ├── App d'encodage : IRL Pro / Larix (Android), Moblin (iOS) → SRT (H.265 si possible), 2–6 Mb/s
-  │     (option : agrégation 4G/5G multi-SIM type BELABOX / service de bonding)
+  │     (option : agrégation 4G/5G multi-SIM type BELABOX / service de bonding ; Starlink Mini hors réseau)
   ▼
-Ingest cloud (Sydney ou Singapour) : MediaMTX/SRTLA
+Ingest cloud = région la plus proche (choisie au démarrage par mesure de RTT ; DNS géographique ou
+liste de points d'entrée : US-Est/Ouest, Europe, Moyen-Orient, Inde, Singapour, Japon, Brésil, Océanie…) : MediaMTX/SRTLA
+  │  GPU dans la même région si disponible ; sinon région voisine (tolérable en broadcast)
   ├── Flux original ───────────────────────────────┐ (toujours disponible : bascule < 1 s, "BRB" si coupure)
   ├── Audio → STT streaming → agent (mot d'éveil)  │
   ├── Vidéo → pipeline niveau 1 ou 2 (GPU)         │
@@ -419,6 +430,14 @@ Points décisifs :
 - **La voix passe déjà dans le flux** : pas besoin d'une seconde app ; un mot d'éveil (« Studio, … ») ou un bouton push-to-talk sur la page de contrôle. Les spectateurs entendent la commande — c'est un *spectacle*, pas un défaut.
 - **Le téléphone reste léger** (batterie, chauffe) : toute l'IA est dans le cloud. Ta batterie pour l'ordinateur devient inutile en IRL ; garde-la pour l'événementiel.
 - **Budget latence IRL** : uplink cellulaire 30–80 ms + tampon SRT 0,5–2 s + IA 40–100 ms + plateforme 2–6 s ⇒ l'IA représente < 5 % de la latence totale perçue par le spectateur.
+- **Le streamer change de pays sans rien reconfigurer** : la session sélectionne la région ; le graphe de scène,
+  les presets et les crédits sont globaux. Un changement de région en cours de stream se fait par
+  bascule (le flux original reste diffusé pendant 1–2 s).
+- **Connectivité nomade** : eSIM data locales (moins chères que l'itinérance), deux opérateurs en agrégation
+  quand c'est possible, Starlink Mini (latence ~25–60 ms) pour les zones isolées — vérifier la légalité
+  locale de Starlink et des équipements radio importés, qui varie selon les pays.
+- **Pays où les plateformes sont bloquées** (p. ex. Chine continentale pour Twitch/YouTube) : l'ingestion
+  vers ton cloud peut elle-même être filtrée ; ne promets pas le service partout, et respecte la loi locale.
 - **Coût** : un GPU par flux actif. Les **scènes préparées** permettent de servir un streamer IRL sur un petit GPU (segmentation + compositing) voire **sans GPU distant** si le compositing est fait par un worker CPU/GPU partagé.
 
 ### 5.4 Coût réel par minute (à mesurer en Pilote B)
@@ -711,7 +730,7 @@ base, monitoring, juridique ; à partir de 10 k : support/modération ; 100 k : 
 | 0. API seulement | aujourd'hui | fal/Runway/Google/Decart + VPS | marge fournisseur, dépendance |
 | 1. GPU à la demande | premiers clients | RunPod/Modal serverless pour Wan/SAM/upscale ; pods pour live | démarrages à froid, inactivité |
 | 2. GPU réservé | ≥ 40–60 % d'utilisation mesurée sur une classe de GPU pendant 2–3 mois | contrats 1–12 mois (RunPod, Lambda, CoreWeave, Crusoe) | engagement |
-| 3. Serveurs dédiés / colocation | ≥ 60–70 % d'utilisation stable + trésorerie 12 mois | quelques nœuds 4–8 GPU en colocation (Sydney/Singapour pour live APAC ; ailleurs pour batch) | pannes, personnel, obsolescence |
+| 3. Serveurs dédiés / colocation | ≥ 60–70 % d'utilisation stable + trésorerie 12 mois | quelques nœuds 4–8 GPU en colocation dans les 1–2 régions où se concentrent réellement tes utilisateurs live (mesuré, pas supposé) ; batch n'importe où (électricité la moins chère) | pannes, personnel, obsolescence |
 | 4. Centre de calcul propre | multi-MW, clients tiers | DC propre (Algérie possible) | capital, énergie, refroidissement, réseau international |
 
 Hybride permanent recommandé : **base de charge sur GPU possédés/réservés, pointes sur cloud/API**.
@@ -730,7 +749,7 @@ Formule : `heures_seuil = (amortissement + fixes_mensuels) / (prix_location_h �
 
 | Cas | Amortissement/mois | Fixe total/mois | Énergie USD/h | Seuil h/mois | Utilisation mini |
 |---|---:|---:|---:|---:|---:|
-| RTX 5090 (Sydney, colo) | 139 | 229 | 0.185 | 453 | 62 % |
+| RTX 5090 (colo, électricité chère) | 139 | 229 | 0.185 | 453 | 62 % |
 | RTX 5090 (Algérie, hyp.) | 161 | 281 | 0.048 | 438 | 60 % |
 | H100 80GB (colo) | 688 | 948 | 0.280 | 493 | 68 % |
 
@@ -743,7 +762,7 @@ mais surcoût matériel (import) et fixes plus élevés (connectivité internati
 - la **capacité inutilisée** : un flux live occupe un GPU uniquement pendant le stream ⇒ utilisation réelle souvent 10–30 % (pics le soir, fuseaux horaires) ;
 - l'**obsolescence** : les prix de location baissent de 20–40 %/an quand une génération sort ⇒ ton seuil se dégrade ;
 - le **personnel** : une intervention sur site, des pièces de rechange, de la surveillance 24/7 ;
-- l'**Algérie** : contrôle des exports US sur GPU haut de gamme (règles changeantes, à vérifier pour chaque modèle), délais/douanes, convertibilité du dinar pour payer des fournisseurs, bande passante internationale, latence vers l'Australie (~300 ms+). Pertinente pour du **batch** et pour un marché régional, pas pour du live australien.
+- l'**Algérie** : contrôle des exports US sur GPU haut de gamme (règles changeantes, à vérifier pour chaque modèle), délais/douanes, convertibilité du dinar pour payer des fournisseurs, bande passante internationale. Pertinente pour du **batch** mondial et pour du live **Europe/Maghreb/Moyen-Orient** ; pas pour du live en Asie-Pacifique ou aux Amériques.
 
 ### 10.5 Louer tes GPU inutilisés
 
@@ -751,6 +770,24 @@ Possible via Vast.ai (hôte), RunPod Community/Secure Cloud (programme hôte), S
 **Ne compte pas dessus dans un business plan** : prix de marché bas et volatils, exigences de
 disponibilité/bande passante/datacenter certifié pour les meilleurs revenus, risque de confidentialité
 si tu mélanges charges clients et tiers. À voir comme réduction marginale du coût de la capacité creuse.
+
+### 10.6 Travailler et exploiter la plateforme depuis n'importe où
+
+- **Rien ne tourne chez toi ni sur ton laptop** : production = VPS/cloud + fournisseurs ; le laptop sert au
+  dev local, aux tests GPU et aux démos. Ton VPS actuel convient pour l'API ; place-le (ou migre-le) dans une
+  région centrale par rapport à tes futurs clients (US-Est ou Europe de l'Ouest couvrent le mieux le monde
+  pour des appels API non temps réel). Le live, lui, est servi par des pools GPU régionaux (§5.3).
+- **Développement depuis le cloud** : sessions d'agents de code dans le cloud, dépôt GitHub comme source de
+  vérité, environnements de dev reproductibles (Dev Containers / Codespaces) ⇒ tu peux travailler depuis un
+  téléphone ou un ordinateur emprunté sans rien perdre.
+- **Sécurité nomade** : gestionnaire de mots de passe + **clés matérielles FIDO2** (deux, une de secours),
+  aucune double authentification par SMS (tu changes de SIM et de pays), VPN sur les Wi-Fi publics, disque
+  du laptop chiffré, aucun secret de production stocké sur le laptop.
+- **Astreinte** : alertes sur téléphone (dépenses, erreurs, coupures) et procédures d'arrêt d'urgence
+  utilisables depuis un mobile (couper un fournisseur, plafonner les dépenses, passer en lecture seule) —
+  car tu seras parfois dans un avion ou hors réseau.
+- **Fuseaux horaires** : automatise le support de niveau 1 (FAQ, agent support avec escalade) pour ne pas
+  dépendre de ta disponibilité.
 
 ---
 
@@ -814,18 +851,21 @@ si tu mélanges charges clients et tiers. À voir comme réduction marginale du 
 
 ### 12.2 Top 5 (difficulté × différenciation × potentiel commercial)
 
-1. **« Miroir IA » pour événements (Sydney d'abord)** — écran + caméra + PC/GPU sur place (ou cloud
-   régional), les visiteurs sont transformés en direct en personnages de la marque ; partage du clip par QR code.
-   *Pourquoi* : vente directe à la journée (fourchette marché photobooth premium : plusieurs centaines à
-   quelques milliers de dollars/jour **[HYP]**), coût GPU négligeable vs prix, faible concurrence en vidéo
-   générative live, et c'est **exactement la même pile que AI LIVE**. Valide ton moteur avec de l'argent réel
-   en quelques semaines. Ton laptop RTX + batterie y trouvent enfin un usage parfait.
+1. **« Miroir IA » pour événements, en licence pour les loueurs de photobooths du monde entier** — écran +
+   caméra + PC sur place (ou cloud régional), les visiteurs sont transformés en direct en personnages de la
+   marque ; partage du clip par QR code. Comme tu voyages, ne vends pas toi-même la prestation sur site :
+   vends **le logiciel en marque blanche** (abonnement + minutes GPU) aux agences événementielles et loueurs de
+   photobooths, qui existent dans chaque grande ville. Tu peux faire des démonstrations en personne partout où
+   tu passes : ton laptop RTX + batterie forment un kit de démo parfait.
+   *Pourquoi* : marché photobooth premium habitué à payer plusieurs centaines à quelques milliers de
+   dollars/jour **[HYP]**, coût GPU négligeable face à ces prix, faible concurrence en vidéo générative live, et
+   c'est **exactement la même pile que AI LIVE**.
 2. **Effets interactifs payés par les spectateurs (Twitch Extension + overlay OBS)** — catalogue d'effets
    validés par le streamer, déclenchés par Bits/points/votes ; partage de revenus avec le streamer.
    *Pourquoi* : le coût GPU est financé par la communauté, viralité intégrée (chaque stream est une démo).
 3. **AI STUDIO vertical immobilier** — « ciel bleu, heure dorée, désencombrement, home staging » sur les
    vidéos de visite, **zone par zone**, avec export prêt pour portails et réseaux. *Pourquoi* : client B2B qui
-   paie à l'annonce, ROI clair, l'Australie a un marché immobilier très « média », et la précision par masques
+   paie à l'annonce, ROI clair, marché mondial vendable entièrement à distance (web, sans présence locale), et la précision par masques
    est ton avantage technique. ⚠️ Règles de publicité immobilière : tout élément virtuel doit être signalé
    (exiger un label « image retouchée/mise en scène virtuelle » à l'export).
 4. **API de transformation vidéo payable à la requête (x402 + clés classiques)** — exposer tes capacités
@@ -837,7 +877,8 @@ si tu mélanges charges clients et tiers. À voir comme réduction marginale du 
 
 Idées « complètement nouvelles » crédibles : **previz IA sur plateau** pour petites productions (voir le décor
 généré en direct dans le moniteur pendant la prise, puis rendu final en Studio à partir des mêmes paramètres —
-continuité Live → Studio unique sur le marché) ; **visites guidées IRL « voyage dans le temps »** (Sydney en 1850
+continuité Live → Studio unique sur le marché) ; **visites guidées IRL « voyage dans le temps »** (n'importe quelle ville telle qu'elle était il y a 150 ans ;
+le contenu idéal pour un streamer nomade — c'est ton propre cas d'usage, utilise-toi comme premier client et vitrine
 en direct, partenariats tourisme/éducation) ; **anonymisation générative** (remplacer les passants par des
 personnes synthétiques au lieu de les flouter — utile pour l'IRL dans les juridictions strictes sur l'image).
 
@@ -845,8 +886,44 @@ personnes synthétiques au lieu de les flouter — utile pour l'IRL dans les jur
 
 ## 13. Juridique, licences, modération
 
-> Ceci n'est pas un avis juridique. Budget recommandé : une consultation avocat tech/IA australien avant le
-> lancement payant (CGU, politique de confidentialité, DPA).
+> Ceci n'est pas un avis juridique. Budget recommandé : une consultation avocat tech/IA (dans le pays où sera
+> immatriculée ta société) avant le lancement payant (CGU, politique de confidentialité, DPA). L'Australie
+> est citée ci-dessous comme **un exemple** de marché visé parmi d'autres, pas comme ton pays de référence.
+
+### 13.A Fondateur nomade : la structure juridique d'abord
+
+Voyager partout ne supprime pas les questions de **résidence fiscale** (chaque pays a ses critères : jours
+de présence, foyer, centre des intérêts) ni le risque d'**établissement stable** (une société peut être
+réputée imposable là où son dirigeant travaille réellement). Options couramment utilisées par des
+fondateurs solo internationaux — à valider avec un fiscaliste, car le bon choix dépend de ta nationalité et
+de ta résidence fiscale actuelle :
+
+| Option | Avantages | Points d'attention |
+|---|---|---|
+| **LLC américaine** (p. ex. via Stripe Atlas) | Accès Stripe/banques US, crédibilité auprès des fournisseurs d'API | Déclarations US même sans impôt ; imposition dans ton pays de résidence fiscale |
+| **OÜ estonienne (e-Residency)** | 100 % en ligne, UE, adaptée au nomadisme | Substance et résidence du dirigeant ; TVA UE |
+| **Société en zone franche (Émirats)** | Fiscalité légère, hub entre Europe/Asie/Afrique | Coûts annuels, exigences de substance |
+| **Société en Algérie** | Proximité avec un futur projet GPU local, statut startup | Change et transferts de devises pour payer des API étrangères : obstacle majeur au début |
+
+Dans tous les cas : un **Merchant of Record** (Paddle, Lemon Squeezy…) gère la TVA/GST de tes clients dans
+le monde entier, ce qui supprime la plus grosse charge de conformité pour un solo.
+
+### 13.B Filmer en IRL dans différents pays
+
+Le droit à l'image des passants varie énormément ; ton produit (et toi-même en tant que streamer) doit en
+tenir compte. Exemples à vérifier avant chaque pays :
+
+| Pays/zone | Point sensible |
+|---|---|
+| France, Allemagne, UE en général | Droit à l'image fort (France : art. 9 Code civil ; Allemagne : KUG) + GDPR pour les personnes identifiables |
+| Émirats, Arabie saoudite et plusieurs pays du Golfe | Photographier/filmer une personne sans consentement peut être **pénalement** sanctionné ; publication encore plus risquée |
+| Japon, Corée du Sud | Normes strictes sur la vie privée ; des streamers IRL étrangers ont été poursuivis pour nuisance |
+| États-Unis | Filmer dans l'espace public largement permis ; lois d'État sur la voix/publicité et la biométrie (BIPA) |
+| Chine continentale | Plateformes occidentales bloquées ; règles de synthèse profonde et d'étiquetage |
+
+**Fonction produit qui en découle** : un mode « **anonymiser les passants** » (flou ou remplacement par des
+personnes synthétiques) activable par pays, voire activé par défaut — utile juridiquement et argument de vente
+pour tous les streamers IRL nomades.
 
 ### 13.1 Trois couches de droits à distinguer
 
@@ -869,9 +946,9 @@ personnes synthétiques au lieu de les flouter — utile pour l'IRL dans les jur
 
 ### 13.3 Protection des données et conservation
 
-- **Australie** : Privacy Act 1988 et APPs (l'exemption petites entreprises < 3 M AUD de CA ne s'applique pas si tu fais commerce de données personnelles ; ne compte pas dessus — applique les APPs) ; Online Safety Act 2021 et attentes de base (eSafety) ; **âge minimum réseaux sociaux (moins de 16 ans, depuis déc. 2025)** : si tu ajoutes des fonctions sociales (profils publics, partage, commentaires), vérifier si tu entres dans le champ ; Australian Consumer Law (prix affichés tout compris, pas de *drip pricing*, crédits/abonnements clairs).
+- **Australie (exemple de marché)** : Privacy Act 1988 et APPs (l'exemption petites entreprises < 3 M AUD de CA ne s'applique pas si tu fais commerce de données personnelles ; ne compte pas dessus — applique les APPs) ; Online Safety Act 2021 et attentes de base (eSafety) ; **âge minimum réseaux sociaux (moins de 16 ans, depuis déc. 2025)** : si tu ajoutes des fonctions sociales (profils publics, partage, commentaires), vérifier si tu entres dans le champ ; Australian Consumer Law (prix affichés tout compris, pas de *drip pricing*, crédits/abonnements clairs).
 - **UE/UK** : GDPR (DPA avec chaque fournisseur, transferts hors UE, droit à l'effacement), DSA si fonctions d'hébergement de contenus publics.
-- **Conservation par défaut** : sources et rendus Studio 30 jours (configurable), flux live **non enregistrés** par défaut (seulement métriques), journaux de modération 12 mois, transactions 7 ans (obligations fiscales australiennes). Chiffrement au repos, suppression vérifiable.
+- **Conservation par défaut** : sources et rendus Studio 30 jours (configurable), flux live **non enregistrés** par défaut (seulement métriques), journaux de modération 12 mois, transactions 5–10 ans (selon le pays d'immatriculation de ta société). Chiffrement au repos, suppression vérifiable.
 - **Fournisseurs** : préférer ceux qui offrent « pas d'entraînement sur vos données » et une rétention courte ; documenter dans les manifestes et exposer un mode « confidentiel » qui route uniquement vers eux ou vers tes GPU.
 
 ### 13.4 Architecture de protection et de modération
@@ -991,16 +1068,16 @@ calculé automatiquement par session et comparé à la facture fournisseur.
 3. S3 : voix + agent + graphe de scène + undo/retour original.
 4. S4 : niveau 2 via Lucy API ; worker StreamDiffusion sur RunPod ; benchmark comparatif.
 5. S5 : facturation à la minute (réservations par tranches), plafonds, arrêt auto des GPU.
-6. S6 : test terrain IRL à Sydney (téléphone 5G → cloud → OBS cloud → Twitch test), rapport chiffré.
+6. S6 : test terrain IRL là où tu te trouves (téléphone 4G/5G → région cloud la plus proche → OBS cloud → Twitch test), puis même test en forçant une région éloignée, rapport chiffré.
 
 **Critères de réussite** : niveau 1 ≥ 30 i/s sur un laptop moyen et ≥ 24 i/s sur un téléphone récent ;
-niveau 2 ≥ 20 i/s soutenus 30 min, glass-to-glass p95 ≤ 300 ms en local Sydney (≤ 500 ms via région
-distante) ; commande vocale → effet visible ≤ 1,5 s (preset) / ≤ 20 s (nouveau décor généré) ;
+niveau 2 ≥ 20 i/s soutenus 30 min, glass-to-glass p95 ≤ 300 ms avec une région GPU à < 50 ms de RTT
+(≤ 500 ms via région distante) ; commande vocale → effet visible ≤ 1,5 s (preset) / ≤ 20 s (nouveau décor généré) ;
 « retour à l'original » ≤ 200 ms ; coût/min réel documenté à ±10 %.
 
 **Limitations attendues** : dérive d'identité et scintillement en diffusion temps réel ; remplacement complet
 du décor imparfait en mouvement de caméra rapide (préférer ciel/stylisation en IRL) ; dépendance au réseau
-cellulaire ; GPU australiens rares/chers.
+cellulaire ; GPU rares/chers dans certaines régions (Afrique, Amérique du Sud, Océanie, Moyen-Orient).
 
 **Coûts** : dev identique à A (mutualisé) + GPU de test 50–150 $ ; exploitation : niveau 0/1 quasi gratuit,
 niveau 2 refacturé à la minute.
@@ -1022,7 +1099,10 @@ niveau 2 refacturé à la minute.
 6. **Risque plateformes** : changements d'API Twitch/YouTube, absence d'API TikTok LIVE.
 7. **Risque juridique et réputationnel** : deepfakes, passants filmés, contenus abusifs dans un stream public.
 8. **Économie B2C** : équilibre tardif (§9.6) ; coûts d'acquisition non inclus.
-9. **Latence géographique** : Sydney est loin des grands clusters GPU.
+9. **Latence géographique** : toi et tes utilisateurs êtes partout ; les GPU bon marché sont surtout aux
+   États-Unis et en Europe. ⇒ Routage multi-région obligatoire pour le live, et honnêteté sur les zones mal couvertes.
+12. **Fondateur nomade** : résidence fiscale, structure juridique, banque et accès aux moyens de paiement à
+    clarifier tôt (§13.A) ; double authentification qui ne dépend pas d'un numéro de téléphone (tu changes de SIM).
 10. **Hypothèse infra propre** prématurée : capital immobilisé sur du matériel qui se déprécie vite.
 11. **Sécurité des agents** (dev et produit) : injection, fuites de clés, dépenses incontrôlées.
 
@@ -1034,7 +1114,7 @@ niveau 2 refacturé à la minute.
 |---|---|---|
 | 1–2 | Noyau + spikes | Upload R2 + grand livre testé ; benchmark StreamDiffusion local + Lucy API (latence, i/s, coût) |
 | 3–6 | **Pilote A** | Studio MVP en bêta fermée, 2 moteurs, devis, paiement |
-| 5–10 | **Pilote B** | Live niveaux 0/1 + voix + OBS ; niveau 2 benchmarké ; test IRL Sydney |
+| 5–10 | **Pilote B** | Live niveaux 0/1 + voix + OBS ; niveau 2 benchmarké ; test IRL dans 2 régions |
 | 8–12 | Premier revenu B2B | 1 offre « miroir IA événement » **ou** 1 pilote immobilier payé ; rapport marge réelle |
 | 12 | Décision | Continuer/pivoter sur la base : marge réelle, rétention, coût/min, retours clients |
 
@@ -1087,7 +1167,7 @@ blogs ou communiqués et doivent être recoupées avec la documentation officiel
 - TikTok LIVE (absence d'API officielle, fournisseur non officiel) : https://tik.tools/terms
 - À consulter directement : YouTube Live Streaming API / Data API quotas (developers.google.com/youtube), Kick Developer docs (docs.kick.com), Twitch EventSub/Helix (dev.twitch.tv/docs).
 
-**Juridique (Australie)**
+**Juridique (exemple : Australie)**
 - Lois deepfake : https://www.recordinglaw.com/world-laws/world-data-privacy-laws/australia-data-privacy-laws/deepfake-and-intimate-image-laws-australia/ ; https://insights1.uca.org.au/articles/australian-government-passes-legislation-targeting-deep-fake-technology/
 - Projet Pocock : https://www.davidpocock.com.au/new_bill_to_protect_identity_in_deepfake_future ; https://thenightly.com.au/australia/australian-ai-deepfake-victims-could-soon-sue-over-stolen-faces-and-voices-under-new-laws-c-20777644
 - Queensland : https://statements.qld.gov.au/statements/104882
