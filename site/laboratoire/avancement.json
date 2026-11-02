@@ -1,0 +1,127 @@
+{
+  "titre": "Le Laboratoire",
+  "domaine": "labotory.site",
+  "intention": "Projets menés avec gratitude envers Allah Azza wa Jal : utiles, honnêtes, sans promesse de gain.",
+  "mis_a_jour": "2026-11-02",
+  "maintenant": {
+    "focus": "AI LIVE — rendre le live IA utilisable de bout en bout par le fondateur, premier utilisateur.",
+    "dernier_fait": "Serveur Oracle relié au domaine par un tunnel Cloudflare ; relais vidéo TURN installé et joignable depuis Internet (TCP vérifié).",
+    "prochaines_etapes_claude": [
+      "Construire et publier l'image Docker du moteur GPU (StreamDiffusion) pour la location à la demande",
+      "Mettre la console AI LIVE en ligne sur live.labotory.site, protégée par mot de passe",
+      "Premier live réel : mesurer images/seconde, latence et coût par minute"
+    ],
+    "en_attente_de_toi": [
+      "Créer la clé du relais Cloudflare Realtime TURN (tableau de bord Cloudflare → Realtime → TURN)",
+      "Créer un compte daydream.live (crédits gratuits) pour le moteur de référence",
+      "Clés Vast.ai et/ou RunPod avec quelques dollars, quand tu veux louer un GPU",
+      "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
+    ]
+  },
+  "projets": [
+    {
+      "nom": "AI LIVE",
+      "resume": "Se transformer en direct pendant un stream (personnage, décor, style) par la voix, avec sortie vers OBS.",
+      "etat": "en_cours",
+      "avancement": 60,
+      "fait": [
+        "Console web : caméra, voix en français, personnages, décors, styles, intensité, retour à l'original",
+        "Page de sortie pour OBS (transparente au retour à l'original)",
+        "Moteur Daydream (API) et moteur auto-hébergé StreamDiffusion, même protocole",
+        "Location de GPU à la demande (Vast.ai, RunPod) avec prix par modèle et libération automatique",
+        "Relais vidéo : Cloudflare TURN (principal) et serveur Oracle (secours, installé)",
+        "Personnalités publiques uniquement en caricature avec bandeau PARODIE"
+      ],
+      "pas_encore_teste": [
+        "Appels réels à Daydream, Vast.ai, RunPod",
+        "Moteur StreamDiffusion sur un vrai GPU",
+        "UDP du relais Oracle"
+      ],
+      "tests": "33 tests automatiques + parcours vérifié dans un navigateur"
+    },
+    {
+      "nom": "AI STUDIO",
+      "resume": "Modifier une vidéo par une phrase, avec prix affiché avant exécution et versions non destructives.",
+      "etat": "en_cours",
+      "avancement": 35,
+      "fait": [
+        "Import vidéo, devis Économique / Qualité, crédits réservés puis débités au coût réel",
+        "Modification d'une plage seulement, cache, remboursement automatique en cas d'échec",
+        "Montage local (vertical, noir et blanc, ciné…) et simulateur de moteur génératif"
+      ],
+      "pas_encore_teste": [
+        "Fournisseurs génératifs réels (Runway, fal.ai)",
+        "Paiement réel"
+      ],
+      "tests": "24 tests automatiques + parcours vérifié dans un navigateur"
+    },
+    {
+      "nom": "Infrastructure",
+      "resume": "Serveur Oracle, domaine Cloudflare, tunnel, relais vidéo.",
+      "etat": "en_cours",
+      "avancement": 70,
+      "fait": [
+        "Tunnel Cloudflare ssh.labotory.site (aucun port SSH exposé en plus)",
+        "Relais turn.labotory.site installé, identifiants temporaires",
+        "Boucle de redirection du domaine corrigée",
+        "Pare-feu Oracle ouvert pour le relais (vérifié depuis Internet)"
+      ],
+      "pas_encore_teste": ["Relais chiffré TLS (port 5349) non activé"],
+      "tests": "vérifications réelles depuis Internet"
+    },
+    {
+      "nom": "Analyse stratégique",
+      "resume": "Étude complète : marchés, modèles, architectures, coûts, juridique, opportunités.",
+      "etat": "termine",
+      "avancement": 100,
+      "fait": ["Analyse en 17 sections", "Simulation économique", "Plan des deux chemins (API ou GPU loué)"],
+      "pas_encore_teste": [],
+      "tests": "—"
+    },
+    {
+      "nom": "Laboratoire de trading",
+      "resume": "Rejoue des carnets d'ordres synthétiques pour comprendre pourquoi un écart de prix n'est pas forcément un gain.",
+      "etat": "en_cours",
+      "avancement": null,
+      "fait": ["Mission LAB-001 (simulation hors ligne)"],
+      "pas_encore_teste": [],
+      "tests": "simulation synthétique, aucun argent réel"
+    },
+    {
+      "nom": "Atelier x402",
+      "resume": "Découvre et compare des services payables via x402, hors ligne, sans rien acheter.",
+      "etat": "en_revue",
+      "avancement": null,
+      "fait": ["Missions X402-001 et X402-002"],
+      "pas_encore_teste": [],
+      "tests": "fixtures synthétiques"
+    },
+    {
+      "nom": "Bot vendeur x402",
+      "resume": "Service utile payé à la requête sur Cloudflare Workers, d'abord en réseau de test.",
+      "etat": "en_attente",
+      "avancement": null,
+      "fait": [],
+      "pas_encore_teste": [],
+      "tests": "—"
+    }
+  ],
+  "infrastructure": [
+    {"element": "Page du laboratoire (labotory.site)", "etat": "ok", "note": "hébergée par Cloudflare, indépendante du serveur"},
+    {"element": "Accès de Claude au serveur (ssh.labotory.site)", "etat": "ok", "note": "tunnel Cloudflare"},
+    {"element": "Relais vidéo du serveur (turn.labotory.site)", "etat": "ok", "note": "TCP vérifié depuis Internet ; UDP à confirmer"},
+    {"element": "Relais vidéo Cloudflare", "etat": "attente", "note": "clé à créer par le fondateur"},
+    {"element": "Image du moteur GPU", "etat": "attente", "note": "à construire"},
+    {"element": "Console AI LIVE en ligne", "etat": "attente", "note": "prévu sur live.labotory.site"}
+  ],
+  "journal": [
+    {"date": "2026-11-02", "texte": "Page « Le Laboratoire » publiée sur labotory.site."},
+    {"date": "2026-11-02", "texte": "Relais vidéo installé sur le serveur Oracle et vérifié depuis Internet."},
+    {"date": "2026-11-02", "texte": "Serveur relié au domaine par un tunnel Cloudflare ; redirection du domaine réparée."},
+    {"date": "2026-11-02", "texte": "Location de GPU à la demande (Vast.ai, RunPod) avec prix par modèle."},
+    {"date": "2026-11-02", "texte": "Pilote AI LIVE : console, voix, moteurs Daydream et StreamDiffusion, sortie OBS."},
+    {"date": "2026-11-02", "texte": "Pilote AI STUDIO, lot 1 : devis, crédits, édition par plage, interface."},
+    {"date": "2026-11-02", "texte": "Analyse stratégique AI LIVE / AI STUDIO publiée dans le dépôt."},
+    {"date": "2026-10-30", "texte": "Page de suivi publique décidée ; laboratoire de trading et atelier x402."}
+  ]
+}

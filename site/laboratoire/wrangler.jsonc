@@ -1,0 +1,10 @@
+// « Le Laboratoire » — page publique sur labotory.site (Worker + KV).
+// Déployé par Claude via l'API Cloudflare ; ce fichier permet aussi : npx wrangler deploy
+{
+  "name": "laboratoire",
+  "main": "./worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "kv_namespaces": [{ "binding": "LABO", "id": "69ee26ba2c934e948764d3d2772e36cd" }],
+  "routes": [{ "pattern": "labotory.site", "custom_domain": true }]
+}
