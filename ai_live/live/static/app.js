@@ -32,7 +32,7 @@ async function loadCatalog() {
 }
 
 function enable(on) {
-  ["#stop", "#original", "#resume", "#mic", "#cmd", "#send", "#copy", "#strength"].forEach((s) => ($(s).disabled = !on));
+  ["#stop", "#original", "#resume", "#mic", "#rec", "#cmd", "#send", "#copy", "#strength"].forEach((s) => ($(s).disabled = !on));
   document.querySelectorAll(".chip").forEach((c) => (c.disabled = !on));
   $("#start").disabled = on; $("#engine").disabled = on;
 }
@@ -78,11 +78,29 @@ $("#start").addEventListener("click", async () => {
     $("#timer").classList.add("live");
     fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`));
     st.poll = setInterval(async () => { try { render(await api(`/api/sessions/${s.id}`)); } catch {} }, 3000);
-    say("En direct. Parle ou clique sur un personnage.");
+    st.recorder = makeRecorder($("#ai"), null);
+    say("Prêt (mode test). Parle ou clique sur un personnage ; « Enregistrer un essai » garde une vidéo sur ton ordinateur.");
   } catch (e) { say("Échec : " + e.message, true); teardown(); }
 });
 
+$("#rec").addEventListener("click", async () => {
+  if (!st.recorder) return;
+  if (st.recorder.recording) {
+    clearInterval(st.recTimer);
+    const r = await st.recorder.stop();
+    $("#rec").textContent = "⏺ Enregistrer un essai"; $("#rec").classList.remove("rec-on");
+    if (r) say(`Essai enregistré : ${r.name} (${(r.size / 1e6).toFixed(1)} Mo)`);
+    return;
+  }
+  try {
+    st.recorder.start(); $("#rec").classList.add("rec-on");
+    st.recTimer = setInterval(() => ($("#rec").textContent = `■ Arrêter l'enregistrement (${st.recorder.seconds} s)`), 500);
+  } catch (e) { say(e.message, true); }
+});
+
 function teardown() {
+  if (st.recorder && st.recorder.recording) st.recorder.stop();
+  clearInterval(st.recTimer);
   clearInterval(st.timer); clearInterval(st.poll);
   try { st.pubPc && st.pubPc.close(); st.viewPc && st.viewPc.close(); } catch {}
   st.cam && st.cam.getTracks().forEach((t) => t.stop());

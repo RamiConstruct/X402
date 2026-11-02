@@ -4,19 +4,17 @@
   "intention": "Projets menés avec gratitude envers Allah Azza wa Jal : utiles, honnêtes, sans promesse de gain.",
   "mis_a_jour": "2026-11-02",
   "maintenant": {
-    "focus": "AI LIVE — rendre le live IA utilisable de bout en bout par le fondateur, premier utilisateur.",
-    "dernier_fait": "AI STUDIO en ligne sur studio.labotory.site ; image du moteur GPU construite et publiée automatiquement.",
+    "focus": "Phase de test — faire fonctionner la transformation IA sans diffusion : caméra → IA → aperçu et essais enregistrés. La diffusion vers les plateformes viendra ensuite.",
+    "dernier_fait": "Mode test par défaut (rien n'est publié) et bouton « Enregistrer un essai » sur ordinateur et téléphone ; menu flottant sur toutes les pages.",
     "prochaines_etapes_claude": [
-      "Brancher Daydream dès que le compte existe, pour un premier vrai rendu IA",
-      "Premier live réel : mesurer images/seconde, latence et coût par minute",
-      "Tester l'image GPU sur une machine louée dès qu'une clé Vast.ai ou RunPod est disponible"
+      "Brancher un vrai moteur IA pour les essais (Daydream dès que le compte existe, ou GPU loué)",
+      "Mesurer images/seconde, latence et coût par minute pendant les essais",
+      "Améliorer la qualité de transformation à partir de tes essais enregistrés"
     ],
     "en_attente_de_toi": [
-      "Tester live.labotory.site/mobile.html sur ton téléphone (aperçu d'abord, puis diffusion)",
-      "Rendre public le paquet x402-live-worker sur GitHub (Packages → Package settings → Change visibility)",
-      "Récupérer une clé de stream YouTube, Twitch, Kick ou Facebook (aucun minimum d'abonnés) pour le premier vrai live",
-      "Créer un compte daydream.live (crédits gratuits) pour le moteur de référence",
-      "Créer la clé du relais Cloudflare Realtime TURN",
+      "Faire un premier essai sur live.labotory.site/mobile.html et enregistrer une courte vidéo",
+      "Créer un compte daydream.live (crédits gratuits) pour avoir un vrai rendu IA pendant les essais",
+      "Rendre public le paquet x402-live-worker sur GitHub (pour la location de GPU)",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
     ]
   },
@@ -37,7 +35,8 @@
         "Diffusion directe RTMP/RTMPS vers les plateformes depuis le téléphone, son compris, format vertical",
         "Page téléphone plein écran : bouton Original/IA, voix, personnages, écran maintenu allumé",
         "Plateformes sans minimum d'abonnés en premier (YouTube, Twitch, Kick, Facebook), adresses chiffrées préremplies",
-        "Multidiffusion vers 3 plateformes simultanées (un encodeur par plateforme : une panne n'arrête pas les autres)"
+        "Multidiffusion vers 3 plateformes simultanées (un encodeur par plateforme : une panne n'arrête pas les autres)",
+        "Phase de test : mode sans diffusion par défaut, enregistrement d'essais sur l'appareil (vidéo + son)"
       ],
       "pas_encore_teste": [
         "Diffusion vers une vraie plateforme (TikTok, YouTube…)",
@@ -168,6 +167,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Phase de test : mode sans diffusion par défaut, enregistrement d'essais ; menu flottant."
+    },
     {
       "date": "2026-11-02",
       "texte": "Menu de navigation commun à toutes les pages du laboratoire."

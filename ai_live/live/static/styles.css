@@ -50,3 +50,5 @@ input[type=range] { width:100%; }
 main > *, .stage, .controls, .field { min-width: 0; }
 select, input { max-width: 100%; }
 .row > .field { flex: 1 1 160px; }
+.phase{background:#12302d;border-bottom:1px solid #1f5c55;color:#cdeee9;padding:8px 18px;font-size:14px}
+.btn.rec-on{background:#b91c1c;border-color:#b91c1c;color:#fff}

@@ -65,3 +65,46 @@ function fpsMeter(videoEl, onFps) {
   if (videoEl.requestVideoFrameCallback) videoEl.requestVideoFrameCallback(tick);
   return setInterval(() => { onFps(n); n = 0; }, 1000);
 }
+
+// ------------------------------------------------------------------ enregistrement d'essai (phase de test)
+// Enregistre la sortie IA (+ le son du micro) sur l'appareil, sans rien publier.
+function pickMime() {
+  const c = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4;codecs=avc1,mp4a", "video/mp4"];
+  return c.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || "";
+}
+function makeRecorder(videoEl, micTrack) {
+  let rec = null, chunks = [], t0 = 0;
+  return {
+    get recording() { return !!rec && rec.state === "recording"; },
+    get seconds() { return rec ? Math.floor((Date.now() - t0) / 1000) : 0; },
+    start() {
+      const src = videoEl.srcObject;
+      const v = src && src.getVideoTracks()[0];
+      if (!v) throw new Error("pas encore d'image IA à enregistrer");
+      if (!window.MediaRecorder) throw new Error("enregistrement non pris en charge par ce navigateur");
+      const tracks = [v, ...(micTrack ? [micTrack] : [])];
+      const mime = pickMime();
+      rec = new MediaRecorder(new MediaStream(tracks), mime ? { mimeType: mime, videoBitsPerSecond: 4_000_000 } : undefined);
+      chunks = []; t0 = Date.now();
+      rec.ondataavailable = (e) => e.data && e.data.size && chunks.push(e.data);
+      rec.start(1000);
+    },
+    stop() {
+      return new Promise((resolve) => {
+        if (!rec) return resolve(null);
+        rec.onstop = () => {
+          const type = rec.mimeType || "video/webm";
+          const blob = new Blob(chunks, { type });
+          const ext = type.includes("mp4") ? "mp4" : "webm";
+          const d = new Date(), p = (n) => String(n).padStart(2, "0");
+          const name = `essai-ai-live-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${ext}`;
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+          setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 5000);
+          rec = null; resolve({ name, size: blob.size });
+        };
+        rec.stop();
+      });
+    },
+  };
+}

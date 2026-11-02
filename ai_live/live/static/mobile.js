@@ -112,20 +112,21 @@ $("#go").addEventListener("click", async () => {
     if (dests.length) body.broadcast = dests.map((d) => ({ platform: d.platform, server_url: d.server, stream_key: d.key, format: $("#format").value }));
     const platform = dests.map((d) => d.platform).join(" + ");
     st.session = await api("/api/sessions", { method: "POST", body: JSON.stringify(body) });
-    $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden"); document.querySelector(".labnav")?.classList.add("hidden");
+    $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden"); document.querySelector(".labfab")?.classList.add("hidden");
     $("#cam").srcObject = st.cam;
     $("#state").textContent = "Connexion au moteur…";
     st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H());
     $("#state").textContent = "Chargement de l'IA…";
     st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
-    $("#state").textContent = platform ? "● EN DIRECT" : "Aperçu";
+    $("#state").textContent = platform ? "● EN DIRECT" : "Test (non publié)";
     $("#state").classList.toggle("rec", !!platform);
     st.t0 = Date.now();
     st.timers.push(setInterval(tick, 1000));
     st.timers.push(fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`)));
     st.timers.push(setInterval(refresh, 5000));
     try { st.wake = await navigator.wakeLock.request("screen"); } catch {}
-    say(platform ? `Diffusion vers ${platform} lancée` : "Aperçu lancé (pas de diffusion)");
+    st.recorder = makeRecorder($("#ai"), st.cam.getAudioTracks()[0]);
+    say(platform ? `Diffusion vers ${platform} lancée` : "Mode test : rien n'est publié. « ⏺ Essai » pour enregistrer.");
   } catch (e) {
     $("#err").textContent = "Échec : " + e.message; teardown(false);
   }
@@ -173,6 +174,23 @@ $("#mic").addEventListener("click", () => {
   st.rec.start(); st.listening = true; $("#mic").classList.add("on"); say("Je t'écoute : « transforme-moi en chevalier »…");
 });
 
+// ------------------------------------------------------------------ enregistrement d'essai
+$("#rec").addEventListener("click", async () => {
+  if (!st.recorder) return;
+  if (st.recorder.recording) {
+    clearInterval(st.recTimer);
+    const r = await st.recorder.stop();
+    $("#rec").textContent = "⏺ Essai"; $("#rec").classList.remove("recording"); $("#recpill").classList.add("hidden");
+    if (r) say(`Essai enregistré : ${r.name} (${(r.size / 1e6).toFixed(1)} Mo)`);
+    return;
+  }
+  try {
+    st.recorder.start();
+    $("#rec").textContent = "■ Stop"; $("#rec").classList.add("recording"); $("#recpill").classList.remove("hidden");
+    st.recTimer = setInterval(() => { const s = st.recorder.seconds; $("#recpill").textContent = `● ENR ${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }, 500);
+  } catch (e) { say(e.message); }
+});
+
 // ------------------------------------------------------------------ fin
 $("#stop").addEventListener("click", async () => {
   if (!confirm("Terminer le live ?")) return;
@@ -180,11 +198,13 @@ $("#stop").addEventListener("click", async () => {
   teardown(true);
 });
 function teardown(back) {
+  if (st.recorder && st.recorder.recording) st.recorder.stop();
+  clearInterval(st.recTimer); $("#recpill")?.classList.add("hidden"); $("#rec").textContent = "⏺ Essai"; $("#rec").classList.remove("recording");
   st.timers.forEach((t) => clearInterval(t)); st.timers = [];
   try { st.pub && st.pub.close(); st.view && st.view.close(); } catch {}
   st.cam && st.cam.getTracks().forEach((t) => t.stop());
   st.listening = false; try { st.rec && st.rec.stop(); } catch {}
   try { st.wake && st.wake.release(); } catch {}
-  if (back) { $("#live").classList.add("hidden"); $("#setup").classList.remove("hidden"); document.querySelector(".labnav")?.classList.remove("hidden"); }
+  if (back) { $("#live").classList.add("hidden"); $("#setup").classList.remove("hidden"); document.querySelector(".labfab")?.classList.remove("hidden"); }
 }
 init();
