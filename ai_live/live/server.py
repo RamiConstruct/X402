@@ -1,0 +1,263 @@
+"""Serveur console AI LIVE.
+
+* Garde les clés API côté serveur (le navigateur ne les voit jamais).
+* Relaie les échanges SDP WHIP/WHEP vers le moteur choisi (Daydream ou worker auto-hébergé) ;
+  la vidéo elle-même circule directement entre le navigateur et le moteur.
+* Tient l'état de scène, applique les commandes vocales, mesure la durée et le coût.
+* Fournit une page « sortie » pour OBS, protégée par une clé aléatoire (pas de connexion requise).
+"""
+from __future__ import annotations
+
+import asyncio
+import os
+import secrets
+import threading
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from fastapi import Body, FastAPI, Header, HTTPException, Request, Response
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from .commands import apply_command, set_preset
+from .engine import EngineConfig, EngineError, StreamEngine
+from .scene import CHARACTERS, DECORS, STYLES, SceneHistory
+
+STATIC = Path(__file__).parent / "static"
+
+
+def engines_from_env() -> dict[str, EngineConfig]:
+    def f(name: str) -> float | None:
+        v = os.environ.get(name)
+        return float(v) if v else None
+    return {
+        "daydream": EngineConfig(
+            name="Daydream (API hébergée)", base_url=os.environ.get("DAYDREAM_BASE_URL", "https://api.daydream.live"),
+            api_key=os.environ.get("DAYDREAM_API_KEY", ""), model_id=os.environ.get("DAYDREAM_MODEL", "stabilityai/sdxl-turbo"),
+            usd_per_minute=f("DAYDREAM_USD_PER_MIN")),
+        "selfhosted": EngineConfig(
+            name="Mon GPU (StreamDiffusion auto-hébergé)", base_url=os.environ.get("SELFHOST_URL", "http://127.0.0.1:8890"),
+            api_key=os.environ.get("SELFHOST_TOKEN", "local"), model_id=os.environ.get("SELFHOST_MODEL", "stabilityai/sd-turbo"),
+            usd_per_minute=f("SELFHOST_USD_PER_MIN"), use_controlnets=os.environ.get("SELFHOST_CONTROLNETS", "0") == "1"),
+    }
+
+
+@dataclass
+class Session:
+    id: str
+    out_key: str
+    engine_key: str
+    stream_id: str
+    whip_url: str
+    history: SceneHistory
+    whep_url: str | None = None
+    created: float = field(default_factory=time.time)
+    connected_at: float | None = None
+    ended_at: float | None = None
+    end_reason: str | None = None
+    log: list = field(default_factory=list)
+
+    def minutes(self) -> float:
+        if not self.connected_at:
+            return 0.0
+        return ((self.ended_at or time.time()) - self.connected_at) / 60
+
+    def note(self, msg: str) -> None:
+        self.log.append({"at": time.time(), "message": msg})
+        self.log = self.log[-100:]
+
+
+class Cmd(BaseModel):
+    text: str
+
+
+class Preset(BaseModel):
+    kind: str
+    key: str | None = None
+
+
+class Strength(BaseModel):
+    value: int
+
+
+def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=StreamEngine,
+               access_token: str | None = None, max_minutes: float | None = None) -> FastAPI:
+    configs = engines or engines_from_env()
+    access_token = access_token if access_token is not None else os.environ.get("LIVE_ACCESS_TOKEN", "")
+    max_minutes = max_minutes if max_minutes is not None else float(os.environ.get("LIVE_MAX_SESSION_MIN", "60"))
+    clients = {k: engine_factory(c) for k, c in configs.items()}
+    sessions: dict[str, Session] = {}
+    by_out: dict[str, Session] = {}
+    lock = threading.Lock()
+    app = FastAPI(title="AI LIVE")
+
+    def guard(x_live_token: str) -> None:
+        if access_token and not secrets.compare_digest(x_live_token, access_token):
+            raise HTTPException(401, "jeton d'accès requis")
+
+    def get(sid: str) -> Session:
+        s = sessions.get(sid)
+        if not s:
+            raise HTTPException(404, "session introuvable")
+        return s
+
+    def enforce_cap(s: Session) -> None:
+        if s.ended_at is None and s.minutes() > max_minutes:
+            end(s, f"durée maximale atteinte ({max_minutes:.0f} min)")
+
+    def end(s: Session, reason: str) -> None:
+        if s.ended_at is None:
+            s.ended_at, s.end_reason = time.time(), reason
+            clients[s.engine_key].delete(s.stream_id)
+            s.note(f"session terminée : {reason}")
+
+    def view(s: Session) -> dict:
+        cfg = configs[s.engine_key]
+        mins = s.minutes()
+        return {"id": s.id, "engine": s.engine_key, "engine_name": cfg.name, "model": cfg.model_id,
+                "out_url": f"/output.html?k={s.out_key}", "connected": s.connected_at is not None,
+                "ended": s.ended_at is not None, "end_reason": s.end_reason, "minutes": round(mins, 2),
+                "usd_per_minute": cfg.usd_per_minute,
+                "estimated_cost_usd": round(mins * cfg.usd_per_minute, 4) if cfg.usd_per_minute is not None else None,
+                "max_minutes": max_minutes, "scene": s.history.current.describe(), "log": s.log[-20:]}
+
+    def push(s: Session) -> None:
+        if s.ended_at is not None:
+            raise HTTPException(410, "session terminée")
+        try:
+            clients[s.engine_key].update(s.stream_id, s.history.current)
+        except EngineError as e:
+            s.note(f"mise à jour moteur échouée : {e}")
+            raise HTTPException(502, str(e)) from e
+
+    @app.get("/api/catalog")
+    def catalog():
+        pick = lambda c: [{"key": k, "label": v["label"]} for k, v in c.items()]  # noqa: E731
+        return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
+                "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
+                             "usd_per_minute": c.usd_per_minute} for k, c in configs.items()],
+                "access_required": bool(access_token)}
+
+    @app.post("/api/sessions")
+    def create(body: dict = Body(default={}), x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        key = body.get("engine", "daydream")
+        if key not in configs:
+            raise HTTPException(400, "moteur inconnu")
+        history = SceneHistory()
+        try:
+            data = clients[key].create(history.current)
+        except EngineError as e:
+            raise HTTPException(502, str(e)) from e
+        s = Session(id="ses_" + secrets.token_hex(8), out_key=secrets.token_urlsafe(16), engine_key=key,
+                    stream_id=data["id"], whip_url=data["whip_url"], history=history)
+        s.note(f"flux créé sur {configs[key].name}")
+        with lock:
+            sessions[s.id], by_out[s.out_key] = s, s
+        return view(s)
+
+    @app.post("/api/sessions/{sid}/whip")
+    async def whip(sid: str, request: Request, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        offer = (await request.body()).decode()
+        try:
+            answer, whep_url = await asyncio.to_thread(clients[s.engine_key].whip, s.whip_url, offer)
+        except EngineError as e:
+            raise HTTPException(502, str(e)) from e
+        s.whep_url = whep_url or s.whep_url
+        s.connected_at = s.connected_at or time.time()
+        s.note("caméra connectée au moteur")
+        return Response(answer, media_type="application/sdp")
+
+    async def _whep(s: Session, offer: str) -> Response:
+        if not s.whep_url:
+            raise HTTPException(409, "la caméra n'est pas encore connectée")
+        try:
+            answer = await asyncio.to_thread(clients[s.engine_key].whep, s.whep_url, offer)
+            return Response(answer, media_type="application/sdp")
+        except EngineError as e:
+            raise HTTPException(502, str(e)) from e
+
+    @app.post("/api/sessions/{sid}/whep")
+    async def whep(sid: str, request: Request, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        return await _whep(get(sid), (await request.body()).decode())
+
+    @app.get("/api/sessions/{sid}")
+    def state(sid: str, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        enforce_cap(s)
+        return view(s)
+
+    @app.post("/api/sessions/{sid}/command")
+    def command(sid: str, c: Cmd, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        before = s.history.current.prompt(), s.history.current.t_index_list()
+        r = apply_command(s.history, c.text)
+        s.note(f"« {c.text[:80]} » → {r.message}")
+        if r.changed and (s.history.current.prompt(), s.history.current.t_index_list()) != before:
+            push(s)
+        return {"ok": r.ok, "message": r.message, "blocked": r.blocked, "session": view(s)}
+
+    @app.post("/api/sessions/{sid}/preset")
+    def preset(sid: str, p: Preset, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        r = set_preset(s.history, p.kind, p.key)
+        if not r.ok:
+            raise HTTPException(400, r.message)
+        push(s)
+        return view(s)
+
+    @app.post("/api/sessions/{sid}/strength")
+    def strength(sid: str, v: Strength, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        new = s.history.edit()
+        new.strength = max(1, min(5, v.value))
+        s.history.apply(new)
+        push(s)
+        return view(s)
+
+    @app.post("/api/sessions/{sid}/bypass")
+    def bypass(sid: str, body: dict = Body(...), x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        new = s.history.edit()
+        new.bypass = bool(body.get("on"))
+        s.history.apply(new)  # aucune requête moteur : la bascule est instantanée côté sortie
+        return view(s)
+
+    @app.delete("/api/sessions/{sid}")
+    def stop(sid: str, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        s = get(sid)
+        end(s, "arrêtée par l'utilisateur")
+        return view(s)
+
+    # --- Page de sortie OBS (clé aléatoire, sans jeton) ---
+    def out(key: str) -> Session:
+        s = by_out.get(key)
+        if not s:
+            raise HTTPException(404, "sortie introuvable")
+        return s
+
+    @app.get("/api/out/{key}")
+    def out_state(key: str):
+        s = out(key)
+        enforce_cap(s)
+        sc = s.history.current
+        return {"bypass": sc.bypass, "parody": sc.parody, "parody_of": sc.parody_of,
+                "connected": s.whep_url is not None, "ended": s.ended_at is not None}
+
+    @app.post("/api/out/{key}/whep")
+    async def out_whep(key: str, request: Request):
+        return await _whep(out(key), (await request.body()).decode())
+
+    app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
+    app.state.sessions = sessions
+    return app

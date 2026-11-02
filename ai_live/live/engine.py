@@ -1,0 +1,128 @@
+"""Client du protocole « flux temps réel » de Daydream.
+
+Protocole (vérifié dans le SDK TypeScript officiel `daydreamlive/daydream-typescript`
+et le plugin TouchDesigner officiel `daydreamlive/daydream-touchdesigner`) :
+
+  POST  {base}/v1/streams          {"pipeline": "streamdiffusion", "params": {"model_id": ..., ...}}
+        → {"id", "whip_url", "output_playback_id", ...}
+  POST  {whip_url}                 corps = offre SDP, en-tête Authorization: Bearer <clé>
+        → réponse SDP ; en-tête « Livepeer-Playback-Url » = URL WHEP de la sortie
+  POST  {whep_url}                 offre SDP de lecture → réponse SDP (réessayer tant que la sortie n'est pas prête)
+  PATCH {base}/v1/streams/{id}     {"pipeline", "params": {"model_id", <paramètres modifiés>}}
+
+Le worker auto-hébergé (`live.worker`) implémente le MÊME protocole : passer de
+l'API Daydream à ton propre GPU = changer `base_url`, la clé et le modèle.
+"""
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+
+import httpx
+
+from .scene import DEFAULT_NEGATIVE, Scene
+
+# ControlNets validés par Daydream pour chaque modèle (repris du plugin officiel) :
+# ils conservent ta pose et la profondeur de la scène pendant la transformation.
+CONTROLNETS = {
+    "stabilityai/sdxl-turbo": [
+        {"model_id": "xinsir/controlnet-depth-sdxl-1.0", "preprocessor": "depth_tensorrt", "conditioning_scale": 0.45},
+        {"model_id": "xinsir/controlnet-tile-sdxl-1.0", "preprocessor": "feedback", "conditioning_scale": 0.21},
+    ],
+    "stabilityai/sd-turbo": [
+        {"model_id": "thibaud/controlnet-sd21-depth-diffusers", "preprocessor": "depth_tensorrt", "conditioning_scale": 0.45},
+        {"model_id": "thibaud/controlnet-sd21-openpose-diffusers", "preprocessor": "openpose", "conditioning_scale": 0.4},
+    ],
+}
+
+
+class EngineError(RuntimeError):
+    pass
+
+
+@dataclass
+class EngineConfig:
+    name: str
+    base_url: str
+    api_key: str
+    model_id: str = "stabilityai/sdxl-turbo"
+    pipeline: str = "streamdiffusion"
+    width: int = 512
+    height: int = 512
+    use_controlnets: bool = True
+    usd_per_minute: float | None = None   # tarif à renseigner après vérification (None = inconnu)
+
+
+def scene_params(scene: Scene, cfg: EngineConfig, *, initial: bool) -> dict:
+    p: dict = {
+        "model_id": cfg.model_id,
+        "prompt": scene.prompt(),
+        "negative_prompt": DEFAULT_NEGATIVE + (", photorealistic, photo" if scene.parody else ""),
+        "t_index_list": scene.t_index_list(),
+        "guidance_scale": 1.0,
+        "delta": 0.7,
+        "do_add_noise": True,
+    }
+    if initial:
+        p.update(width=cfg.width, height=cfg.height, num_inference_steps=50)
+        cns = CONTROLNETS.get(cfg.model_id) if cfg.use_controlnets else None
+        if cns:
+            p["controlnets"] = [{**c, "preprocessor_params": {}, "enabled": True} for c in cns]
+    return p
+
+
+class StreamEngine:
+    def __init__(self, cfg: EngineConfig, client: httpx.Client | None = None, sleep=time.sleep) -> None:
+        self.cfg = cfg
+        self.client = client or httpx.Client(timeout=30)
+        self.sleep = sleep
+
+    def _headers(self, json_body: bool = True) -> dict:
+        if not self.cfg.api_key:
+            raise EngineError(f"clé API manquante pour le moteur « {self.cfg.name} »")
+        h = {"Authorization": f"Bearer {self.cfg.api_key}"}
+        if json_body:
+            h["Content-Type"] = "application/json"
+        return h
+
+    def create(self, scene: Scene) -> dict:
+        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=True)}
+        r = self.client.post(f"{self.cfg.base_url}/v1/streams", json=body, headers=self._headers())
+        if r.status_code >= 400:
+            raise EngineError(f"création du flux refusée (HTTP {r.status_code}) : {r.text[:300]}")
+        data = r.json()
+        if not data.get("id") or not data.get("whip_url"):
+            raise EngineError("réponse de création incomplète (id / whip_url)")
+        return data
+
+    def update(self, stream_id: str, scene: Scene) -> None:
+        body = {"pipeline": self.cfg.pipeline, "params": scene_params(scene, self.cfg, initial=False)}
+        r = self.client.patch(f"{self.cfg.base_url}/v1/streams/{stream_id}", json=body, headers=self._headers())
+        if r.status_code >= 400:
+            raise EngineError(f"mise à jour refusée (HTTP {r.status_code}) : {r.text[:300]}")
+
+    def whip(self, whip_url: str, offer_sdp: str) -> tuple[str, str | None]:
+        h = self._headers(json_body=False)
+        h["Content-Type"] = "application/sdp"
+        r = self.client.post(whip_url, content=offer_sdp.encode(), headers=h, follow_redirects=True)
+        if r.status_code >= 400:
+            raise EngineError(f"connexion WHIP refusée (HTTP {r.status_code}) : {r.text[:300]}")
+        return r.text, r.headers.get("livepeer-playback-url")
+
+    def whep(self, whep_url: str, offer_sdp: str, retries: int = 40, delay_s: float = 0.25) -> str:
+        last = ""
+        for _ in range(retries):
+            r = self.client.post(whep_url, content=offer_sdp.encode(), headers={"Content-Type": "application/sdp"},
+                                 follow_redirects=True)
+            if r.status_code < 300 and r.text.startswith("v="):
+                return r.text
+            last = f"HTTP {r.status_code}"
+            self.sleep(delay_s)  # la sortie IA met quelques secondes à démarrer
+        raise EngineError(f"sortie IA indisponible ({last})")
+
+    def delete(self, stream_id: str) -> None:
+        try:
+            # Contrat du SDK officiel : DELETE /v1/streams?id=<id>
+            self.client.delete(f"{self.cfg.base_url}/v1/streams", params={"id": stream_id}, headers=self._headers())
+        except httpx.HTTPError:
+            pass
