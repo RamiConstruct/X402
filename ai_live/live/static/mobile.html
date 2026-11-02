@@ -45,13 +45,19 @@ input,select{width:100%;font:inherit;color:var(--text);background:#0f131a;border
   <label>Diffuser vers</label>
   <select id="platform">
     <option value="">Aperçu seulement (pas de diffusion)</option>
-    <option value="tiktok">TikTok LIVE</option>
-    <option value="youtube">YouTube</option>
-    <option value="twitch">Twitch</option>
-    <option value="kick">Kick</option>
-    <option value="autre">Autre (RTMP)</option>
+    <optgroup label="Sans minimum d'abonnés">
+      <option value="youtube">YouTube</option>
+      <option value="twitch">Twitch</option>
+      <option value="kick">Kick</option>
+      <option value="facebook">Facebook</option>
+    </optgroup>
+    <optgroup label="Autres">
+      <option value="autre">Autre serveur (RTMP / RTMPS)</option>
+      <option value="tiktok">TikTok LIVE (accès restreint selon le compte)</option>
+    </optgroup>
   </select>
   <div id="bc" class="hidden">
+    <p id="howto" class="muted" style="margin:10px 0 0"></p>
     <label>Adresse du serveur (URL RTMP)</label><input id="server" inputmode="url" autocapitalize="off" spellcheck="false">
     <label>Clé de stream</label><input id="key" type="password" autocapitalize="off" spellcheck="false">
     <label>Format</label>

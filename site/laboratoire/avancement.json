@@ -13,7 +13,7 @@
     ],
     "en_attente_de_toi": [
       "Tester live.labotory.site/mobile.html sur ton téléphone (aperçu d'abord, puis diffusion)",
-      "Vérifier si ton compte TikTok a accès à la clé de stream (TikTok LIVE Studio)",
+      "Récupérer une clé de stream YouTube, Twitch, Kick ou Facebook (aucun minimum d'abonnés) pour le premier vrai live",
       "Créer un compte daydream.live (crédits gratuits) pour le moteur de référence",
       "Créer la clé du relais Cloudflare Realtime TURN",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
@@ -34,7 +34,8 @@
         "Personnalités publiques uniquement en caricature avec bandeau PARODIE",
         "Console en ligne sur live.labotory.site avec moteur de démonstration sur le serveur",
         "Diffusion directe RTMP/RTMPS vers les plateformes depuis le téléphone, son compris, format vertical",
-        "Page téléphone plein écran : bouton Original/IA, voix, personnages, écran maintenu allumé"
+        "Page téléphone plein écran : bouton Original/IA, voix, personnages, écran maintenu allumé",
+        "Plateformes sans minimum d'abonnés en premier (YouTube, Twitch, Kick, Facebook), adresses chiffrées préremplies"
       ],
       "pas_encore_teste": [
         "Diffusion vers une vraie plateforme (TikTok, YouTube…)",
@@ -128,7 +129,7 @@
       "note": "hébergée par Cloudflare, indépendante du serveur"
     },
     {
-      "element": "Accès de Claude au serveur (ssh.labotory.site)",
+      "element": "Accès d'administration au serveur (ssh.labotory.site)",
       "etat": "ok",
       "note": "tunnel Cloudflare"
     },
@@ -159,6 +160,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Plateformes sans restriction d'abonnés mises en avant (YouTube, Twitch, Kick, Facebook)."
+    },
     {
       "date": "2026-11-02",
       "texte": "Diffusion directe téléphone → IA → TikTok / YouTube / Twitch / Kick, sans PC."

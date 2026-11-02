@@ -45,11 +45,11 @@ export function render(d) {
 <title>Le Laboratoire</title><meta name="description" content="Avancement des projets du laboratoire, mis à jour à chaque étape."><link rel="icon" href="${ICON}"><style>${CSS}</style></head>
 <body><div class="wrap"><header><div><h1>Le <span>Laboratoire</span></h1><p class="intent">${e(d.intention)}</p></div><div class="upd">Mis à jour le <time datetime="${e(d.mis_a_jour)}">${e(d.mis_a_jour)}</time></div></header>
 <h2>Où on en est</h2><section class="now"><div class="card"><p class="focus">${e(n.focus)}</p><div class="label">Dernière étape franchie</div><p style="margin:0">${e(n.dernier_fait)}</p>
-<div class="label">Prochaines étapes (Claude)</div>${lst(n.prochaines_etapes_claude)}</div><div class="card"><div class="label" style="margin-top:0">En attente de toi</div>${lst(n.en_attente_de_toi, "you")}</div></section>
+<div class="label">Prochaines étapes</div>${lst(n.prochaines_etapes_claude)}</div><div class="card"><div class="label" style="margin-top:0">En attente de toi</div>${lst(n.en_attente_de_toi, "you")}</div></section>
 <h2>Projets</h2><section class="grid">${projets}</section>
 <h2>Infrastructure</h2><div class="card table-wrap"><table><thead><tr><th>Élément</th><th>État</th><th>Note</th></tr></thead><tbody>${infra}</tbody></table></div>
 <h2>Journal</h2><div class="card"><ul class="tl">${journal}</ul></div>
-<footer>Page tenue à jour par Claude à chaque étape du projet. Les pourcentages sont des estimations. Aucun secret, identifiant ni donnée personnelle n'est publié ici. · <a href="/avancement.json">données (JSON)</a></footer></div></body></html>`;
+<footer>Page tenue à jour à chaque étape du projet. Les pourcentages sont des estimations. Aucun secret, identifiant ni donnée personnelle n'est publié ici. · <a href="/avancement.json">données (JSON)</a></footer></div></body></html>`;
 }
 
 const SEC = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin",

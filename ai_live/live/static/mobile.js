@@ -1,15 +1,25 @@
 "use strict";
 // Page téléphone : caméra + micro → moteur IA → diffusion directe (RTMP) vers la plateforme.
 const $ = (s) => document.querySelector(s);
+// Adresses officielles d'envoi (chiffrées quand la plateforme le permet). La clé vient de ton compte.
 const PRESETS = {
-  youtube: "rtmp://a.rtmp.youtube.com/live2",
-  twitch: "rtmp://live.twitch.tv/app",
-  tiktok: "", kick: "", autre: "",
+  youtube: "rtmps://a.rtmps.youtube.com/live2",
+  twitch: "rtmps://live.twitch.tv:443/app",
+  facebook: "rtmps://live-api-s.facebook.com:443/rtmp",
+  kick: "", tiktok: "", autre: "",
 };
 const HINTS = {
-  tiktok: "Fournie par TikTok LIVE Studio / paramètres LIVE (commence par rtmp://)",
-  kick: "Dans ton tableau de bord Kick → Stream URL (commence par rtmps://)",
+  kick: "Stream URL de ton tableau de bord Kick (commence par rtmps://)",
+  tiktok: "Fournie par TikTok LIVE Studio (commence par rtmp://)",
   autre: "rtmp://… ou rtmps://…",
+};
+const HOWTO = {
+  youtube: "Clé : YouTube Studio → Créer → Passer au direct → « Clé de flux ». La toute première activation du direct peut demander de vérifier le compte et un délai.",
+  twitch: "Clé : tableau de bord Twitch → Paramètres → Stream → « Clé de stream principale ».",
+  kick: "Clé et Stream URL : tableau de bord Kick → Paramètres → Stream Key (copie les deux).",
+  facebook: "Clé : Facebook → Vidéo en direct (Live Producer) → « Clé de stream » ; active la clé persistante pour la réutiliser.",
+  tiktok: "TikTok ne donne la clé de stream qu'à certains comptes (abonnés, pays) : vérifie dans TikTok LIVE Studio.",
+  autre: "Toute plateforme qui accepte un « encodeur » RTMP/RTMPS : colle l'adresse du serveur et la clé.",
 };
 const st = { session: null, cam: null, pub: null, view: null, t0: 0, timers: [], rec: null, listening: false, wake: null, catalog: null };
 
@@ -50,7 +60,8 @@ function onPlatform(fill = true) {
   $("#bc").classList.toggle("hidden", !p);
   if (fill && PRESETS[p]) $("#server").value = PRESETS[p];
   $("#server").placeholder = HINTS[p] || PRESETS[p] || "";
-  if (p === "tiktok") $("#format").value = "vertical";
+  $("#howto").textContent = HOWTO[p] || "";
+  if (fill) $("#format").value = (p === "tiktok") ? "vertical" : (p ? "horizontal" : $("#format").value);
 }
 $("#platform").addEventListener("change", () => onPlatform(true));
 
