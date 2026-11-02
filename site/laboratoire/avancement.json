@@ -4,8 +4,8 @@
   "intention": "Projets menés avec gratitude envers Allah Azza wa Jal : utiles, honnêtes, sans promesse de gain.",
   "mis_a_jour": "2026-11-02",
   "maintenant": {
-    "focus": "Phase de test avec la vraie IA : Daydream est branché sur la console. Prochaine étape, ton premier essai depuis le téléphone.",
-    "dernier_fait": "Site disponible en 15 langues (dont l'arabe de droite à gauche), langue détectée automatiquement et sélecteur 🌐 dans le menu.",
+    "focus": "Optimiser avant d'investir : flux vidéo allégé, mesures réseau, plan d'investissement de 1 000 $ prêt.",
+    "dernier_fait": "Flux vidéo optimisé (512×512, 1,5 Mbit/s, tampon minimal, démarrage parallèle, mesures réseau), langue selon le pays, outils de travail installés.",
     "prochaines_etapes_claude": [
       "Mesurer la fluidité réelle depuis ton téléphone dans chaque mode",
       "Régler l'intensité par défaut et les descriptions à partir de tes essais enregistrés",
@@ -173,6 +173,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Optimisation du flux vidéo, langue du site selon le pays, veille GitHub et plan d'investissement."
+    },
     {
       "date": "2026-11-02",
       "texte": "Accueil et liste d'attente en 15 langues : français, anglais, espagnol, portugais, allemand, italien, néerlandais, arabe, turc, russe, chinois, japonais, coréen, hindi, indonésien."
