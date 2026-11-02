@@ -26,7 +26,7 @@ table{width:100%;border-collapse:collapse;font-size:15px}td,th{text-align:left;p
 const ICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230f766e'/%3E%3Cpath d='M12 8h8M14 8v7l-5 9h14l-5-9V8' stroke='white' stroke-width='2' fill='none'/%3E%3C/svg%3E";
 
 // labnav:start (généré par site/nav/apply_nav.py depuis site/nav/nav.html — ne pas modifier à la main)
-const NAV_HTML = "<style>.labnav{position:sticky;top:0;z-index:1000;background:rgba(13,17,23,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid #232a33;color:#e6e9ee;font:15px/1.3 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}.labnav .in{max-width:1180px;margin:0 auto;padding:0 16px;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px}.labnav .b{color:#fff;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}.labnav .b i{color:#2dd4bf;font-style:normal}.labnav input{position:absolute;width:1px;height:1px;opacity:0;margin:0;pointer-events:none}.labnav label{display:none;margin:0;cursor:pointer;padding:8px 12px;border:1px solid #2f3742;border-radius:10px;color:#e6e9ee;font-size:15px;user-select:none}.labnav input:focus-visible+label{outline:3px solid #5eead4;outline-offset:2px}.labnav input:checked+label{background:#1c2229}.labnav ul{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:2px}.labnav li{margin:0}.labnav a.l{display:block;color:#c3cad4;text-decoration:none;padding:8px 12px;border-radius:9px}.labnav a.l:hover,.labnav a.l:focus-visible{background:#1c2229;color:#fff;outline:none}.labnav a.l[aria-current=\"page\"]{background:#1f3a37;color:#fff;font-weight:600}.labnav a.cta{background:#0f766e;color:#fff;font-weight:700;margin-left:6px}.labnav a.cta:hover,.labnav a.cta:focus-visible{background:#115e59}@media (max-width:860px){.labnav label{display:block}.labnav ul{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;align-items:stretch;gap:2px;background:#0d1117;border-bottom:1px solid #232a33;padding:8px 12px 14px;box-shadow:0 14px 30px rgba(0,0,0,.4)}.labnav input:checked~ul{display:flex}.labnav a.l{padding:13px 12px}.labnav a.cta{margin:6px 0 0;text-align:center}}</style><nav class=\"labnav\" aria-label=\"Menu du site\"><div class=\"in\"><a class=\"b\" href=\"https://labotory.site/\"><i>◆</i> Le Laboratoire</a><input type=\"checkbox\" id=\"labnav-t\" aria-label=\"Ouvrir ou fermer le menu\"><label for=\"labnav-t\" aria-hidden=\"true\">☰ Menu</label><ul><li><a class=\"l\" data-k=\"accueil\" href=\"https://labotory.site/\">Accueil</a></li><li><a class=\"l\" data-k=\"live\" href=\"https://live.labotory.site/\">AI Live</a></li><li><a class=\"l\" data-k=\"mobile\" href=\"https://live.labotory.site/mobile.html\">AI Live téléphone</a></li><li><a class=\"l\" data-k=\"studio\" href=\"https://studio.labotory.site/\">AI Studio</a></li><li><a class=\"l\" data-k=\"suivi\" href=\"https://labotory.site/suivi\">Suivi</a></li></ul></div></nav>";
+const NAV_HTML = "<style>.labnav{position:sticky;top:0;z-index:1000;background:rgba(13,17,23,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid #232a33;color:#e6e9ee;font:15px/1.3 system-ui,-apple-system,\"Segoe UI\",Roboto,sans-serif}.labnav .in{max-width:1180px;margin:0 auto;padding:0 16px;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px}.labnav .b{color:#fff;font-weight:800;text-decoration:none;display:flex;align-items:center;gap:8px;white-space:nowrap}.labnav .b i{color:#2dd4bf;font-style:normal}.labnav input{position:absolute;width:1px;height:1px;opacity:0;margin:0;pointer-events:none}.labnav label{display:none;margin:0;cursor:pointer;padding:8px 12px;border:1px solid #2f3742;border-radius:10px;color:#e6e9ee;font-size:15px;user-select:none}.labnav input:focus-visible+label{outline:3px solid #5eead4;outline-offset:2px}.labnav input:checked+label{background:#1c2229}.labnav ul{list-style:none;margin:0;padding:0;display:flex;align-items:center;gap:2px}.labnav li{margin:0}.labnav a.l{display:block;color:#c3cad4;text-decoration:none;padding:8px 12px;border-radius:9px}.labnav a.l:hover,.labnav a.l:focus-visible{background:#1c2229;color:#fff;outline:none}.labnav a.l[aria-current=\"page\"]{background:#1f3a37;color:#fff;font-weight:600}.labnav a.cta{background:#0f766e;color:#fff;font-weight:700;margin-left:6px}.labnav a.cta:hover,.labnav a.cta:focus-visible{background:#115e59}@media (max-width:860px){.labnav label{display:block}.labnav ul{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;align-items:stretch;gap:2px;background:#0d1117;border-bottom:1px solid #232a33;padding:8px 12px 14px;box-shadow:0 14px 30px rgba(0,0,0,.4)}.labnav input:checked~ul{display:flex}.labnav a.l{padding:13px 12px}.labnav a.cta{margin:6px 0 0;text-align:center}}</style><nav class=\"labnav\" aria-label=\"Menu du site\"><div class=\"in\"><a class=\"b\" href=\"https://labotory.site/\"><i>◆</i> Le Laboratoire</a><input type=\"checkbox\" id=\"labnav-t\" aria-label=\"Ouvrir ou fermer le menu\"><label for=\"labnav-t\" aria-hidden=\"true\">☰ Menu</label><ul><li><a class=\"l\" data-k=\"accueil\" href=\"https://labotory.site/\">Accueil</a></li><li><a class=\"l\" data-k=\"live\" href=\"https://live.labotory.site/\">AI Live</a></li><li><a class=\"l\" data-k=\"mobile\" href=\"https://live.labotory.site/mobile.html\">AI Live téléphone</a></li><li><a class=\"l\" data-k=\"studio\" href=\"https://studio.labotory.site/\">AI Studio</a></li><li><a class=\"l\" data-k=\"suivi\" href=\"https://labotory.site/suivi\">Suivi</a></li><li><a class=\"l cta\" data-k=\"attente\" href=\"https://labotory.site/#attente\">Liste d'attente</a></li></ul></div></nav>";
 // labnav:end
 const nav = (k) => NAV_HTML.replace(`data-k="${k}" `, `data-k="${k}" aria-current="page" `);
 
@@ -84,9 +84,18 @@ h1{font-size:clamp(36px,6.4vw,64px);line-height:1.04;letter-spacing:-.035em;marg
 .alt{background:var(--panel);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .faq details{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:10px}.faq summary{cursor:pointer;font-weight:700}.faq details p{margin:10px 0 0;color:var(--muted)}
 .final{text-align:center}.final .lead{margin:0 auto 26px}.final .btns{justify-content:center}
+.wl{max-width:640px;margin:0 auto}.wl form{display:grid;gap:14px;text-align:left;margin-top:8px}.wl label{display:grid;gap:6px;font-weight:600;font-size:15px}
+.wl input[type=email],.wl select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:13px 14px;width:100%}
+.wl input:focus-visible,.wl select:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 45%,transparent);border-color:var(--accent)}
+.wl .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:600px){.wl .two{grid-template-columns:1fr}}
+.wl .ok{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:14px;color:var(--muted)}.wl .ok input{margin-top:4px;width:18px;height:18px;flex:none}
+.wl button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:15px 22px;background:#0f766e;color:#fff;cursor:pointer}.wl button:hover{background:#115e59}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}.msgbox{padding:14px 16px;border-radius:12px;margin:0 0 16px;font-weight:600}.msgbox.good{background:var(--soft);color:var(--accent)}.msgbox.bad{background:color-mix(in srgb,#dc2626 14%,transparent);color:#dc2626}
 footer{border-top:1px solid var(--line);padding:28px 0 40px;font-size:14px;color:var(--muted)}footer .w{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}footer a{color:var(--muted)}`;
 
-export function landing() {
+export function landing(etat = "") {
+  const box = etat === "merci" ? `<p class="msgbox good" role="status">Merci, tu es sur la liste ! On te prévient dès que ton accès est prêt.</p>`
+    : etat === "erreur" ? `<p class="msgbox bad" role="alert">Adresse e-mail invalide ou case non cochée. Réessaie.</p>` : "";
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AI Live & AI Studio — transforme ta vidéo par la voix</title>
 <meta name="description" content="AI Live transforme ton live en temps réel, à la voix : personnage, décor, style. AI Studio modifie tes vidéos en décrivant ce que tu veux. Prix affiché avant chaque usage.">
@@ -97,7 +106,7 @@ export function landing() {
 <span class="beta">Bêta privée · accès sur invitation</span>
 <h1>Dis-le.<br>Ton live <em>se transforme</em>.</h1>
 <p class="lead">AI Live transforme ta caméra en direct, juste avec ta voix : deviens un chevalier, passe dans un décor cyberpunk, change de style en une phrase. Tu reviens à l'image réelle d'un seul geste.</p>
-<div class="btns"><a class="btn p" href="https://live.labotory.site/mobile.html">Essayer AI Live</a><a class="btn" href="#studio">Découvrir AI Studio</a></div>
+<div class="btns"><a class="btn p" href="#attente">Rejoindre la liste d'attente</a><a class="btn" href="#produits">Voir les outils</a></div>
 <p class="note">Fonctionne depuis un téléphone ou un ordinateur. Aucune carte graphique à acheter.</p>
 </div>
 <div class="phone" role="img" aria-label="Aperçu : à gauche l'image réelle, à droite l'image transformée par l'IA après la commande vocale « transforme-moi en chevalier »">
@@ -163,32 +172,81 @@ export function landing() {
 <details><summary>Combien ça coûte ?</summary><p>Tu paies à l'usage : à la minute pour AI Live selon le modèle choisi, sur devis pour AI Studio. Le prix est toujours affiché avant de commencer.</p></details>
 <details><summary>Sur quelles plateformes puis-je diffuser ?</summary><p>YouTube, Twitch, Kick et Facebook pour commencer, jusqu'à trois en même temps, ou toute plateforme qui accepte une diffusion RTMP (par exemple via Restream ou OBS).</p></details>
 <details><summary>Puis-je essayer sans rien publier ?</summary><p>Oui. Le mode essai affiche la transformation sur ton écran et te permet d'enregistrer des tests. Rien ne part en ligne tant que tu ne lances pas la diffusion.</p></details>
-<details><summary>Est-ce disponible maintenant ?</summary><p>Les deux outils sont en bêta privée et s'ouvrent progressivement, sur invitation.</p></details>
+<details><summary>Est-ce disponible maintenant ?</summary><p>Les deux outils sont en bêta privée et s'ouvrent progressivement, sur invitation. <a href="#attente">Inscris-toi sur la liste d'attente</a> pour être prévenu.</p></details>
 </div></section>
 
-<section class="alt final"><div class="w">
-<h2>Ton prochain live peut être inoubliable</h2>
-<p class="lead">Ouvre AI Live, dis ce que tu veux devenir, et regarde l'image changer.</p>
-<div class="btns"><a class="btn p" href="https://live.labotory.site/mobile.html">Essayer AI Live</a><a class="btn" href="https://studio.labotory.site/">Essayer AI Studio</a></div>
+<section class="alt final" id="attente"><div class="w wl">
+<p class="eyebrow">Liste d'attente</p>
+<h2>Sois parmi les premiers à essayer</h2>
+<p class="lead">Laisse ton e-mail : on ouvre les accès petit à petit, et on te prévient dès que c'est ton tour.</p>
+${box}
+<form method="post" action="/liste-attente#attente">
+<label>Ton e-mail<input type="email" name="email" required maxlength="200" autocomplete="email" placeholder="toi@exemple.com"></label>
+<div class="two">
+<label>Tu es plutôt…<select name="profil"><option value="streamer">Streamer</option><option value="createur">Créateur de vidéos</option><option value="entreprise">Entreprise / agence</option><option value="curieux">Curieux</option></select></label>
+<label>Ce qui t'intéresse<select name="interet"><option value="les_deux">Les deux</option><option value="live">AI Live</option><option value="studio">AI Studio</option></select></label>
+</div>
+<div class="hp" aria-hidden="true"><label>Ne pas remplir<input type="text" name="site" tabindex="-1" autocomplete="off"></label></div>
+<label class="ok"><input type="checkbox" name="accord" value="oui" required><span>J'accepte d'être contacté par e-mail au sujet de l'accès à AI Live et AI Studio. Mon adresse ne sert qu'à ça, n'est jamais revendue, et je peux demander sa suppression à tout moment en répondant à un e-mail reçu.</span></label>
+<button type="submit">Rejoindre la liste d'attente</button>
+</form>
 </div></section>
 </main>
-<footer><div class="w"><span>© ${new Date().getUTCFullYear()} Le Laboratoire · AI Live & AI Studio</span><span><a href="#produits">Produits</a> · <a href="/suivi">Suivi du projet</a></span></div></footer>
+<footer><div class="w"><span>© ${new Date().getUTCFullYear()} Le Laboratoire · AI Live & AI Studio</span><span><a href="#produits">Produits</a> · <a href="#attente">Liste d'attente</a> · <a href="/suivi">Suivi du projet</a></span></div></footer>
 </body></html>`;
 }
 
 const SEC = { "x-content-type-options": "nosniff", "referrer-policy": "strict-origin-when-cross-origin",
-  "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" };
+  "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" };
 const FALLBACK = { intention: "", mis_a_jour: "—", maintenant: { focus: "Données d'avancement indisponibles pour le moment." } };
 
-// Mise à jour : PUT /avancement.json avec « Authorization: Bearer <LABO_UPDATE_TOKEN> » (secret du Worker).
-async function update(req, env) {
+function autorise(req, env) {
   const auth = req.headers.get("authorization") || "";
   const tok = env.LABO_UPDATE_TOKEN || "";
   const enc = new TextEncoder();
   const a = enc.encode(auth), b = enc.encode(`Bearer ${tok}`);
   let same = tok.length >= 24 && a.length === b.length;
   for (let i = 0; same && i < a.length; i++) same = a[i] === b[i];
-  if (!same) return new Response("Non autorisé", { status: 401, headers: SEC });
+  return same;
+}
+
+// Liste d'attente : POST /liste-attente (formulaire). Stockée dans le KV (clé « attente:<sha256 e-mail> »),
+// jamais affichée publiquement. Lecture : GET /liste-attente.json avec le même jeton que la mise à jour.
+const PROFILS = ["streamer", "createur", "entreprise", "curieux"], INTERETS = ["les_deux", "live", "studio"];
+const back = (req, etat) => new Response(null, { status: 303, headers: { ...SEC, location: new URL(`/?${etat}#attente`, req.url).toString() } });
+async function inscrire(req, env) {
+  const origin = req.headers.get("origin");
+  if (origin && origin !== new URL(req.url).origin) return new Response("Origine refusée", { status: 403, headers: SEC });
+  const body = await req.text();
+  if (body.length > 4000) return new Response("Trop volumineux", { status: 413, headers: SEC });
+  const f = new URLSearchParams(body);
+  if (f.get("site")) return back(req, "merci"); // pot de miel : robot
+  const email = (f.get("email") || "").trim().toLowerCase();
+  if (email.length > 200 || !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(email) || f.get("accord") !== "oui") return back(req, "erreur");
+  const profil = PROFILS.includes(f.get("profil")) ? f.get("profil") : "curieux";
+  const interet = INTERETS.includes(f.get("interet")) ? f.get("interet") : "les_deux";
+  const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(email)))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const key = `attente:${h}`;
+  const deja = await env.LABO.get(key, "json");
+  const rec = { email, profil, interet, accord: true, inscrit_le: deja?.inscrit_le || new Date().toISOString(), maj_le: new Date().toISOString(), pays: req.cf?.country || null };
+  await env.LABO.put(key, JSON.stringify(rec), { metadata: { inscrit_le: rec.inscrit_le } });
+  return back(req, "merci");
+}
+async function exporter(req, env) {
+  if (!autorise(req, env)) return new Response("Non autorisé", { status: 401, headers: SEC });
+  const out = []; let cursor;
+  do {
+    const r = await env.LABO.list({ prefix: "attente:", cursor });
+    for (const k of r.keys) { const v = await env.LABO.get(k.name, "json"); if (v) out.push(v); }
+    cursor = r.list_complete ? null : r.cursor;
+  } while (cursor);
+  out.sort((a, b) => a.inscrit_le.localeCompare(b.inscrit_le));
+  return new Response(JSON.stringify({ total: out.length, inscrits: out }, null, 2), { headers: { ...SEC, "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+}
+
+// Mise à jour : PUT /avancement.json avec « Authorization: Bearer <LABO_UPDATE_TOKEN> » (secret du Worker).
+async function update(req, env) {
+  if (!autorise(req, env)) return new Response("Non autorisé", { status: 401, headers: SEC });
   const body = await req.text();
   if (body.length > 100_000) return new Response("Trop volumineux", { status: 413, headers: SEC });
   let d;
@@ -204,9 +262,14 @@ export default {
   async fetch(req, env) {
     const path = new URL(req.url).pathname;
     if (req.method === "PUT" && path === "/avancement.json") return update(req, env);
+    if (req.method === "POST" && path === "/liste-attente") return inscrire(req, env);
+    if (path === "/liste-attente.json") return exporter(req, env);
     if (req.method !== "GET" && req.method !== "HEAD") return new Response("Méthode non autorisée", { status: 405, headers: SEC });
     const html = { ...SEC, "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" };
-    if (path === "/" || path === "/index.html") return new Response(landing(), { headers: html });
+    if (path === "/" || path === "/index.html") {
+      const q = new URL(req.url).searchParams, etat = q.has("merci") ? "merci" : q.has("erreur") ? "erreur" : "";
+      return new Response(landing(etat), { headers: etat ? { ...html, "cache-control": "no-store", "x-robots-tag": "noindex" } : html });
+    }
     if (path === "/avancement" || path === "/suivi/") return Response.redirect(new URL("/suivi", req.url).toString(), 301);
     const data = (env.LABO && await env.LABO.get("avancement", "json")) || FALLBACK;
     if (path === "/suivi") return new Response(render(data), { headers: { ...html, "cache-control": "public, max-age=30", "x-robots-tag": "noindex" } });

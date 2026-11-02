@@ -5,7 +5,7 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Phase de test — faire fonctionner la transformation IA sans diffusion : caméra → IA → aperçu et essais enregistrés. La diffusion vers les plateformes viendra ensuite.",
-    "dernier_fait": "Page d'accueil commerciale sur labotory.site, suivi déplacé sur /suivi, et vrai menu en haut de toutes les pages (repliable sur téléphone).",
+    "dernier_fait": "Formulaire de liste d'attente sur la page d'accueil (inscriptions privées, consultables avec le jeton).",
     "prochaines_etapes_claude": [
       "Brancher un vrai moteur IA pour les essais (Daydream dès que le compte existe, ou GPU loué)",
       "Mesurer images/seconde, latence et coût par minute pendant les essais",
@@ -167,6 +167,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-02",
+      "texte": "Liste d'attente : formulaire sur l'accueil, accord explicite, protection anti-robots, export privé."
+    },
     {
       "date": "2026-11-02",
       "texte": "Accueil commercial (AI Live & AI Studio), suivi sur /suivi, menu fixe en haut de page avec bouton ☰ sur téléphone."

@@ -16,6 +16,8 @@ Page publique d'avancement des projets, servie par un Worker Cloudflare (indépe
 | `/` | Page d'accueil commerciale (AI Live & AI Studio), statique dans `worker.js` (`landing()`) |
 | `/suivi` | Suivi du projet (non indexé), rendu depuis le KV (`render()`) ; `/avancement` redirige ici |
 | `/avancement.json` | Données en lecture (GET) et mise à jour authentifiée (PUT) |
+| `POST /liste-attente` | Formulaire de liste d'attente (accord obligatoire, pot de miel anti-robots, même origine) ; stocké dans le KV sous `attente:<sha256 e-mail>` |
+| `/liste-attente.json` | Export privé des inscrits (même jeton que la mise à jour) ; `python3 site/laboratoire/liste_attente.py > liste.csv` |
 
 Le menu commun vient de `site/nav/nav.html` ; `python3 site/nav/apply_nav.py` le recopie dans les pages
 AI Live / AI Studio et dans `worker.js` (constante `NAV_HTML`). CSS seul, sans JavaScript (CSP du Worker).
