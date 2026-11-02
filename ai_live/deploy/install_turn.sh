@@ -127,6 +127,21 @@ if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
   ufw allow "$PORT/udp" >/dev/null
   ufw allow "$MIN_PORT:$MAX_PORT/udp" >/dev/null
   [[ -n "$DOMAIN" ]] && ufw allow "$TLS_PORT/tcp" >/dev/null
+elif command -v iptables >/dev/null && iptables -S INPUT 2>/dev/null | grep -qE -- "-j (REJECT|DROP)"; then
+  # Images Ubuntu d'Oracle Cloud : règles iptables qui rejettent tout sauf SSH, même sans ufw.
+  echo "==> Pare-feu iptables (images Oracle Cloud et similaires)"
+  open_port() {  # $1 = proto, $2 = port ou plage a:b
+    iptables -C INPUT -p "$1" -m state --state NEW --dport "$2" -j ACCEPT 2>/dev/null \
+      || iptables -I INPUT 1 -p "$1" -m state --state NEW --dport "$2" -j ACCEPT
+  }
+  open_port tcp "$PORT"; open_port udp "$PORT"; open_port udp "$MIN_PORT:$MAX_PORT"
+  [[ -n "$DOMAIN" ]] && open_port tcp "$TLS_PORT"
+  if command -v netfilter-persistent >/dev/null; then
+    netfilter-persistent save >/dev/null 2>&1 && echo "    règles enregistrées (netfilter-persistent)"
+  else
+    apt-get install -y -q iptables-persistent >/dev/null 2>&1 && netfilter-persistent save >/dev/null 2>&1 \
+      && echo "    règles enregistrées (iptables-persistent)" || echo "    ⚠ règles actives mais non persistantes après redémarrage"
+  fi
 fi
 
 echo "==> Démarrage du service"
@@ -170,8 +185,9 @@ cat <<DONE
 
  Garde LIVE_TURN_SECRET secret (comme un mot de passe).
 
- ⚠ Si ton hébergeur a un pare-feu dans son tableau de bord (Hetzner, OVH, AWS, Oracle…),
-   ouvre aussi : $PORT TCP+UDP, $MIN_PORT-$MAX_PORT UDP$([[ -n "$DOMAIN" ]] && echo ", $TLS_PORT TCP").
+ ⚠ Oracle Cloud : ajoute aussi des « Ingress Rules » dans la Security List du sous-réseau
+   (Networking → Virtual Cloud Networks → ton VCN → Security Lists), source 0.0.0.0/0.
+   Autres hébergeurs avec pare-feu dans le tableau de bord (Hetzner, OVH, AWS…), ouvre aussi : $PORT TCP+UDP, $MIN_PORT-$MAX_PORT UDP$([[ -n "$DOMAIN" ]] && echo ", $TLS_PORT TCP").
 
  Vérification depuis ton PC :
    python -m live.check_turn --urls '$URLS' --secret <LIVE_TURN_SECRET>

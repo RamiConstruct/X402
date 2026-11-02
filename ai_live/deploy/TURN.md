@@ -37,6 +37,27 @@ Le script :
 Si ton hébergeur a un pare-feu dans son tableau de bord (Hetzner Cloud Firewall, OVH, AWS
 Security Groups, Oracle…), ouvre : **3478 TCP + UDP** et **49160-49800 UDP** (+ **5349 TCP** avec `--domain`).
 
+### Oracle Cloud (OCI) — deux pare-feu à ouvrir
+
+1. **Dans la machine** : les images Ubuntu d'Oracle contiennent des règles `iptables` qui rejettent
+   tout sauf SSH. Le script les détecte, ajoute les ouvertures et les rend permanentes
+   (`netfilter-persistent`). Rien à faire.
+2. **Dans la console Oracle** : Menu → *Networking* → *Virtual Cloud Networks* → ton VCN →
+   *Security Lists* → *Default Security List* → **Add Ingress Rules** :
+
+   | Source CIDR | Protocole | Port de destination |
+   |---|---|---|
+   | 0.0.0.0/0 | UDP | 3478 |
+   | 0.0.0.0/0 | TCP | 3478 |
+   | 0.0.0.0/0 | UDP | 49160-49800 |
+   | 0.0.0.0/0 | TCP | 5349 (seulement avec `--domain`) |
+
+   (Si ton instance utilise un *Network Security Group*, ajoute les mêmes règles dans ce NSG.)
+
+Les instances Oracle ont une IP privée derrière une IP publique (NAT 1:1) : le script le détecte
+et configure `external-ip=IP_PUBLIQUE/IP_PRIVÉE` automatiquement. Les instances Ampere (ARM)
+fonctionnent : coturn est disponible en arm64.
+
 ## 4. Vérifier depuis ton PC
 
 ```bash
