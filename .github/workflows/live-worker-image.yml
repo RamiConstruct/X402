@@ -65,8 +65,5 @@ jobs:
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.description=AI LIVE worker GPU (StreamDiffusion, Daydream fork)
-
-      - name: Vérifier que le worker s'importe dans l'image (sans GPU)
-        run: |
-          docker run --rm -e WORKER_PROCESSOR=demo "${{ steps.img.outputs.name }}:${{ github.sha }}" \
-            python -c "import live.worker.app, streamdiffusion; print('imports OK')"
+      # Le contrôle d'import est fait dans le Dockerfile pendant la construction :
+      # re-télécharger l'image (~10 Go) ici saturait le disque de la machine GitHub.

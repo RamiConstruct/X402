@@ -1,6 +1,6 @@
 # Image du worker GPU (StreamDiffusion, fork Daydream, Apache-2.0) à publier sur un registre
 # (ex. ghcr.io/<toi>/ai-live-worker:1) puis à indiquer dans LIVE_WORKER_IMAGE.
-# ⚠ Non construite ni testée dans l'environnement de développement (pas de GPU) : à valider sur une machine NVIDIA.
+# Construite par GitHub Actions (le contrôle d'import se fait pendant la construction) ; non testée sur GPU réel.
 FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive PYTHONUNBUFFERED=1 HF_HOME=/data/hf SD_ENGINE_DIR=/data/engines
 RUN apt-get update && apt-get install -y --no-install-recommends python3.10 python3-pip python3.10-venv git ffmpeg libgl1 \
@@ -11,7 +11,8 @@ RUN pip install --no-cache-dir "git+https://github.com/daydreamlive/StreamDiffus
 WORKDIR /app
 COPY pyproject.toml ./
 COPY live ./live
-RUN pip install --no-cache-dir ".[worker]"
+RUN pip install --no-cache-dir ".[worker]" \
+    && python -c "import live.worker.app, live.worker.rtmp, streamdiffusion; print('imports OK')"
 ENV WORKER_PROCESSOR=streamdiffusion
 EXPOSE 8890
 CMD ["python", "-m", "live.worker", "--host", "0.0.0.0", "--port", "8890"]
