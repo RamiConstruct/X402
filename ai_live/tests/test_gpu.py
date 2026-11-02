@@ -193,3 +193,13 @@ def test_worker_warmup_and_reuse(monkeypatch):
                    json={"pipeline": "streamdiffusion", "params": {"model_id": "stabilityai/sd-turbo", "prompt": "robot"}})
         assert r.status_code == 200 and r.json()["whip_url"].endswith("/whip")
         assert c.post("/v1/streams", json={}).status_code == 401
+
+
+def test_worker_env_callable_is_evaluated_at_rent(tmp_path):
+    fp = FakeProvider()
+    calls = []
+    m = GpuManager({"fake": fp}, tmp_path / "s.json", image="img", http=health_ok(),
+                   worker_env=lambda: calls.append(1) or {"WORKER_ICE_SERVERS": "[]"})
+    m.quote("sd-turbo")
+    m.rent("fake:a", "sd-turbo")
+    assert calls == [1] and fp.launched[0][2]["WORKER_ICE_SERVERS"] == "[]"

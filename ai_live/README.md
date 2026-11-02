@@ -116,23 +116,10 @@ clients, `LIVE_OWNER_MODE=0` applique la marge du catalogue (`live/gpu/catalog.p
 2. **Clés** : `VAST_API_KEY` (console.vast.ai → Account → API keys) et/ou `RUNPOD_API_KEY`.
    Recharge quelques dollars seulement au début.
 3. **Relais vidéo TURN** — indispensable : les machines louées sont derrière un NAT, et RunPod
-   n'accepte pas l'UDP. Installe coturn sur ton VPS (gratuit) :
-   ```bash
-   sudo apt install coturn
-   # /etc/turnserver.conf
-   listening-port=3478
-   fingerprint
-   lt-cred-mech
-   user=live:<mot_de_passe_long>
-   realm=ai-live
-   external-ip=<IP_PUBLIQUE_DU_VPS>
-   min-port=49160
-   max-port=49800
-   # ouvrir dans le pare-feu : 3478 TCP+UDP et 49160-49800 UDP
-   ```
-   puis, pour la console (transmis automatiquement au navigateur, à la page OBS et au worker) :
-   `LIVE_ICE_SERVERS='[{"urls":["turn:<IP_VPS>:3478?transport=udp","turn:<IP_VPS>:3478?transport=tcp"],"username":"live","credential":"<mot_de_passe_long>"}]'`
-   Bande passante : ~3 Mb/s entrant + 3 Mb/s sortant par live, en double passage par le VPS.
+   n'accepte pas l'UDP. Un script installe tout sur ton VPS (Ubuntu/Debian), voir
+   [`deploy/TURN.md`](deploy/TURN.md) : `sudo bash ai_live/deploy/install_turn.sh`.
+   Il affiche à la fin `LIVE_TURN_SECRET` et `LIVE_TURN_URLS` à donner à la console ; la console
+   fabrique ensuite des identifiants temporaires pour le navigateur, la page OBS et le GPU loué.
 
 ### Utilisation
 
@@ -177,7 +164,7 @@ Contenus sexuels, violents ou haineux : refusés avant tout envoi au moteur.
 | `LIVE_ACCESS_TOKEN` | protège la console si elle est exposée sur Internet (elle dépense tes crédits) |
 | `LIVE_MAX_SESSION_MIN` (déf. 60) | coupe automatiquement une session trop longue |
 | `VAST_API_KEY`, `RUNPOD_API_KEY`, `LIVE_WORKER_IMAGE`, `LIVE_GPU_MAX_USD_H`, `LIVE_GPU_IDLE_MIN`, `LIVE_GPU_MAX_HOURS`, `LIVE_OWNER_MODE`, `LIVE_DATA_DIR` | location de GPU |
-| `LIVE_ICE_SERVERS` | serveurs TURN (JSON) pour navigateur, page OBS et worker |
+| `LIVE_TURN_SECRET`, `LIVE_TURN_URLS` | relais TURN (identifiants temporaires générés par la console) ; `LIVE_ICE_SERVERS` pour une liste statique |
 | `WORKER_PROCESSOR` (`demo` / `streamdiffusion`), `WORKER_TOKEN`, `WORKER_PUBLIC_URL`, `WORKER_WARMUP_PARAMS`, `WORKER_ICE_SERVERS`, `SD_ACCELERATION`, `SD_ENGINE_DIR` | worker |
 
 ## Limites connues

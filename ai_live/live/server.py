@@ -62,9 +62,13 @@ def gpu_manager_from_env() -> GpuManager | None:
                     idle_minutes=float(os.environ.get("LIVE_GPU_IDLE_MIN", "10")),
                     max_hours=float(os.environ.get("LIVE_GPU_MAX_HOURS", "4")),
                     owner_mode=os.environ.get("LIVE_OWNER_MODE", "1") == "1")
-    env = {"WORKER_ICE_SERVERS": os.environ["LIVE_ICE_SERVERS"]} if os.environ.get("LIVE_ICE_SERVERS") else {}
+    from .turn import ice_from_env
+
+    def worker_env() -> dict[str, str]:  # identifiants TURN valables toute la durée de location
+        ice = ice_from_env(label="worker", ttl_s=int((limits.max_hours + 1) * 3600))
+        return {"WORKER_ICE_SERVERS": json.dumps(ice)} if ice else {}
     return GpuManager(providers, data / "gpu_state.json", image=os.environ.get("LIVE_WORKER_IMAGE", ""),
-                      limits=limits, worker_env=env)
+                      limits=limits, worker_env=worker_env)
 
 
 @dataclass
@@ -115,8 +119,9 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
                gpu: GpuManager | None | bool = True, ice_servers: list | None = None) -> FastAPI:
     configs = dict(engines or engines_from_env())
     gpu = gpu_manager_from_env() if gpu is True else (gpu or None)
-    if ice_servers is None:
-        ice_servers = json.loads(os.environ["LIVE_ICE_SERVERS"]) if os.environ.get("LIVE_ICE_SERVERS") else []
+    from .turn import ice_from_env
+    # Identifiants TURN régénérés à chaque demande (ils expirent) ; le secret reste ici.
+    ice_provider = (lambda: list(ice_servers)) if ice_servers is not None else ice_from_env
     access_token = access_token if access_token is not None else os.environ.get("LIVE_ACCESS_TOKEN", "")
     max_minutes = max_minutes if max_minutes is not None else float(os.environ.get("LIVE_MAX_SESSION_MIN", "60"))
     clients = {k: engine_factory(c) for k, c in configs.items()}
@@ -175,7 +180,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
                 "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
                              "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith("cloud:")],
-                "access_required": bool(access_token), "ice_servers": ice_servers, "gpu_rental": gpu is not None,
+                "access_required": bool(access_token), "ice_servers": ice_provider(), "gpu_rental": gpu is not None,
                 "gpu_image_configured": bool(gpu and gpu.image),
                 "models": [{"key": m.key, "label": m.label, "min_vram_gb": m.min_vram_gb, "notes": m.notes,
                             "fps_estimate": m.fps_estimate} for m in MODELS.values()]}

@@ -67,7 +67,7 @@ class Limits:
 
 class GpuManager:
     def __init__(self, providers: dict[str, Provider], store: Path, image: str, limits: Limits | None = None,
-                 worker_env: dict[str, str] | None = None, http: httpx.Client | None = None,
+                 worker_env: dict[str, str] | Callable[[], dict[str, str]] | None = None, http: httpx.Client | None = None,
                  clock: Callable[[], float] = time.time) -> None:
         self.providers, self.store, self.image = providers, store, image
         self.limits = limits or Limits()
@@ -129,7 +129,8 @@ class GpuManager:
                 raise GpuError("offre au-dessus du prix horaire maximal")
             model = self._model(model_key)
             token = secrets.token_urlsafe(24)  # jeton propre à cette machine
-            env = {**self.worker_env, "WORKER_TOKEN": token, "WORKER_PROCESSOR": "streamdiffusion",
+            extra = self.worker_env() if callable(self.worker_env) else self.worker_env
+            env = {**extra, "WORKER_TOKEN": token, "WORKER_PROCESSOR": "streamdiffusion",
                    "WORKER_WARMUP_PARAMS": json.dumps({"model_id": model.model_id, "width": model.width,
                                                        "height": model.height, "prompt": "a person",
                                                        "t_index_list": [14]})}
