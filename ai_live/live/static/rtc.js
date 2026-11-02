@@ -1,6 +1,8 @@
 "use strict";
 // WebRTC minimal WHIP (envoi) / WHEP (lecture) — partagé par la console et la page OBS.
-const ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
+let ICE = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
+// Serveurs TURN fournis par la console (indispensables avec un GPU loué derrière un NAT).
+function setIceServers(extra) { if (Array.isArray(extra) && extra.length) ICE = [...ICE, ...extra]; }
 
 function preferH264(transceiver) {
   try {

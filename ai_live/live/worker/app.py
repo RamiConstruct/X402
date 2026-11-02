@@ -12,6 +12,7 @@ intermédiaires sont abandonnées au lieu de s'accumuler (pas de retard croissan
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import secrets
@@ -19,7 +20,7 @@ import time
 from dataclasses import dataclass, field
 
 import av
-from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
+from aiortc import MediaStreamTrack, RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
 from aiortc.contrib.media import MediaRelay
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 
@@ -79,11 +80,48 @@ class Stream:
     created: float = field(default_factory=time.time)
 
 
-def create_worker_app(token: str | None = None, public_url: str | None = None) -> FastAPI:
+def ice_config(raw: str | None) -> RTCConfiguration:
+    """WORKER_ICE_SERVERS = JSON [{"urls": "turn:host:3478?transport=tcp", "username": "...", "credential": "..."}].
+    Indispensable sur les GPU loués derrière un NAT ou sans UDP (RunPod) : la vidéo passe par un relais TURN."""
+    servers = [RTCIceServer(urls="stun:stun.l.google.com:19302")]
+    for s in json.loads(raw) if raw else []:
+        servers.append(RTCIceServer(urls=s["urls"], username=s.get("username"), credential=s.get("credential")))
+    return RTCConfiguration(iceServers=servers)
+
+
+def create_worker_app(token: str | None = None, public_url: str | None = None, warmup: dict | None = None) -> FastAPI:
     token = token if token is not None else os.environ.get("WORKER_TOKEN", "")
     public_url = (public_url or os.environ.get("WORKER_PUBLIC_URL", "")).rstrip("/")
+    if warmup is None and os.environ.get("WORKER_WARMUP_PARAMS"):
+        warmup = json.loads(os.environ["WORKER_WARMUP_PARAMS"])
+    rtc_config = ice_config(os.environ.get("WORKER_ICE_SERVERS"))
     app = FastAPI(title="AI LIVE worker")
     streams: dict[str, Stream] = {}
+    warm: dict = {"processor": None, "params": warmup, "state": "en cours" if warmup else "aucun", "error": None}
+
+    @app.on_event("startup")
+    async def _warmup():
+        """Charge et compile le modèle AVANT le live (TensorRT : plusieurs minutes au premier lancement)."""
+        if not warmup:
+            return
+
+        async def run():
+            try:
+                warm["processor"] = await asyncio.get_running_loop().run_in_executor(None, make_processor, dict(warmup))
+                warm["state"] = "prêt"
+            except Exception as e:  # noqa: BLE001 - remonté par /health
+                warm["state"], warm["error"] = "échec", str(e)[:500]
+                log.exception("préchauffage échoué")
+        asyncio.ensure_future(run())
+
+    def take_processor(params: dict):
+        p, w = warm["processor"], warm["params"] or {}
+        same = p is not None and all(params.get(k, w.get(k)) == w.get(k) for k in ("model_id", "width", "height"))
+        if same:
+            warm["processor"] = None
+            p.update(params)
+            return p
+        return make_processor(params)
 
     def auth(authorization: str) -> None:
         if token and authorization != f"Bearer {token}":
@@ -94,7 +132,9 @@ def create_worker_app(token: str | None = None, public_url: str | None = None) -
 
     @app.get("/health")
     def health():
-        return {"ok": True, "streams": len(streams), "processor": os.environ.get("WORKER_PROCESSOR", "demo")}
+        ready = warm["state"] in ("prêt", "aucun") or bool(streams)
+        return {"ok": True, "ready": ready, "warmup": warm["state"], "error": warm["error"], "streams": len(streams),
+                "processor": os.environ.get("WORKER_PROCESSOR", "demo")}
 
     @app.post("/v1/streams")
     async def create(req: Request, authorization: str = Header(default="")):
@@ -102,7 +142,7 @@ def create_worker_app(token: str | None = None, public_url: str | None = None) -
         body = await req.json()
         params = dict(body.get("params") or {})
         sid = "wst_" + secrets.token_hex(12)
-        processor = await asyncio.get_running_loop().run_in_executor(None, make_processor, params)
+        processor = await asyncio.get_running_loop().run_in_executor(None, take_processor, params)
         streams[sid] = Stream(id=sid, params=params, processor=processor)
         return {"id": sid, "whip_url": f"{base(req)}/v1/streams/{sid}/whip", "output_playback_id": sid,
                 "pipeline": body.get("pipeline", "streamdiffusion"), "params": params}
@@ -127,7 +167,7 @@ def create_worker_app(token: str | None = None, public_url: str | None = None) -
         auth(authorization)
         st = streams.get(sid) or _404()
         offer = (await req.body()).decode()
-        pc = RTCPeerConnection()
+        pc = RTCPeerConnection(configuration=rtc_config)
         st.pcs.append(pc)
         got_video = asyncio.Event()
 
@@ -149,7 +189,7 @@ def create_worker_app(token: str | None = None, public_url: str | None = None) -
         if st.output is None:
             raise HTTPException(409, "aucun flux entrant pour l'instant")
         offer = (await req.body()).decode()
-        pc = RTCPeerConnection()
+        pc = RTCPeerConnection(configuration=rtc_config)
         st.pcs.append(pc)
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer, type="offer"))
         for t in pc.getTransceivers():

@@ -50,7 +50,8 @@ async function poll() {
   } catch {}
   setTimeout(poll, 400);
 }
-if (!key) status.textContent = "Lien de sortie invalide"; else poll();
+if (!key) status.textContent = "Lien de sortie invalide";
+else fetch("/api/catalog").then((r) => r.json()).then((c) => setIceServers(c.ice_servers)).catch(() => {}).finally(poll);
 </script>
 </body>
 </html>

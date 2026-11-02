@@ -24,9 +24,9 @@ Voix (Chrome) ─▶ commandes ─▶ état de scène ─▶ PATCH du moteur (sa
 
 | Testé ici | Pas encore testé |
 |---|---|
-| 18 tests : commandes FR, contrat de l'API Daydream (requêtes exactes), **tunnel WebRTC complet** console → worker → sortie OBS | **Appel réel à l'API Daydream** (pas de clé dans cet environnement) |
+| 26 tests : commandes FR, contrat de l'API Daydream, contrats **Vast.ai** et **RunPod** (requêtes exactes), garde-fous de location (inactivité, durée max, reprise après redémarrage, arrêt non confirmé), **tunnel WebRTC complet**, parcours « louer → live → libérer » avec un vrai worker | **Appels réels à Daydream, Vast.ai et RunPod** (clés absentes, domaines bloqués ici) |
 | Parcours dans Chromium avec caméra simulée : démarrage, commandes, préréglages, page OBS, retour à l'original, arrêt — 0 erreur, 16 i/s avec le processeur de démonstration (CPU) | **Processeur StreamDiffusion sur GPU** (aucun GPU ici) |
-| | Image Docker du worker GPU |
+| | Image Docker du worker GPU, relais TURN en conditions réelles |
 
 Le protocole Daydream a été repris du **SDK TypeScript officiel** et du **plugin
 TouchDesigner officiel** (`github.com/daydreamlive`) : création `POST /v1/streams`,
@@ -84,6 +84,62 @@ fournisseur ou tunnel Cloudflare) et `WORKER_PUBLIC_URL=https://…`. La console
 sur ton VPS ou ton PC : `SELFHOST_URL=https://…`. **Éteins la machine après usage** :
 la facturation court tant qu'elle est allumée.
 
+## 3 bis. GPU à la demande (Vast.ai / RunPod) — le chemin recommandé
+
+La console loue elle-même une machine, y lance ton worker, attend qu'il soit prêt, puis
+la libère. Tu choisis un **modèle** ; la console affiche toutes les offres compatibles
+(GPU, lieu, prix/heure, **prix/minute**) triées par prix.
+
+| Modèle | VRAM mini | Pour |
+|---|---|---|
+| Rapide — SD-Turbo 512px | 12 Go | le moins cher, style marqué |
+| Polyvalent — Dreamshaper 8 + ControlNet | 16 Go | personnages, garde la pose |
+| Qualité — SDXL-Turbo + ControlNet | 24 Go | meilleur rendu |
+
+**Prix** : coût réel de la machine × marge du modèle. En **mode propriétaire**
+(`LIVE_OWNER_MODE=1`, par défaut), la marge est 1 : tu paies le prix coûtant. Pour tes futurs
+clients, `LIVE_OWNER_MODE=0` applique la marge du catalogue (`live/gpu/catalog.py`).
+
+**Garde-fous** (la facture qui tourne sans toi est le risque n°1) :
+- une seule machine louée à la fois, prix horaire maximal (`LIVE_GPU_MAX_USD_H`, défaut 1,5 $) ;
+- libération automatique après `LIVE_GPU_IDLE_MIN` minutes sans live (défaut 10), durée max `LIVE_GPU_MAX_HOURS` (défaut 4 h), abandon si la machine ne démarre pas en 30 min ;
+- état enregistré dans `data/gpu_state.json` : après un redémarrage de la console, la location est retrouvée et surveillée ;
+- un arrêt non confirmé par le fournisseur est signalé (« vérifie sur le site du fournisseur ») au lieu d'être supposé réussi ;
+- chaque machine reçoit un jeton secret unique.
+
+### Ce qu'il faut faire une fois (décisions et actions humaines)
+
+1. **Construire et publier l'image du worker** (`Dockerfile.worker`) sur une machine avec Docker :
+   `docker build -f Dockerfile.worker -t ghcr.io/<toi>/ai-live-worker:1 . && docker push …`
+   puis `LIVE_WORKER_IMAGE=ghcr.io/<toi>/ai-live-worker:1`. Elle n'a pas encore été construite : le
+   premier essai sur un GPU validera versions CUDA/TensorRT.
+2. **Clés** : `VAST_API_KEY` (console.vast.ai → Account → API keys) et/ou `RUNPOD_API_KEY`.
+   Recharge quelques dollars seulement au début.
+3. **Relais vidéo TURN** — indispensable : les machines louées sont derrière un NAT, et RunPod
+   n'accepte pas l'UDP. Installe coturn sur ton VPS (gratuit) :
+   ```bash
+   sudo apt install coturn
+   # /etc/turnserver.conf
+   listening-port=3478
+   fingerprint
+   lt-cred-mech
+   user=live:<mot_de_passe_long>
+   realm=ai-live
+   external-ip=<IP_PUBLIQUE_DU_VPS>
+   min-port=49160
+   max-port=49800
+   # ouvrir dans le pare-feu : 3478 TCP+UDP et 49160-49800 UDP
+   ```
+   puis, pour la console (transmis automatiquement au navigateur, à la page OBS et au worker) :
+   `LIVE_ICE_SERVERS='[{"urls":["turn:<IP_VPS>:3478?transport=udp","turn:<IP_VPS>:3478?transport=tcp"],"username":"live","credential":"<mot_de_passe_long>"}]'`
+   Bande passante : ~3 Mb/s entrant + 3 Mb/s sortant par live, en double passage par le VPS.
+
+### Utilisation
+
+Console → « GPU à la demande » → choisir un modèle → **Voir les GPU disponibles** → **Louer** →
+attendre « Prêt » (premier lancement : téléchargement de l'image + compilation TensorRT,
+compter 5 à 15 min) → moteur « Mon GPU loué » → **Démarrer le live IA** → **Libérer le GPU** à la fin.
+
 ## 4. Brancher OBS
 
 1. Ajoute ta source caméra habituelle.
@@ -120,7 +176,9 @@ Contenus sexuels, violents ou haineux : refusés avant tout envoi au moteur.
 | `SELFHOST_URL`, `SELFHOST_TOKEN`, `SELFHOST_MODEL` (déf. `stabilityai/sd-turbo`), `SELFHOST_CONTROLNETS`, `SELFHOST_USD_PER_MIN` | ton worker |
 | `LIVE_ACCESS_TOKEN` | protège la console si elle est exposée sur Internet (elle dépense tes crédits) |
 | `LIVE_MAX_SESSION_MIN` (déf. 60) | coupe automatiquement une session trop longue |
-| `WORKER_PROCESSOR` (`demo` / `streamdiffusion`), `WORKER_TOKEN`, `WORKER_PUBLIC_URL`, `SD_ACCELERATION`, `SD_ENGINE_DIR` | worker |
+| `VAST_API_KEY`, `RUNPOD_API_KEY`, `LIVE_WORKER_IMAGE`, `LIVE_GPU_MAX_USD_H`, `LIVE_GPU_IDLE_MIN`, `LIVE_GPU_MAX_HOURS`, `LIVE_OWNER_MODE`, `LIVE_DATA_DIR` | location de GPU |
+| `LIVE_ICE_SERVERS` | serveurs TURN (JSON) pour navigateur, page OBS et worker |
+| `WORKER_PROCESSOR` (`demo` / `streamdiffusion`), `WORKER_TOKEN`, `WORKER_PUBLIC_URL`, `WORKER_WARMUP_PARAMS`, `WORKER_ICE_SERVERS`, `SD_ACCELERATION`, `SD_ENGINE_DIR` | worker |
 
 ## Limites connues
 

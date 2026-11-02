@@ -41,3 +41,8 @@ input[type=range] { width:100%; }
 .muted { color:var(--muted); } .small { font-size:12px; }
 .obs { display:flex; gap:6px; } .obs input { flex:1; min-width:0; font-size:12px; }
 .log { list-style:none; padding:0; margin:0; font-size:12px; color:var(--muted); max-height:180px; overflow:auto; display:grid; gap:3px; }
+.offers { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+.offers th, .offers td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+.offers th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+.rental { margin-top:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.rental .state { font-weight:700; } .rental .ready { color:var(--ok); }

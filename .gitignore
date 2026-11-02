@@ -10,3 +10,4 @@ ai_studio/data/
 .pytest_cache/
 ai_live/.venv/
 ai_live/engines/
+ai_live/data/

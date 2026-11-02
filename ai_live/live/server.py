@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import secrets
 import threading
@@ -22,6 +23,8 @@ from pydantic import BaseModel
 
 from .commands import apply_command, set_preset
 from .engine import EngineConfig, EngineError, StreamEngine
+from .gpu.catalog import MODELS
+from .gpu.manager import GpuError, GpuManager, Limits
 from .scene import CHARACTERS, DECORS, STYLES, SceneHistory
 
 STATIC = Path(__file__).parent / "static"
@@ -41,6 +44,27 @@ def engines_from_env() -> dict[str, EngineConfig]:
             api_key=os.environ.get("SELFHOST_TOKEN", "local"), model_id=os.environ.get("SELFHOST_MODEL", "stabilityai/sd-turbo"),
             usd_per_minute=f("SELFHOST_USD_PER_MIN"), use_controlnets=os.environ.get("SELFHOST_CONTROLNETS", "0") == "1"),
     }
+
+
+def gpu_manager_from_env() -> GpuManager | None:
+    from .gpu.providers import ProviderError, RunPodProvider, VastProvider
+    providers = {}
+    for name, cls, var in (("vast", VastProvider, "VAST_API_KEY"), ("runpod", RunPodProvider, "RUNPOD_API_KEY")):
+        if os.environ.get(var):
+            try:
+                providers[name] = cls(os.environ[var])
+            except ProviderError:
+                pass
+    if not providers:
+        return None
+    data = Path(os.environ.get("LIVE_DATA_DIR", Path.cwd() / "data"))
+    limits = Limits(max_usd_per_hour=float(os.environ.get("LIVE_GPU_MAX_USD_H", "1.5")),
+                    idle_minutes=float(os.environ.get("LIVE_GPU_IDLE_MIN", "10")),
+                    max_hours=float(os.environ.get("LIVE_GPU_MAX_HOURS", "4")),
+                    owner_mode=os.environ.get("LIVE_OWNER_MODE", "1") == "1")
+    env = {"WORKER_ICE_SERVERS": os.environ["LIVE_ICE_SERVERS"]} if os.environ.get("LIVE_ICE_SERVERS") else {}
+    return GpuManager(providers, data / "gpu_state.json", image=os.environ.get("LIVE_WORKER_IMAGE", ""),
+                      limits=limits, worker_env=env)
 
 
 @dataclass
@@ -81,9 +105,18 @@ class Strength(BaseModel):
     value: int
 
 
+class Rent(BaseModel):
+    offer_key: str
+    model_key: str
+
+
 def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=StreamEngine,
-               access_token: str | None = None, max_minutes: float | None = None) -> FastAPI:
-    configs = engines or engines_from_env()
+               access_token: str | None = None, max_minutes: float | None = None,
+               gpu: GpuManager | None | bool = True, ice_servers: list | None = None) -> FastAPI:
+    configs = dict(engines or engines_from_env())
+    gpu = gpu_manager_from_env() if gpu is True else (gpu or None)
+    if ice_servers is None:
+        ice_servers = json.loads(os.environ["LIVE_ICE_SERVERS"]) if os.environ.get("LIVE_ICE_SERVERS") else []
     access_token = access_token if access_token is not None else os.environ.get("LIVE_ACCESS_TOKEN", "")
     max_minutes = max_minutes if max_minutes is not None else float(os.environ.get("LIVE_MAX_SESSION_MIN", "60"))
     clients = {k: engine_factory(c) for k, c in configs.items()}
@@ -122,7 +155,12 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
                 "estimated_cost_usd": round(mins * cfg.usd_per_minute, 4) if cfg.usd_per_minute is not None else None,
                 "max_minutes": max_minutes, "scene": s.history.current.describe(), "log": s.log[-20:]}
 
+    def touch(s: Session) -> None:
+        if gpu and s.engine_key.startswith("cloud:") and s.ended_at is None:
+            gpu.touch()
+
     def push(s: Session) -> None:
+        touch(s)
         if s.ended_at is not None:
             raise HTTPException(410, "session terminée")
         try:
@@ -136,13 +174,78 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         pick = lambda c: [{"key": k, "label": v["label"]} for k, v in c.items()]  # noqa: E731
         return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
                 "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
-                             "usd_per_minute": c.usd_per_minute} for k, c in configs.items()],
-                "access_required": bool(access_token)}
+                             "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith("cloud:")],
+                "access_required": bool(access_token), "ice_servers": ice_servers, "gpu_rental": gpu is not None,
+                "gpu_image_configured": bool(gpu and gpu.image),
+                "models": [{"key": m.key, "label": m.label, "min_vram_gb": m.min_vram_gb, "notes": m.notes,
+                            "fps_estimate": m.fps_estimate} for m in MODELS.values()]}
+
+    # --- Location de GPU (Vast.ai / RunPod) ---
+    def need_gpu() -> GpuManager:
+        if gpu is None:
+            raise HTTPException(400, "location GPU non configurée (VAST_API_KEY ou RUNPOD_API_KEY)")
+        return gpu
+
+    @app.post("/api/gpu/quote")
+    def gpu_quote(body: dict = Body(...), x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        try:
+            return need_gpu().quote(body.get("model_key", ""))
+        except GpuError as e:
+            raise HTTPException(400, str(e)) from e
+
+    @app.post("/api/gpu/rent")
+    def gpu_rent(r: Rent, x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        m = need_gpu()
+        if not m.image:
+            raise HTTPException(400, "LIVE_WORKER_IMAGE non défini : image Docker du worker à publier d'abord")
+        try:
+            m.rent(r.offer_key, r.model_key)
+        except GpuError as e:
+            raise HTTPException(400, str(e)) from e
+        return m.view()
+
+    @app.get("/api/gpu/rental")
+    def gpu_rental(x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        m = need_gpu()
+        m.refresh()
+        return {"rental": m.view(), "history": m.history[-10:]}
+
+    @app.delete("/api/gpu/rental")
+    def gpu_release(x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        m = need_gpu()
+        for s in sessions.values():
+            if s.engine_key.startswith("cloud:") and s.ended_at is None:
+                end(s, "GPU libéré")
+        try:
+            m.release()
+        except GpuError as e:
+            raise HTTPException(502, str(e)) from e
+        return {"rental": m.view()}
+
+    def cloud_engine() -> str:
+        m = need_gpu()
+        r = m.refresh()
+        if r is None or r.state != "ready" or not r.endpoint:
+            raise HTTPException(409, "le GPU loué n'est pas encore prêt")
+        key = f"cloud:{r.id}"
+        if key not in configs:
+            model = MODELS[r.model_key]
+            configs[key] = EngineConfig(name=f"GPU loué — {r.gpu_name} ({r.provider})", base_url=r.endpoint,
+                                        api_key=r.token, model_id=model.model_id, width=model.width, height=model.height,
+                                        use_controlnets=model.use_controlnets, usd_per_minute=r.client_price_per_min())
+            clients[key] = engine_factory(configs[key])
+        return key
 
     @app.post("/api/sessions")
     def create(body: dict = Body(default={}), x_live_token: str = Header(default="")):
         guard(x_live_token)
         key = body.get("engine", "daydream")
+        if key == "cloud":
+            key = cloud_engine()
         if key not in configs:
             raise HTTPException(400, "moteur inconnu")
         history = SceneHistory()
@@ -190,6 +293,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         guard(x_live_token)
         s = get(sid)
         enforce_cap(s)
+        touch(s)
         return view(s)
 
     @app.post("/api/sessions/{sid}/command")
@@ -258,6 +362,17 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
     async def out_whep(key: str, request: Request):
         return await _whep(out(key), (await request.body()).decode())
 
+    if gpu is not None:
+        def reaper():  # libère le GPU inactif même si personne n'ouvre la console
+            while True:
+                time.sleep(30)
+                try:
+                    gpu.refresh()
+                except Exception:  # noqa: BLE001
+                    pass
+        threading.Thread(target=reaper, daemon=True, name="gpu-reaper").start()
+
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
     app.state.sessions = sessions
+    app.state.gpu = gpu
     return app

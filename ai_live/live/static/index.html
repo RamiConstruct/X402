@@ -46,6 +46,26 @@
       </div>
       <p id="msg" class="msg"></p>
     </div>
+
+    <div class="controls" id="gpu-box" hidden>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>GPU à la demande (Vast.ai / RunPod)</strong>
+        <span class="muted small">Tu paies la machine à la minute ; elle est libérée automatiquement si tu ne l'utilises plus.</span>
+      </div>
+      <div class="row">
+        <label class="field grow">Modèle
+          <select id="gpu-model"></select>
+        </label>
+        <button id="gpu-quote" class="btn">Voir les GPU disponibles</button>
+      </div>
+      <p id="gpu-model-notes" class="muted small"></p>
+      <p id="gpu-warn" class="msg err" hidden></p>
+      <table class="offers" id="gpu-offers" hidden>
+        <thead><tr><th>GPU</th><th>Fournisseur</th><th>Lieu</th><th>$/heure</th><th>Prix/min</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div id="gpu-rental" class="rental" hidden></div>
+    </div>
   </section>
 
   <aside class="panel">

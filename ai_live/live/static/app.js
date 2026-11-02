@@ -17,9 +17,12 @@ async function api(path, opts = {}) {
 // ------------------------------------------------------------ catalogue
 async function loadCatalog() {
   st.catalog = await (await fetch("/api/catalog")).json();
+  setIceServers(st.catalog.ice_servers);
   $("#token-field").hidden = !st.catalog.access_required;
-  $("#engine").innerHTML = st.catalog.engines.map((e) =>
+  $("#engine").innerHTML = (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué (Vast.ai / RunPod)</option>` : "") +
+    st.catalog.engines.map((e) =>
     `<option value="${esc(e.key)}">${esc(e.name)} — ${esc(e.model)}${e.configured ? "" : " (clé manquante)"}</option>`).join("");
+  setupGpu();
   for (const [kind, id] of [["character", "#characters"], ["decor", "#decors"], ["style", "#styles"]]) {
     const list = st.catalog[kind === "character" ? "characters" : kind + "s"];
     $(id).innerHTML = `<button class="chip" data-kind="${kind}" data-key="" disabled>Aucun</button>` +
@@ -133,5 +136,59 @@ function stopListening() {
   $("#mic").textContent = "🎙 Écoute vocale : off"; $("#mic").classList.remove("on");
 }
 $("#mic").addEventListener("click", () => (st.listening ? stopListening() : startListening()));
+
+// ------------------------------------------------------------ GPU à la demande
+function setupGpu() {
+  if (!st.catalog.gpu_rental) return;
+  $("#gpu-box").hidden = false;
+  $("#gpu-model").innerHTML = st.catalog.models.map((m) => `<option value="${esc(m.key)}">${esc(m.label)} (≥ ${m.min_vram_gb} Go)</option>`).join("");
+  const notes = () => { const m = st.catalog.models.find((x) => x.key === $("#gpu-model").value); $("#gpu-model-notes").textContent = m ? `${m.notes} Estimation : ${m.fps_estimate}.` : ""; };
+  $("#gpu-model").addEventListener("change", notes); notes();
+  if (!st.catalog.gpu_image_configured) { $("#gpu-warn").hidden = false; $("#gpu-warn").textContent = "LIVE_WORKER_IMAGE n'est pas défini : tu peux comparer les prix, mais pas encore louer (image Docker du worker à publier)."; }
+  pollRental();
+}
+
+$("#gpu-quote").addEventListener("click", async () => {
+  $("#gpu-quote").disabled = true;
+  try {
+    const q = await api("/api/gpu/quote", { method: "POST", body: JSON.stringify({ model_key: $("#gpu-model").value }) });
+    const tb = $("#gpu-offers tbody");
+    tb.innerHTML = q.offers.map((o) => `<tr><td>${esc(o.gpu)} · ${o.vram_gb} Go</td><td>${esc(o.provider)}</td><td>${esc(o.location || "—")}</td>
+      <td>${o.usd_per_hour.toFixed(3)} $</td><td><b>${o.price_per_min.toFixed(4)} $</b></td>
+      <td><button class="btn small" data-offer="${esc(o.key)}">Louer</button></td></tr>`).join("") || `<tr><td colspan="6" class="muted">Aucune offre sous le prix maximal.</td></tr>`;
+    $("#gpu-offers").hidden = false;
+    tb.querySelectorAll("button[data-offer]").forEach((b) => b.addEventListener("click", () => rent(b.dataset.offer)));
+    if (q.errors.length) say("Fournisseur indisponible : " + q.errors.map((e) => e.provider + " (" + e.error + ")").join(", "), true);
+  } catch (e) { say(e.message, true); }
+  $("#gpu-quote").disabled = false;
+});
+
+async function rent(offerKey) {
+  if (!confirm("Louer cette machine ? La facturation commence maintenant (libération automatique en cas d'inactivité).")) return;
+  try { await api("/api/gpu/rent", { method: "POST", body: JSON.stringify({ offer_key: offerKey, model_key: $("#gpu-model").value }) }); say("Location lancée : démarrage de la machine…"); pollRental(); }
+  catch (e) { say(e.message, true); }
+}
+
+const RSTATE = { starting: "Démarrage", booting: "Machine en démarrage", warming: "Chargement du modèle", ready: "Prêt", released: "Libéré", failed: "Échec" };
+async function pollRental() {
+  clearTimeout(st.rentalTimer);
+  try {
+    const { rental } = await api("/api/gpu/rental");
+    const box = $("#gpu-rental");
+    if (!rental) { box.hidden = true; return; }
+    box.hidden = false;
+    const active = !["released", "failed"].includes(rental.state);
+    box.innerHTML = `<span class="state ${rental.state === "ready" ? "ready" : ""}">${RSTATE[rental.state] || rental.state}</span>
+      <span>${esc(rental.gpu_name)} · ${esc(rental.provider)}</span>
+      <span class="muted">${rental.minutes} min · ${rental.cost_usd.toFixed(3)} $ (${rental.usd_per_hour.toFixed(3)} $/h)</span>
+      <span class="muted small">${esc(rental.release_reason || rental.detail || "")}</span>
+      ${active ? `<button class="btn small danger" id="gpu-release">Libérer le GPU</button>` : ""}`;
+    if (active) {
+      $("#gpu-release").addEventListener("click", async () => { try { await api("/api/gpu/rental", { method: "DELETE" }); say("GPU libéré."); pollRental(); } catch (e) { say(e.message, true); } });
+      if (rental.state === "ready") $("#engine").value = "cloud";
+      st.rentalTimer = setTimeout(pollRental, rental.state === "ready" ? 15000 : 4000);
+    }
+  } catch {}
+}
 
 loadCatalog();
