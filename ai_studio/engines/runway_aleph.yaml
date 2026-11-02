@@ -1,0 +1,33 @@
+# Runway — édition vidéo-à-vidéo par prompt (Aleph).
+# ⚠️ Vérifier AVANT activation : identifiant de modèle, version d'API et tarif sur
+# https://docs.dev.runwayml.com/ (le tarif ci-dessous provient de sources secondaires, cf. analyse §3.3).
+id: runway.aleph
+provider: runway
+adapter: runway
+display_name: "Runway Aleph"
+capabilities: [edit.prompt]
+enabled: true
+paid: true
+simulated: false
+quality: 90
+speed_factor: 6.0
+limits:
+  max_duration_s: 30
+pricing:
+  unit: second
+  usd_per_unit: "0.28"
+  min_charge_usd: "0.56"
+  markup: "1.8"
+  min_price_credits: 1
+  verified_on: null          # à remplir après vérification sur la page officielle
+  source: "secondaire (atlascloud, creatify) — À VÉRIFIER"
+params:
+  base_url: "https://api.dev.runwayml.com"
+  api_version: "2024-11-06"
+  endpoint: "/v1/video_to_video"
+  model: "gen4_aleph"        # À VÉRIFIER : Aleph 2.0 pourrait utiliser un autre identifiant
+  ratio: "1280:720"
+policy:
+  commercial_use: true
+  data_retention: "voir conditions Runway"
+notes: "Adaptateur écrit d'après la documentation publique, non encore testé contre l'API réelle."

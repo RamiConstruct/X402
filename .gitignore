@@ -4,3 +4,7 @@ sorties/
 .env
 *.key
 site/dist/
+ai_studio/.venv/
+ai_studio/data/
+*.egg-info/
+.pytest_cache/

@@ -1,0 +1,27 @@
+# Second fournisseur via fal.ai (file d'attente générique). Désactivé tant que
+# l'identifiant de modèle et le tarif n'ont pas été vérifiés sur https://fal.ai/models.
+id: fal.video_edit
+provider: fal
+adapter: fal
+display_name: "fal.ai — édition vidéo (Wan VACE / Lucy Edit)"
+capabilities: [edit.prompt]
+enabled: false
+paid: true
+simulated: false
+quality: 70
+speed_factor: 4.0
+limits:
+  max_duration_s: 10
+pricing:
+  unit: second
+  usd_per_unit: "0.10"
+  min_charge_usd: "0"
+  markup: "1.8"
+  min_price_credits: 1
+  verified_on: null
+  source: "ordre de grandeur — À VÉRIFIER"
+params:
+  model_id: "A-RENSEIGNER"   # ex. identifiant fal du modèle d'édition vidéo choisi
+  video_field: "video_url"
+  prompt_field: "prompt"
+notes: "Adaptateur générique pour la file d'attente fal ; non testé contre l'API réelle."
