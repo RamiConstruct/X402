@@ -62,5 +62,9 @@ plus tard `VAST_API_KEY` / `RUNPOD_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOO
 - Migration vers la VM Oracle A1 gratuite (la sentinelle réessaie toutes les 29 min : « Out of host capacity »).
 - Essai sur vrai téléphone : 1080/1440p, fluidité, silhouette.
 
+## Installer ailleurs / sauvegarde
+`docs/INSTALLER_PC.md` (PC + projet claude.ai), `docs/SAUVEGARDE.md` (bilan et emplacement des sauvegardes),
+`tools/installer_pc.sh` / `.ps1` (installation + vérification automatiques).
+
 ## Documents utiles
 `docs/ai_live_studio/` : BENCHMARK_ASIE, ETUDE_INSTANTANEITE, OBJECTIF_1440P_90, PLAN_INVESTISSEMENT, ACTIVER_STRIPE.
