@@ -80,7 +80,8 @@ async function tenterA1(env, force = false) {
     shape: "VM.Standard.A1.Flex", shapeConfig: { ocpus: 2, memoryInGBs: 12 },
     sourceDetails: { sourceType: "image", imageId: env.A1_IMAGE, bootVolumeSizeInGBs: 100 },
     createVnicDetails: { subnetId: env.A1_SUBNET, assignPublicIp: true },
-    metadata: { ssh_authorized_keys: env.SSH_PUB },
+    // user_data : script de premier démarrage (tunnel dédié ssh-a1, mémoire de secours), en secret du Worker
+    metadata: env.A1_USERDATA ? { ssh_authorized_keys: env.SSH_PUB, user_data: env.A1_USERDATA } : { ssh_authorized_keys: env.SSH_PUB },
   });
   if (r.status < 300) Object.assign(st, { cree: true, id: r.data.id, etat: r.data.lifecycleState, le: new Date().toISOString() });
   else st.derniereErreur = `${r.status} ${r.data.code || ""} ${(r.data.message || "").slice(0, 80)}`;
