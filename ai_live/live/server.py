@@ -74,6 +74,35 @@ def gpu_manager_from_env() -> GpuManager | None:
                       limits=limits, worker_env=worker_env)
 
 
+def fleet_from_env():
+    """Flotte automatique (LIVE_FLEET=1 + clé Vast.ai ou RunPod + image du programme GPU)."""
+    if os.environ.get("LIVE_FLEET") != "1":
+        return None
+    from .gpu.fleet import FleetLimits, GpuFleet
+    from .gpu.providers import ProviderError, RunPodProvider, VastProvider
+    providers = {}
+    for name, cls, var in (("vast", VastProvider, "VAST_API_KEY"), ("runpod", RunPodProvider, "RUNPOD_API_KEY")):
+        if os.environ.get(var):
+            try:
+                providers[name] = cls(os.environ[var])
+            except ProviderError:
+                pass
+    if not providers or not os.environ.get("LIVE_WORKER_IMAGE"):
+        return None
+    data = Path(os.environ.get("LIVE_DATA_DIR", Path.cwd() / "data"))
+    limits = FleetLimits(max_usd_per_hour=float(os.environ.get("LIVE_FLEET_MAX_USD_H", "20")),
+                         max_nodes=int(os.environ.get("LIVE_FLEET_MAX_NODES", "10")),
+                         spare_nodes=int(os.environ.get("LIVE_FLEET_SPARE", "1")),
+                         regions=tuple(r.strip() for r in os.environ.get("LIVE_FLEET_REGIONS", "Singapore,SG,Japan,JP").split(",") if r.strip()))
+    from .turn import ice_from_env
+
+    def worker_env() -> dict[str, str]:
+        ice = ice_from_env(label="worker", ttl_s=12 * 3600)
+        return {"WORKER_ICE_SERVERS": json.dumps(ice)} if ice else {}
+    return GpuFleet(providers, data / "fleet_state.json", image=os.environ["LIVE_WORKER_IMAGE"], limits=limits,
+                    worker_env=worker_env)
+
+
 @dataclass
 class Session:
     id: str
@@ -144,11 +173,12 @@ class Rent(BaseModel):
 def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=StreamEngine,
                access_token: str | None = None, max_minutes: float | None = None,
                gpu: GpuManager | None | bool = True, ice_servers: list | None = None,
-               references: References | None = None) -> FastAPI:
+               references: References | None = None, fleet=True) -> FastAPI:
     configs = dict(engines or engines_from_env())
     refs = references or References(public_base=os.environ.get("LIVE_PUBLIC_URL", "https://live.labotory.site"))
     faces: dict[str, bytes] = {}  # jeton secret → JPEG ; effacé à la désactivation et en fin de session
     gpu = gpu_manager_from_env() if gpu is True else (gpu or None)
+    fleet = fleet_from_env() if fleet is True else (fleet or None)
     from .turn import ice_from_env
     # Identifiants TURN régénérés à chaque demande (ils expirent) ; le secret reste ici.
     ice_provider = (lambda: list(ice_servers)) if ice_servers is not None else ice_from_env
@@ -198,6 +228,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
                 faces.pop(s.face_token, None)
                 s.face_token = None
             clients[s.engine_key].delete(s.stream_id)
+            if fleet and s.engine_key.startswith("node:"):
+                fleet.release_session(s.id)       # la place se libère sur le GPU
             s.note(f"session terminée : {reason}")
 
     def view(s: Session) -> dict:
@@ -249,7 +281,8 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         pick = lambda c: [{"key": k, "label": v["label"]} for k, v in c.items()]  # noqa: E731
         return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
                 "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
-                             "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith("cloud:")],
+                             "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith(("cloud:", "node:"))],
+                "fleet": [{"key": f"flotte:{t.key}", "name": t.label} for t in fleet.tiers.values()] if fleet else [],
                 "labels": i18n_labels(),
                 "voice_langs": [{"code": k, "speech": v} for k, v in SPEECH_LANG.items()],
                 "modes": [{"key": k, "label": v["label"], "hint": v["hint"]} for k, v in QUALITY_MODES.items()],
@@ -321,12 +354,45 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             clients[key] = engine_factory(configs[key])
         return key
 
+    # --- Flotte automatique : un GPU avec une place libre, ou « en préparation » (réessayer) ---
+    def fleet_engine(tier_key: str, sid: str) -> str:
+        if fleet is None:
+            raise HTTPException(400, "flotte de GPU non configurée")
+        try:
+            node = fleet.assign(sid, tier_key)
+        except Exception as e:  # noqa: BLE001 - gamme inconnue, etc.
+            raise HTTPException(400, str(e)) from e
+        if node is None:
+            raise HTTPException(503, {"message": "GPU en préparation : nouvel essai automatique",
+                                      "ticket": sid, "retry_after": 20}, headers={"Retry-After": "20"})
+        key = f"node:{node.id}"
+        if key not in configs:
+            t = fleet.tiers[node.tier]
+            model = MODELS[t.model_key]
+            configs[key] = EngineConfig(name=f"{t.label} — {node.gpu_name}", base_url=node.endpoint, api_key=node.token,
+                                        model_id=model.model_id, width=model.width, height=model.height,
+                                        use_controlnets=model.use_controlnets, supports_output_size=True,
+                                        usd_per_minute=round(node.usd_per_hour / 60 / t.slots, 4))
+            clients[key] = engine_factory(configs[key])
+        return key
+
+    @app.get("/api/fleet")
+    def fleet_view(x_live_token: str = Header(default="")):
+        guard(x_live_token)
+        if fleet is None:
+            raise HTTPException(404, "flotte de GPU non configurée")
+        return fleet.view()
+
     @app.post("/api/sessions")
     def create(body: dict = Body(default={}), x_live_token: str = Header(default="")):
         guard(x_live_token)
         key = body.get("engine", "daydream")
+        ticket = body.get("ticket") if isinstance(body.get("ticket"), str) and str(body.get("ticket")).startswith("ses_") else None
+        sid = ticket or "ses_" + secrets.token_hex(8)
         if key == "cloud":
             key = cloud_engine()
+        elif key.startswith("flotte:"):
+            key = fleet_engine(key.split(":", 1)[1], sid)
         if key not in configs:
             raise HTTPException(400, "moteur inconnu")
         history = SceneHistory()
@@ -350,8 +416,10 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             data = clients[key].create(history.current, output_rtmp_urls=urls, output_size=size, mode=mode,
                                        refs={"style_image_url": first} if first else None)
         except EngineError as e:
+            if fleet and key.startswith("node:"):
+                fleet.release_session(sid)
             raise HTTPException(502, str(e)) from e
-        s = Session(id="ses_" + secrets.token_hex(8), out_key=secrets.token_urlsafe(16), engine_key=key,
+        s = Session(id=sid, out_key=secrets.token_urlsafe(16), engine_key=key,
                     stream_id=data["id"], whip_url=data["whip_url"], history=history, mode=mode, use_refs=use_refs,
                     ip_used=bool(first))
         s.broadcast = bviews
@@ -548,9 +616,20 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
                     pass
         threading.Thread(target=reaper, daemon=True, name="gpu-reaper").start()
 
+    if fleet is not None:
+        def fleet_ticker():  # états des GPU, réserve, GPU vides rendus — même si personne n'ouvre la console
+            while True:
+                time.sleep(20)
+                try:
+                    fleet.tick()
+                except Exception:  # noqa: BLE001
+                    pass
+        threading.Thread(target=fleet_ticker, daemon=True, name="fleet-ticker").start()
+
     if refs.root.is_dir():
         app.mount("/refs", StaticFiles(directory=refs.root), name="refs")
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")
     app.state.sessions = sessions
     app.state.gpu = gpu
+    app.state.fleet = fleet
     return app

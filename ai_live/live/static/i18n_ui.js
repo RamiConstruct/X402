@@ -37,6 +37,24 @@ hi: {"res": "इमेज रिज़ॉल्यूशन", "res_auto": "ऑ�
 id: {"res": "Resolusi gambar", "res_auto": "Otomatis (hingga 1080p)", "fluid": "Kelancaran: prediksi gerakan", "fluid_hint": "— ponsel memperkirakan gerakanmu di antara dua gambar AI", "p_fluid": "lancar", "lag": "jeda terukur", "fluid_on": "Kelancaran aktif", "fluid_off": "Kelancaran nonaktif"},
 };
 for (const l in UI_RENDU) Object.assign(UI[l], UI_RENDU[l]);
+const UI_FLOTTE = {
+fr: {"gpu_wait": "Un GPU démarre pour toi (1 à 3 min)… {s} s"},
+en: {"gpu_wait": "A GPU is starting for you (1–3 min)… {s} s"},
+es: {"gpu_wait": "Se está iniciando una GPU para ti (1–3 min)… {s} s"},
+pt: {"gpu_wait": "Uma GPU está iniciando para você (1–3 min)… {s} s"},
+de: {"gpu_wait": "Eine GPU startet für dich (1–3 Min.)… {s} s"},
+it: {"gpu_wait": "Una GPU si sta avviando per te (1–3 min)… {s} s"},
+nl: {"gpu_wait": "Er start een GPU voor je (1–3 min)… {s} s"},
+ar: {"gpu_wait": "يتم تشغيل وحدة GPU لك (1–3 دقائق)… {s} ث"},
+tr: {"gpu_wait": "Senin için bir GPU başlatılıyor (1–3 dk)… {s} sn"},
+ru: {"gpu_wait": "Для тебя запускается GPU (1–3 мин)… {s} с"},
+zh: {"gpu_wait": "正在为你启动 GPU（1–3 分钟）… {s} 秒"},
+ja: {"gpu_wait": "あなた用の GPU を起動中（1〜3分）… {s} 秒"},
+ko: {"gpu_wait": "GPU를 시작하는 중입니다 (1~3분)… {s}초"},
+hi: {"gpu_wait": "आपके लिए GPU शुरू हो रहा है (1–3 मिनट)… {s} से"},
+id: {"gpu_wait": "GPU sedang dinyalakan untukmu (1–3 mnt)… {s} dtk"},
+};
+for (const l in UI_FLOTTE) Object.assign(UI[l], UI_FLOTTE[l]);
 const RTL = new Set(["ar"]);
 let LANG = "fr";
 function t(key, vars = {}) {

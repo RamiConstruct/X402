@@ -19,7 +19,8 @@ async function loadCatalog() {
   st.catalog = await (await fetch("/api/catalog")).json();
   setIceServers(st.catalog.ice_servers);
   $("#token-field").hidden = !st.catalog.access_required;
-  $("#engine").innerHTML = (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué (Vast.ai / RunPod)</option>` : "") +
+  $("#engine").innerHTML = (st.catalog.fleet || []).map((f) => `<option value="${esc(f.key)}">Flotte automatique — ${esc(f.name)}</option>`).join("") +
+    (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué (Vast.ai / RunPod)</option>` : "") +
     st.catalog.engines.map((e) =>
     `<option value="${esc(e.key)}">${esc(e.name)} — ${esc(e.model)}${e.configured ? "" : " (clé manquante)"}</option>`).join("");
   $("#mode").innerHTML = `<option value="auto">Auto — s'adapte au réseau</option>` +
@@ -58,6 +59,23 @@ function render(s) {
   if (s.ended) { say(`Session terminée : ${s.end_reason}`, true); teardown(); }
 }
 
+// Flotte : un GPU peut être en démarrage (503 + ticket) → on patiente en gardant la place (8 min au plus).
+async function createSession(body) {
+  const t0 = Date.now();
+  for (;;) {
+    const r = await fetch("/api/sessions", { method: "POST", headers: { ...headers(), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) return d;
+    if (r.status === 503 && d.detail && d.detail.ticket && Date.now() - t0 < 8 * 60_000) {
+      body.ticket = d.detail.ticket;
+      say(`Un GPU démarre pour toi (1 à 3 min)… ${Math.round((Date.now() - t0) / 1000)} s`);
+      await new Promise((res) => setTimeout(res, 1000 * (d.detail.retry_after || 20)));
+      continue;
+    }
+    throw new Error((d.detail && (d.detail.message || d.detail)) || "erreur " + r.status);
+  }
+}
+
 // ------------------------------------------------------------ démarrage
 $("#start").addEventListener("click", async () => {
   say("Accès à la caméra…");
@@ -68,7 +86,7 @@ $("#start").addEventListener("click", async () => {
     st.mode = st.auto ? pickInitialMode(await probeNetwork()) : $("#mode").value;
     st.tune = st.auto ? new AutoTune({ mode: st.mode, allowModeSwitch: false }) : null;  // sur ordinateur : débit seulement
     say("Création du flux sur le moteur…");
-    const s = await api("/api/sessions", { method: "POST", body: JSON.stringify({ engine: $("#engine").value, mode: st.mode }) });
+    const s = await createSession({ engine: $("#engine").value, mode: st.mode });
     render(s);
     const tStart = Date.now();
     $("#ai").addEventListener("playing", () => say(`IA prête en ${((Date.now() - tStart) / 1000).toFixed(1)} s (mode ${s.mode_label || "—"})`), { once: true });

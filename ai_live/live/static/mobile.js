@@ -93,7 +93,8 @@ function buildChips() {
 async function init() {
   st.catalog = await (await fetch("/api/catalog")).json();
   setIceServers(st.catalog.ice_servers);
-  $("#engine").innerHTML = (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué</option>` : "") +
+  $("#engine").innerHTML = (st.catalog.fleet || []).map((f) => `<option value="${esc(f.key)}">${esc(f.name)}</option>`).join("") +
+    (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué</option>` : "") +
     st.catalog.engines.map((e) => `<option value="${esc(e.key)}">${esc(e.name)}</option>`).join("");
   $("#token").value = store.get("token");
   $("#engine").value = store.get("engine") || $("#engine").value;
@@ -146,7 +147,7 @@ $("#go").addEventListener("click", async () => {
         video: videoConstraints({ facingMode: $("#facing").value }),
         audio: { echoCancellation: true, noiseSuppression: true },
       }),
-      api("/api/sessions", { method: "POST", body: JSON.stringify(body) }),
+      createSession(body),
     ]);
     st.cam = cam; st.session = session;
     $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden"); document.querySelector(".labnav")?.classList.add("hidden");
@@ -204,6 +205,24 @@ $("#resp").addEventListener("click", () => {
   st.rendu.setFluid(!st.rendu.fluid); store.set("fluid", st.rendu.fluid ? "1" : "0"); $("#fluid").checked = st.rendu.fluid;
   showRes(st.rendu.info()); say(st.rendu.fluid ? t("fluid_on") : t("fluid_off"));
 });
+
+// Création de session ; avec la flotte, un GPU peut être en démarrage (réponse 503 + ticket) :
+// on patiente en réessayant avec le même ticket (la place est gardée), 8 minutes au plus.
+async function createSession(body) {
+  const t0 = Date.now();
+  for (;;) {
+    const r = await fetch("/api/sessions", { method: "POST", headers: H({ "Content-Type": "application/json" }), body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok) return d;
+    if (r.status === 503 && d.detail && d.detail.ticket && Date.now() - t0 < 8 * 60_000) {
+      body.ticket = d.detail.ticket;
+      $("#err").textContent = t("gpu_wait", { s: Math.round((Date.now() - t0) / 1000) });
+      await new Promise((res) => setTimeout(res, 1000 * (d.detail.retry_after || 20)));
+      continue;
+    }
+    throw new Error((d.detail && (d.detail.message || d.detail)) || "erreur " + r.status);
+  }
+}
 
 // Mesures réseau + mode automatique (relancé après chaque reconnexion, car il suit les connexions actives).
 function startNet() {
