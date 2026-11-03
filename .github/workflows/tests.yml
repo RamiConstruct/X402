@@ -1,0 +1,38 @@
+name: tests
+# Tous les tests du dépôt à chaque envoi : AI Live (serveur, flotte, parcours vidéo), rendu téléphone (Node),
+# AI Studio, atelier à la racine, validité des 15 langues du site.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: AI Live
+        working-directory: ai_live
+        run: |
+          python -m venv .venv && .venv/bin/pip install -q -e '.[dev]'
+          .venv/bin/python -m pytest -q
+      - name: Rendu téléphone (rendu.js, mode auto, parité Rust/JS)
+        run: node ai_live/tests/js/rendu.test.mjs && node ai_live/tests/js/autotune.test.mjs
+      - name: Versions anti-cache à jour
+        run: python tools/versionner.py --verifier
+      - name: AI Studio
+        working-directory: ai_studio
+        run: |
+          python -m venv .venv && .venv/bin/pip install -q -e '.[dev]'
+          .venv/bin/python -m pytest -q
+      - name: Atelier (racine)
+        run: ai_live/.venv/bin/python -m pytest -q tests
+      - name: Site en 15 langues
+        working-directory: site/laboratoire
+        run: node build_langues.mjs

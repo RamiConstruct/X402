@@ -99,7 +99,7 @@ function blockSearch(prev, cur, n, g, r, init) {
 }
 
 // Même calcul en Rust compilé en WebAssembly (motion_rs/, ~9× plus rapide) ; blockFlow reste le secours.
-async function loadMotionWasm(url = "/motion.wasm?v=9de71234") {
+async function loadMotionWasm(url = "/motion.wasm?v=5c3977b1") {
   try {
     const bytes = await (await fetch(url)).arrayBuffer();
     const { instance } = await WebAssembly.instantiate(bytes);

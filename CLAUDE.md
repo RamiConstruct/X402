@@ -44,8 +44,8 @@ cd ai_live && .venv/bin/python -m pytest -q          # ~91 tests
 node ai_live/tests/js/rendu.test.mjs && node ai_live/tests/js/autotune.test.mjs
 cd ai_studio && .venv/bin/python -m pytest -q        # ~29 tests
 ```
-Après une modification de fichier statique : mettre à jour les `?v=<hash>` dans `mobile.html`, `index.html`,
-`output.html` (et `motion.wasm?v=` dans `rendu.js`), sinon le cache Cloudflare sert l'ancienne version.
+Après une modification de fichier statique : `python tools/versionner.py` (met à jour les `?v=` anti-cache ;
+les tests GitHub échouent si on l'oublie). Tous les tests tournent aussi sur GitHub à chaque envoi (`.github/workflows/tests.yml`).
 
 ## Mise en ligne (AI Live)
 Archive des fichiers modifiés → `scp` puis extraction sur le serveur via `ssh` (accès par `cloudflared access ssh`,
