@@ -5,15 +5,14 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Optimiser avant d'investir : flux vidéo allégé, mesures réseau, plan d'investissement de 1 000 $ prêt.",
-    "dernier_fait": "Bibliothèque de 55 images de référence libres et option « garder mon visage » (expérimentales, à tester depuis le téléphone) ; une commande donnée pendant le chargement n'est plus perdue.",
+    "dernier_fait": "Panne du 3 novembre réparée et serveur protégé (mémoire de secours, gardien, redémarrage automatique) ; sentinelle Cloudflare qui redémarre le serveur via Oracle s'il tombe.",
     "prochaines_etapes_claude": [
-      "Mesurer la fluidité réelle depuis ton téléphone dans chaque mode",
-      "Régler l'intensité par défaut et les descriptions à partir de tes essais enregistrés",
-      "Style copié d'une image de référence (accepté par Daydream, à intégrer)"
+      "Migrer sur la machine Ampere A1 (2 cœurs / 12 Go) dès qu'Oracle a de la place — la sentinelle retente toutes les 30 min",
+      "Tester les options expérimentales (images de référence, visage) depuis la nouvelle machine",
+      "Mesurer la fluidité réelle depuis ton téléphone"
     ],
     "en_attente_de_toi": [
       "Tester les options expérimentales (Images de référence, Garder mon visage) sur live.labotory.site/mobile.html",
-      "Créer une instance Oracle Ampere A1 gratuite (le serveur actuel n'a qu'1 Go de mémoire)",
       "Rendre public le paquet x402-live-worker : GitHub → ton profil → Packages → x402-live-worker → Package settings → Change visibility → Public",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
     ]
@@ -134,7 +133,7 @@
     {
       "element": "Accès d'administration au serveur (ssh.labotory.site)",
       "etat": "ok",
-      "note": "tunnel Cloudflare"
+      "note": "tunnel Cloudflare (http2) + gardien toutes les 2 min"
     },
     {
       "element": "Moteur de démonstration (serveur)",
@@ -170,9 +169,18 @@
       "element": "Console AI LIVE en ligne",
       "etat": "ok",
       "note": "live.labotory.site, mot de passe requis ; moteur démo sur le serveur"
+    },
+    {
+      "element": "Sentinelle (sentinelle.labotory.site)",
+      "etat": "ok",
+      "note": "vérifie toutes les 5 min ; redémarre le serveur via Oracle après 10 min de panne"
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-03",
+      "texte": "Panne de nuit (serveur de 1 Go saturé, tunnel coupé de 00h20 à 05h14) réparée ; protections installées ; sentinelle Cloudflare + accès API Oracle ; création d'une machine Ampere A1 gratuite en attente de place chez Oracle."
+    },
     {
       "date": "2026-11-02",
       "texte": "Images de référence (55 photos libres, crédits publiés) et « garder mon visage » en option expérimentale ; le petit serveur a saturé pendant un test vidéo puis est revenu."

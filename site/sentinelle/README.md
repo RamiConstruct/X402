@@ -24,3 +24,11 @@ Le Worker les reçoit sous forme de secrets (`OCI_KEY`, `SENT_TOKEN`) et de vari
 
 `ai_live/tools/oci_instance.py` (list / status / reboot / start) avec un fichier de config
 au format `~/.oci/config` (variable `OCI_CONFIG`).
+
+## Création automatique de la machine Ampere A1 (offre gratuite)
+
+Oracle manque souvent de place (« Out of host capacity ») : la sentinelle retente toutes les
+30 minutes la création de « labo-a1 » (VM.Standard.A1.Flex, 2 cœurs / 12 Go — la limite gratuite
+du compte refuse 4 / 24 —, Ubuntu 24.04 aarch64, disque 100 Go, même sous-réseau, même clé SSH),
+et s'arrête dès qu'elle existe (jamais de doublon). Suivi : `GET /a1` ; essai immédiat : `POST /a1`.
+Une fois créée : migrer AI Live, AI Studio, le tunnel et TURN dessus, puis libérer la micro.
