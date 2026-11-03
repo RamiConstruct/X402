@@ -27,7 +27,7 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
 .later summary{cursor:pointer;color:var(--muted);font-size:14px}
 .pill.rec2{background:#b91c1c;border-color:#b91c1c;font-weight:700}.err{color:var(--danger);font-size:14px;min-height:1.2em;margin-top:10px}
 #live{position:fixed;inset:0;background:#000}
-#ai{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#ai,#view{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}#view{display:block}
 .top{position:absolute;top:0;left:0;right:0;padding:max(10px,env(safe-area-inset-top)) 12px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;background:linear-gradient(#000a,#0000)}
 .pill{font-size:13px;padding:4px 10px;border-radius:999px;background:#0008;border:1px solid #fff3}
 .pill.rec{background:var(--danger);border-color:var(--danger);font-weight:700}
@@ -96,6 +96,8 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
     <option value="ko">한국어</option><option value="hi">हिन्दी</option><option value="id">Bahasa Indonesia</option></select>
   <label data-t="mode">Qualité du rendu</label><select id="mode"></select>
   <p class="howto" id="mode-hint"></p>
+  <label data-t="res">Définition de l'image</label><select id="res"><option value="auto" data-t="res_auto">Auto (jusqu'à 1080p)</option><option value="1080">1080p</option><option value="720">720p</option><option value="480">480p</option></select>
+  <div class="check"><input type="checkbox" id="fluid" checked><span><span data-t="fluid">Fluidité : prédiction du mouvement</span> <span style="opacity:.75" data-t="fluid_hint">— le téléphone anticipe tes gestes entre deux images de l'IA</span></span></div>
 
   <details class="later">
     <summary data-t="bc_sum">Diffusion en direct sur des plateformes (après la phase de test)</summary>
@@ -123,8 +125,9 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
 
 <section id="live" class="hidden">
   <video id="ai" autoplay playsinline muted></video>
+  <canvas id="view" class="hidden"></canvas>
   <video id="cam" autoplay playsinline muted></video>
-  <div class="top"><span id="state" class="pill">Connexion…</span><span id="timer" class="pill">00:00</span><span id="fps" class="pill">— i/s</span><span id="net" class="pill hidden"></span><span id="modep" class="pill hidden"></span><button id="facep" class="pill hidden" type="button" style="color:#fff;font:inherit;font-size:13px">🙂 Visage</button><span id="cost" class="pill hidden"></span><span id="recpill" class="pill rec2 hidden">● ENR 00:00</span></div>
+  <div class="top"><span id="state" class="pill">Connexion…</span><span id="timer" class="pill">00:00</span><span id="fps" class="pill">— i/s</span><span id="net" class="pill hidden"></span><span id="modep" class="pill hidden"></span><button id="resp" class="pill hidden" type="button" style="color:#fff;font:inherit;font-size:13px"></button><button id="facep" class="pill hidden" type="button" style="color:#fff;font:inherit;font-size:13px">🙂 Visage</button><span id="cost" class="pill hidden"></span><span id="recpill" class="pill rec2 hidden">● ENR 00:00</span></div>
   <div id="parody" class="parody hidden">Parodie IA</div>
   <div id="msg" class="msg"></div>
   <div id="chips" class="chips"></div>
@@ -135,8 +138,9 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
     <button id="stop" class="big" data-t="end">■ Fin</button>
   </div>
 </section>
-<script src="/i18n_ui.js?v=ed26edcd"></script>
-<script src="/rtc.js?v=ed26edcd"></script>
-<script src="/mobile.js?v=ed26edcd"></script>
+<script src="/i18n_ui.js?v=5859544e"></script>
+<script src="/rtc.js?v=5859544e"></script>
+<script src="/rendu.js?v=5859544e"></script>
+<script src="/mobile.js?v=5859544e"></script>
 </body>
 </html>

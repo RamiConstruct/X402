@@ -211,23 +211,25 @@ function fpsMeter(videoEl, onFps) {
 
 // ------------------------------------------------------------------ enregistrement d'essai (phase de test)
 // Enregistre la sortie IA (+ le son du micro) sur l'appareil, sans rien publier.
+// source : l'élément vidéo IA, ou une fonction qui renvoie la piste vidéo à enregistrer (rendu 1080p).
 function pickMime() {
   const c = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4;codecs=avc1,mp4a", "video/mp4"];
   return c.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || "";
 }
-function makeRecorder(videoEl, micTrack) {
+function makeRecorder(source, micTrack) {
   let rec = null, chunks = [], t0 = 0;
   return {
     get recording() { return !!rec && rec.state === "recording"; },
     get seconds() { return rec ? Math.floor((Date.now() - t0) / 1000) : 0; },
     start() {
-      const src = videoEl.srcObject;
-      const v = src && src.getVideoTracks()[0];
+      let v = null, hd = false;
+      if (typeof source === "function") { const r = source(); v = r && r.track; hd = !!(r && r.hd); }
+      else { const src = source.srcObject; v = src && src.getVideoTracks()[0]; }
       if (!v) throw new Error("pas encore d'image IA à enregistrer");
       if (!window.MediaRecorder) throw new Error("enregistrement non pris en charge par ce navigateur");
       const tracks = [v, ...(micTrack ? [micTrack] : [])];
       const mime = pickMime();
-      rec = new MediaRecorder(new MediaStream(tracks), mime ? { mimeType: mime, videoBitsPerSecond: 4_000_000 } : undefined);
+      rec = new MediaRecorder(new MediaStream(tracks), mime ? { mimeType: mime, videoBitsPerSecond: hd ? 8_000_000 : 4_000_000 } : undefined);
       chunks = []; t0 = Date.now();
       rec.ondataavailable = (e) => e.data && e.data.size && chunks.push(e.data);
       rec.start(1000);

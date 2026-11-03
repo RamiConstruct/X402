@@ -104,6 +104,8 @@ $("#mode").addEventListener("change", modeHint);
   const nav = (navigator.language || "fr").slice(0, 2);
   $("#vlang").value = store.get("vlang") || ([...$("#vlang").options].some((o) => o.value === nav) ? nav : "fr");
   $("#refs").checked = store.get("refs") === "1";
+  $("#res").value = store.get("res") || "auto";
+  $("#fluid").checked = store.get("fluid") !== "0";
   $("#format").value = store.get("format") || "horizontal";
   let saved = [];
   try { saved = JSON.parse(store.get("dests") || "[]"); } catch {}
@@ -127,6 +129,7 @@ $("#go").addEventListener("click", async () => {
   store.set("face", $("#face").checked ? "1" : "0");
   store.set("vlang", $("#vlang").value);
   store.set("refs", $("#refs").checked ? "1" : "0");
+  store.set("res", $("#res").value); store.set("fluid", $("#fluid").checked ? "1" : "0");
   store.set("bc", $("#do-bc").checked ? "1" : "");
   store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
   try {
@@ -154,6 +157,7 @@ $("#go").addEventListener("click", async () => {
     $("#state").textContent = t("loading");
     $("#ai").addEventListener("playing", () => say(t("ready", { s: ((Date.now() - tStart) / 1000).toFixed(1), m: t("m_" + st.session.mode) })), { once: true });
     st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
+    startRendu();
     $("#state").textContent = platform ? t("live_on") : t("test_state");
     $("#state").classList.toggle("rec", !!platform);
     st.t0 = Date.now();
@@ -165,7 +169,7 @@ $("#go").addEventListener("click", async () => {
     startNet();
     st.timers.push(setInterval(refresh, 5000));
     try { st.wake = await navigator.wakeLock.request("screen"); } catch {}
-    st.recorder = makeRecorder($("#ai"), st.cam.getAudioTracks()[0]);
+    st.recorder = makeRecorder(recSource, st.cam.getAudioTracks()[0]);
     say(platform ? t("bc_started", { p: platform }) : t("test_started"));
   } catch (e) {
     $("#err").textContent = t("failed") + e.message; teardown(false);
@@ -173,10 +177,39 @@ $("#go").addEventListener("click", async () => {
   $("#go").disabled = false;
 });
 
+// Rendu téléphone (rendu.js) : agrandissement jusqu'en 1080p + prédiction du mouvement.
+// Sans WebGL2, on garde simplement la vidéo IA telle quelle.
+function startRendu() {
+  try { st.rendu && st.rendu.stop(); } catch {}
+  st.rendu = null;
+  try {
+    $("#view").classList.remove("hidden");
+    st.rendu = new Rendu({ canvas: $("#view"), ai: $("#ai"), cam: $("#cam"), res: $("#res").value, fluid: $("#fluid").checked, onInfo: showRes });
+  } catch (e) { $("#view").classList.add("hidden"); console.warn("rendu téléphone indisponible :", e.message); }
+}
+function showRes(i) {
+  const el = $("#resp"); if (!el) return;
+  el.classList.remove("hidden");
+  const p = i.short >= 1000 ? "1080p" : i.short >= 700 ? "720p" : i.short >= 460 ? "480p" : i.short + "p";
+  el.textContent = p + (i.fluid ? ` · ${t("p_fluid")}` : "");
+  el.title = i.fluid ? `${t("lag")} ${i.lagMs} ms${i.measured ? "" : " (estimé)"}` : "";
+}
+// Enregistrement : l'image finale (agrandie et lissée) si le rendu tourne, sinon la vidéo IA brute.
+function recSource() {
+  if (st.rendu) { const tr = st.rendu.stream().getVideoTracks()[0]; return { track: tr, hd: st.rendu.info().short >= 1000 }; }
+  const s = $("#ai").srcObject; return { track: s && s.getVideoTracks()[0] };
+}
+$("#resp").addEventListener("click", () => {
+  if (!st.rendu) return;
+  st.rendu.setFluid(!st.rendu.fluid); store.set("fluid", st.rendu.fluid ? "1" : "0"); $("#fluid").checked = st.rendu.fluid;
+  showRes(st.rendu.info()); say(st.rendu.fluid ? t("fluid_on") : t("fluid_off"));
+});
+
 // Mesures réseau + mode automatique (relancé après chaque reconnexion, car il suit les connexions actives).
 function startNet() {
   clearInterval(st.netTimer);
   st.netTimer = netStats(st.pub, st.view, (s) => {
+    if (st.rendu) st.rendu.setNet(s);
     const g = netGrade(s), el = $("#net");
     if (g) {
       el.classList.remove("hidden"); el.dataset.g = g;
@@ -320,6 +353,7 @@ function teardown(back) {
   clearInterval(st.recTimer); $("#recpill")?.classList.add("hidden"); $("#rec").textContent = t("rec"); $("#rec").classList.remove("recording");
   st.timers.forEach((t) => clearInterval(t)); st.timers = [];
   clearInterval(st.netTimer); st.tune = null;
+  try { st.rendu && st.rendu.stop(); } catch {} st.rendu = null; $("#view").classList.add("hidden"); $("#resp").classList.add("hidden");
   try { st.pub && st.pub.close(); st.view && st.view.close(); } catch {}
   st.cam && st.cam.getTracks().forEach((t) => t.stop());
   st.listening = false; try { st.rec && st.rec.stop(); } catch {}
