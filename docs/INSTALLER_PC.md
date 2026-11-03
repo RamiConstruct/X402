@@ -33,6 +33,6 @@ plus tard `VAST_API_KEY` / `RUNPOD_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOO
 Conseil : régénérer les clés qui sont passées dans la discussion (Daydream, clé SSH) et ne garder que les nouvelles.
 
 ## 3. Le projet claude.ai (pour discuter et décider)
-Ajouter dans « Project knowledge » : `CLAUDE.md`, `docs/SAUVEGARDE.md`, `docs/ai_live_studio/OBJECTIF_1440P_90.md`,
+Ajouter dans « Project knowledge » : `CLAUDE.md`, `docs/GUIDE_CLAUDE.md`, `docs/SAUVEGARDE.md`, `docs/ai_live_studio/OBJECTIF_1440P_90.md`,
 `ETUDE_INSTANTANEITE.md`, `BENCHMARK_ASIE.md`, `PLAN_INVESTISSEMENT.md`, `docs/VISION.md`.
 Un projet ne se met pas à jour seul : remplacer les fichiers quand ils changent sur GitHub.

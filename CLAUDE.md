@@ -1,6 +1,7 @@
 # Le Laboratoire — AI LIVE et AI STUDIO
 
 Mémoire du projet pour Claude (sessions Claude Code et projet claude.ai). À lire avant toute tâche.
+**Guide complet (historique, décisions, pièges, feuille de route, garde-fous de croissance) : `docs/GUIDE_CLAUDE.md`.**
 
 ## Le projet
 - **AI LIVE** : transformation IA en temps réel de la caméra (personnages, décors, styles) pilotée à la voix,
