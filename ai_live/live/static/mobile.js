@@ -192,7 +192,7 @@ function showRes(i) {
   el.classList.remove("hidden");
   const p = i.short >= 1000 ? "1080p" : i.short >= 700 ? "720p" : i.short >= 460 ? "480p" : i.short + "p";
   el.textContent = p + (i.fluid ? ` · ${t("p_fluid")}` : "");
-  el.title = i.fluid ? `${t("lag")} ${i.lagMs} ms${i.measured ? "" : " (estimé)"}` : "";
+  el.title = i.fluid ? `${t("lag")} ${i.lagMs} ms${i.measured ? "" : " (estimé)"} · ${i.engine === "rust" ? "Rust/WebAssembly" : "JavaScript"}` : "";
 }
 // Enregistrement : l'image finale (agrandie et lissée) si le rendu tourne, sinon la vidéo IA brute.
 function recSource() {

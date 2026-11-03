@@ -98,13 +98,40 @@ function blockSearch(prev, cur, n, g, r, init) {
   return { flow: out, gx: gx / (g * g), gy: gy / (g * g), valid };
 }
 
+// Même calcul en Rust compilé en WebAssembly (motion_rs/, ~9× plus rapide) ; blockFlow reste le secours.
+async function loadMotionWasm(url = "/motion.wasm?v=67084585") {
+  try {
+    const bytes = await (await fetch(url)).arrayBuffer();
+    const { instance } = await WebAssembly.instantiate(bytes);
+    const w = instance.exports, n2 = MOTION.N * MOTION.N, g2 = MOTION.G * MOTION.G * 2;
+    return (prev, cur) => {
+      const m = new Float32Array(w.memory.buffer);
+      m.set(prev, w.prev_ptr() / 4); m.set(cur, w.cur_ptr() / 4); w.flow();
+      const o = new Float32Array(w.memory.buffer, w.out_ptr(), g2 + 3);
+      return { flow: o.slice(0, g2), gx: o[g2], gy: o[g2 + 1], valid: o[g2 + 2] };
+    };
+  } catch (e) { return null; }
+}
+
 // Historique des mouvements mesurés (horodatés) : déplacement cumulé entre deux instants,
 // et position globale cumulée (pour mesurer le délai).
+// Mouvement moyen de chaque quart d'image [x0, y0, x1, y1, x2, y2, x3, y3] : une rotation ou un geste
+// local, qui s'annulent dans la moyenne globale, restent visibles par quart.
+function quadMeans(flow, g = MOTION.G) {
+  const q = new Float32Array(8), h = g >> 1, n = h * h;
+  for (let j = 0; j < g; j++) for (let i = 0; i < g; i++) {
+    const k = (j >= h ? 2 : 0) + (i >= h ? 1 : 0), b = (j * g + i) * 2;
+    q[k * 2] += flow[b] / n; q[k * 2 + 1] += flow[b + 1] / n;
+  }
+  return q;
+}
+
 class MotionHistory {
-  constructor(g = MOTION.G, keepMs = 1500) { this.g = g; this.keep = keepMs; this.items = []; this.X = 0; this.Y = 0; this.pos = []; }
+  constructor(g = MOTION.G, keepMs = 1500) { this.g = g; this.keep = keepMs; this.items = []; this.V = new Float32Array(8); this.pos = []; }
   push(ts, f) {
-    this.X += f.gx; this.Y += f.gy;
-    this.items.push({ ts, flow: f.flow }); this.pos.push({ t: ts, x: this.X, y: this.Y });
+    const q = quadMeans(f.flow, this.g);
+    for (let k = 0; k < 8; k++) this.V[k] += q[k];
+    this.items.push({ ts, flow: f.flow }); this.pos.push({ t: ts, v: Float32Array.from(this.V) });
     while (this.items.length && this.items[0].ts < ts - this.keep) this.items.shift();
     while (this.pos.length > 2 && this.pos[0].t < ts - 4000) this.pos.shift();
   }
@@ -117,41 +144,49 @@ class MotionHistory {
   }
 }
 
-// Position cumulée interpolée à l'instant t (série triée {t, x, y}).
+// Position cumulée interpolée à l'instant t (série triée {t, v}).
 function posAt(s, t) {
-  if (!s.length) return null;
-  if (t <= s[0].t) return s[0];
-  if (t >= s[s.length - 1].t) return s[s.length - 1];
+  if (t <= s[0].t) return s[0].v;
+  if (t >= s[s.length - 1].t) return s[s.length - 1].v;
   let lo = 0, hi = s.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (s[m].t <= t) lo = m; else hi = m; }
-  const a = s[lo], b = s[hi], f = (t - a.t) / (b.t - a.t || 1);
-  return { t, x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+  const a = s[lo], b = s[hi], f = (t - a.t) / (b.t - a.t || 1), out = new Float32Array(a.v.length);
+  for (let k = 0; k < out.length; k++) out[k] = a.v[k] + (b.v[k] - a.v[k]) * f;
+  return out;
+}
+// Écart moyen par quart entre deux mouvements (vecteurs de 8 valeurs : 4 quarts × x, y).
+function quadDist(a1, a2, c1, c2) {
+  let e = 0;
+  for (let k = 0; k < a1.length; k += 2) e += Math.hypot((a2[k] - a1[k]) - (c2[k] - c1[k]), (a2[k + 1] - a1[k + 1]) - (c2[k + 1] - c1[k + 1]));
+  return e / (a1.length / 2);
 }
 
 // Délai caméra → image IA : le décalage temporel qui superpose le mieux les mouvements de l'image IA
-// à ceux de la caméra. Retourne { lag (ms), conf (0–1) } ou null s'il n'y a pas assez de mouvement.
+// à ceux de la caméra (comparés par quart d'image). Retourne { lag (ms), conf (0–1) } ou null s'il n'y a
+// pas assez de mouvement ou si aucun décalage ne se détache nettement.
 function estimateLag(cam, ai, { maxLag = 900, step = 10, win = 120, span = 3000 } = {}) {
   if (cam.length < 10 || ai.length < 6) return null;
   const tEnd = ai[ai.length - 1].t, samples = ai.filter((p) => p.t > tEnd - span && p.t - win > ai[0].t);
   if (samples.length < 5) return null;
+  const zero = new Float32Array(cam[0].v.length);
   let energy = 0;
-  for (const p of samples) { const a = posAt(cam, p.t - win), b = posAt(cam, p.t); energy += Math.hypot(b.x - a.x, b.y - a.y); }
+  for (const p of samples) energy += quadDist(zero, zero, posAt(cam, p.t - win), posAt(cam, p.t));
   if (energy / samples.length < 0.12) return null;      // presque immobile : rien à mesurer
+  // Mouvements de l'image IA, calculés une fois.
+  const aiMoves = samples.map((p) => [p.t, posAt(ai, p.t - win), posAt(ai, p.t)]);
   let best = Infinity, bestLag = 0, sum = 0, n = 0;
   for (let lag = 0; lag <= maxLag; lag += step) {
     let e = 0, c = 0;
-    for (const p of samples) {
-      const t0 = p.t - lag; if (t0 - win < cam[0].t) continue;
-      const a1 = posAt(ai, p.t - win), a2 = posAt(ai, p.t), c1 = posAt(cam, t0 - win), c2 = posAt(cam, t0);
-      e += Math.hypot((a2.x - a1.x) - (c2.x - c1.x), (a2.y - a1.y) - (c2.y - c1.y)); c++;
+    for (const [t, a1, a2] of aiMoves) {
+      const t0 = t - lag; if (t0 - win < cam[0].t) continue;
+      e += quadDist(a1, a2, posAt(cam, t0 - win), posAt(cam, t0)); c++;
     }
     if (c < 5) continue;
     e /= c; sum += e; n++;
     if (e < best) { best = e; bestLag = lag; }
   }
   if (!n) return null;
-  const conf = Math.max(0, Math.min(1, 1 - best / (sum / n || 1)));
-  return { lag: bestLag, conf };
+  return { lag: bestLag, conf: Math.max(0, Math.min(1, 1 - best / (sum / n || 1))) };
 }
 
 // Délai de secours tant qu'aucune mesure fiable : aller-retour réseau + tampon de lecture + calcul + images.
@@ -230,8 +265,10 @@ class Rendu {
     // Analyse du mouvement (image réduite 64×64 lue par le processeur).
     const mk = () => { const c = document.createElement("canvas"); c.width = c.height = MOTION.N; return c.getContext("2d", { willReadFrequently: true }); };
     this.camCtx = mk(); this.aiCtx = mk();
-    this.camHist = new MotionHistory(); this.aiPos = []; this.aiX = 0; this.aiY = 0;
+    this.camHist = new MotionHistory(); this.aiHist = new MotionHistory(MOTION.G, 300); this.cand = null;
     this.prevCam = null; this.prevAi = null;
+    this.flowFn = blockFlow; this.engine = "js";
+    loadMotionWasm().then((f) => { if (f) { this.flowFn = f; this.engine = "rust"; } });
     this.lag = null; this.lagConf = 0; this.net = {};
     this.aiTs = 0; this.newFrame = false; this.srcW = 512; this.srcH = 512;
     this.frameDt = []; this.target = 0; this.running = true;
@@ -263,27 +300,31 @@ class Rendu {
   }
   _camFrame(ts) {
     const cur = this._luma(this.camCtx, this.cam); if (!cur) return;
-    if (this.prevCam) this.camHist.push(ts, blockFlow(this.prevCam, cur));
+    if (this.prevCam) this.camHist.push(ts, this.flowFn(this.prevCam, cur));
     this.prevCam = cur;
   }
   _aiFrame(ts) {
     this.aiTs = ts; this.newFrame = true;
     if (!this.fluid) return;
     const cur = this._luma(this.aiCtx, this.ai); if (!cur) return;
-    if (this.prevAi) { const f = blockFlow(this.prevAi, cur); this.aiX += f.gx; this.aiY += f.gy; this.aiPos.push({ t: ts, x: this.aiX, y: this.aiY }); }
-    while (this.aiPos.length > 2 && this.aiPos[0].t < ts - 4000) this.aiPos.shift();
+    if (this.prevAi) this.aiHist.push(ts, this.flowFn(this.prevAi, cur));
     this.prevAi = cur;
   }
   _updateLag() {
     if (!this.fluid) return;
-    const r = estimateLag(this.camHist.pos, this.aiPos);
+    const r = estimateLag(this.camHist.pos, this.aiHist.pos);
+    // Une mesure n'est adoptée que si deux mesures successives concordent (à 60 ms près).
     if (r && r.conf >= 0.35) {
-      this.lag = this.lag == null ? r.lag : 0.7 * this.lag + 0.3 * r.lag;
-      this.lagConf = Math.max(this.lagConf * 0.8, r.conf);
+      const agree = this.cand != null && Math.abs(this.cand - r.lag) <= 60;
+      this.cand = r.lag;
+      if (agree) {
+        this.lag = this.lag == null ? r.lag : 0.7 * this.lag + 0.3 * r.lag;
+        this.lagConf = Math.max(this.lagConf * 0.8, r.conf);
+      }
     } else this.lagConf *= 0.97;
     this.onInfo(this.info());
   }
-  info() { return { w: this.canvas.width, h: this.canvas.height, short: Math.min(this.canvas.width, this.canvas.height), fluid: this.fluid, lagMs: this.lagMs, measured: this.lag != null }; }
+  info() { return { w: this.canvas.width, h: this.canvas.height, short: Math.min(this.canvas.width, this.canvas.height), fluid: this.fluid, lagMs: this.lagMs, measured: this.lag != null, engine: this.engine }; }
   _resize() {
     const r = this.canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
     const shortPx = Math.round(Math.min(screen.width, screen.height) * dpr);
