@@ -247,3 +247,23 @@ document.querySelectorAll(".lang-pick").forEach((sel) => sel.addEventListener("c
   if (state.account) refreshAccount().catch(() => {});
 }));
 applyUI();
+
+// Achat de crédits (Stripe Checkout) — boutons visibles seulement quand le paiement est activé.
+async function loadPacks() {
+  try {
+    const p = await api("/api/billing/packs");
+    const box = $("#packs");
+    if (!p.enabled) { box.innerHTML = ""; $("#buy-msg").textContent = t("buy_soon"); return; }
+    box.innerHTML = p.packs.map((k) => `<button class="btn primary" data-pack="${esc(k.id)}">${esc(t("n_credits", { n: k.credits }))} — ${(k.amount_cents / 100).toFixed(2)} ${esc(k.currency.toUpperCase())}</button>`).join("");
+    box.querySelectorAll("button").forEach((b) => b.addEventListener("click", async () => {
+      b.disabled = true;
+      try { const r = await api("/api/billing/checkout", { method: "POST", body: JSON.stringify({ pack: b.dataset.pack }) }); location.href = r.url; }
+      catch (e) { $("#buy-msg").textContent = e.message; b.disabled = false; }
+    }));
+  } catch {}
+}
+(() => {
+  const q = new URLSearchParams(location.search).get("achat");
+  if (q) { setTimeout(() => { const m = $("#buy-msg"); if (m) m.textContent = q === "ok" ? t("bought") : t("buy_cancel"); }, 300); history.replaceState(null, "", location.pathname); }
+})();
+document.querySelectorAll('[data-tab="ledger"]').forEach((b) => b.addEventListener("click", loadPacks));

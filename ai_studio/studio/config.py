@@ -46,6 +46,8 @@ class Settings:
     run_worker: bool = field(default_factory=lambda: _bool("STUDIO_RUN_WORKER", True))
     runway_api_key: str = field(default_factory=lambda: os.environ.get("RUNWAYML_API_SECRET", ""))
     fal_api_key: str = field(default_factory=lambda: os.environ.get("FAL_KEY", ""))
+    stripe_secret_key: str = field(default_factory=lambda: os.environ.get("STRIPE_SECRET_KEY", ""))
+    stripe_webhook_secret: str = field(default_factory=lambda: os.environ.get("STRIPE_WEBHOOK_SECRET", ""))
 
     def __post_init__(self) -> None:
         self.data_dir = Path(self.data_dir)

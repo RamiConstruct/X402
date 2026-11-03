@@ -5,7 +5,7 @@ import tempfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi import Body, Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -140,6 +140,18 @@ def create_app(settings: Settings | None = None, studio: Studio | None = None) -
     @app.get("/api/ledger")
     def transactions(user: User = Depends(current_user)):
         return studio.transactions(user)
+
+    @app.get("/api/billing/packs")
+    def packs(_user: User = Depends(current_user)):
+        return studio.billing_packs()
+
+    @app.post("/api/billing/checkout")
+    def checkout(body: dict = Body(...), user: User = Depends(current_user)):
+        return studio.billing_checkout(user, str(body.get("pack", "")))
+
+    @app.post("/api/billing/webhook")
+    async def stripe_webhook(request: Request):
+        return studio.billing_webhook(await request.body(), request.headers.get("stripe-signature", ""))
 
     @app.post("/api/dev/credits")
     def dev_credits(req: TopupRequest, user: User = Depends(current_user)):

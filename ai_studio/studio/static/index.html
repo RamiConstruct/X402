@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>AI Studio</title>
-  <link rel="stylesheet" href="/styles.css?v=a75eb512">
+  <link rel="stylesheet" href="/styles.css?v=b2b245fd">
 </head>
 <body>
 <!-- labnav:start — menu commun du site (source : site/nav/nav.html, appliqué par site/nav/apply_nav.py) -->
@@ -160,6 +160,9 @@
       </section>
 
       <section id="tab-ledger" class="tab-panel hidden">
+        <h2 data-t="buy">Acheter des crédits</h2>
+        <div id="packs" class="row"></div>
+        <p id="buy-msg" class="muted small"></p>
         <h2 data-t="ledger_title">Mouvements de crédits</h2>
         <p class="muted small" data-t="ledger_note">1 crédit = 0,01 USD. Les crédits sont réservés à l'acceptation d'un devis, débités au coût réel (jamais au-delà du devis) et remboursés automatiquement en cas d'échec.</p>
         <table class="table"><thead><tr><th data-t="date">Date</th><th data-t="type">Type</th><th data-t="amount">Montant</th><th data-t="detail">Détail</th></tr></thead><tbody id="ledger-body"></tbody></table>
@@ -172,7 +175,7 @@
       </section>
     </main>
   </div>
-  <script src="/i18n.js?v=a75eb512"></script>
-  <script src="/app.js?v=a75eb512"></script>
+  <script src="/i18n.js?v=b2b245fd"></script>
+  <script src="/app.js?v=b2b245fd"></script>
 </body>
 </html>

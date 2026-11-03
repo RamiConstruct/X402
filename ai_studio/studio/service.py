@@ -12,7 +12,7 @@ from pathlib import Path
 
 from sqlalchemy import select, update
 
-from . import ledger, media, moderation, planner, quotes, signing
+from . import billing, ledger, media, moderation, planner, quotes, signing
 from .auth import find_user, hash_password, issue_token, verify_password
 from .config import Settings
 from .db import Database
@@ -251,6 +251,41 @@ class Studio:
                 .order_by(LedgerTransaction.created_at.desc()).limit(limit)).all()
             return [{"id": t.id, "kind": t.kind, "amount_credits": amt, "memo": t.memo, "job_id": t.job_id,
                      "at": _aware(t.created_at).isoformat()} for t, amt in rows]
+
+    # ------------------------------------------------------------------ paiement (Stripe)
+    @property
+    def billing_enabled(self) -> bool:
+        return bool(self.settings.stripe_secret_key and self.settings.stripe_webhook_secret)
+
+    def billing_packs(self) -> dict:
+        return {"enabled": self.billing_enabled,
+                "packs": [{"id": k, **{x: v[x] for x in ("credits", "amount_cents", "currency")}} for k, v in billing.PACKS.items()]}
+
+    def billing_checkout(self, user: User, pack_id: str) -> dict:
+        if not self.billing_enabled:
+            raise ServiceError("paiement pas encore activé", 503)
+        try:
+            return billing.create_checkout(self.settings.stripe_secret_key, pack_id=pack_id, user_id=user.id,
+                                           email=user.email, base_url=self.settings.public_base_url or "http://localhost")
+        except billing.BillingError as e:
+            raise ServiceError(str(e), e.status) from e
+
+    def billing_webhook(self, payload: bytes, signature: str) -> dict:
+        if not self.billing_enabled:
+            raise ServiceError("paiement pas encore activé", 503)
+        try:
+            event = billing.verify_event(payload, signature, self.settings.stripe_webhook_secret)
+        except billing.BillingError as e:
+            raise ServiceError(str(e), 400) from e
+        paid = billing.paid_session(event)
+        if not paid:
+            return {"ok": True, "ignored": event.get("type")}
+        session_id, uid, credits = paid
+        with self.db.session() as s:
+            if not s.get(User, uid):
+                raise ServiceError("utilisateur inconnu", 400)
+            ledger.topup(s, uid, credits, key=f"stripe:{session_id}", memo=f"achat de {credits} crédits (Stripe)")
+        return {"ok": True, "credited": credits}
 
     def dev_topup(self, user: User, credits: int) -> dict:
         if not self.settings.dev_mode:
