@@ -2,7 +2,7 @@
 
 *Dernière mise à jour : 3 novembre 2026*
 
-**Responsable du traitement :** [À COMPLÉTER — éditeur], contact : [À COMPLÉTER — e-mail].
+**Responsable du traitement :** [À COMPLÉTER — éditeur], contact : contact@labotory.site.
 
 ## Données traitées, finalités et bases légales
 
@@ -32,7 +32,7 @@ contractuelles types de la Commission européenne ou un mécanisme équivalent.
 ## Vos droits
 
 Vous pouvez demander l'accès, la rectification, l'effacement, la limitation, la portabilité de vos données, vous
-opposer à certains traitements et retirer votre consentement à tout moment, en écrivant à [À COMPLÉTER — e-mail].
+opposer à certains traitements et retirer votre consentement à tout moment, en écrivant à contact@labotory.site.
 Pour la liste d'attente, il suffit de répondre à un e-mail reçu. Vous pouvez aussi saisir l'autorité de protection des
 données de votre pays (en France : la CNIL, cnil.fr).
 

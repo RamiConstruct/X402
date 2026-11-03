@@ -11,7 +11,7 @@ Le site labotory.site et les services AI Live et AI Studio sont édités par :
 - **Adresse :** [À COMPLÉTER]
 - **Numéro d'immatriculation (SIREN/SIRET ou équivalent) :** [À COMPLÉTER]
 - **Numéro de TVA intracommunautaire :** [À COMPLÉTER, le cas échéant]
-- **Contact :** [À COMPLÉTER — adresse e-mail de contact]
+- **Contact :** contact@labotory.site
 - **Directeur de la publication :** [À COMPLÉTER]
 
 ## Hébergement
@@ -28,4 +28,4 @@ leurs auteurs et licences sont listés sur la page des crédits (live.labotory.s
 
 ## Signalement
 
-Pour signaler un contenu illicite ou un usage abusif des services : [À COMPLÉTER — adresse e-mail de contact].
+Pour signaler un contenu illicite ou un usage abusif des services : contact@labotory.site.
