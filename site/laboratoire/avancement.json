@@ -5,7 +5,7 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Optimiser avant d'investir : flux vidéo allégé, mesures réseau, plan d'investissement de 1 000 $ prêt.",
-    "dernier_fait": "Panne du 3 novembre réparée et serveur protégé (mémoire de secours, gardien, redémarrage automatique) ; sentinelle Cloudflare qui redémarre le serveur via Oracle s'il tombe.",
+    "dernier_fait": "Commandes vocales dans les 15 langues du site (personnages, décors, styles et ordres courants) ; migration vers la machine Ampere préparée (tunnel dédié, démarrage automatique).",
     "prochaines_etapes_claude": [
       "Migrer sur la machine Ampere A1 (2 cœurs / 12 Go) dès qu'Oracle a de la place — la sentinelle retente toutes les 30 min",
       "Tester les options expérimentales (images de référence, visage) depuis la nouvelle machine",
@@ -177,6 +177,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-03",
+      "texte": "AI Live comprend les commandes vocales en 15 langues ; migration Ampere A1 prête, en attente de place chez Oracle."
+    },
     {
       "date": "2026-11-03",
       "texte": "Panne de nuit (serveur de 1 Go saturé, tunnel coupé de 00h20 à 05h14) réparée ; protections installées ; sentinelle Cloudflare + accès API Oracle ; création d'une machine Ampere A1 gratuite en attente de place chez Oracle."

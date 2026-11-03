@@ -39,9 +39,13 @@ def _clean_subject(s: str) -> str:
 _CLAUSE_SPLIT = re.compile(r"\s*(?:,|;|\bpuis\b|\bensuite\b|\bet\b|\bthen\b|\band\b)\s+")
 
 
-def apply_command(history: SceneHistory, text: str) -> Result:
+def apply_command(history: SceneHistory, text: str, lang: str = "fr") -> Result:
     """Applique une commande ; une phrase composée (« chevalier et décor cyberpunk ») est
-    découpée en propositions appliquées dans l'ordre."""
+    découpée en propositions appliquées dans l'ordre. Hors français : voir i18n_commands."""
+    if lang and lang != "fr":
+        from .i18n_commands import LANGS
+        if lang in LANGS:
+            return _apply_i18n(history, text, lang)
     for category, pattern in _BLOCKED:  # refus global AVANT toute modification partielle
         if re.search(pattern, norm(text)):
             return Result(False, f"commande refusée ({category})", blocked=category)
@@ -196,3 +200,55 @@ def set_preset(history: SceneHistory, kind: str, key: str | None) -> Result:
         s.style = key
     history.apply(s)
     return Result(True, "préréglage appliqué", True)
+
+
+_LABELS = {"characters": ("character", CHARACTERS, "personnage"), "decors": ("decor", DECORS, "décor"), "styles": ("style", STYLES, "style")}
+
+
+def _apply_i18n(history: SceneHistory, text: str, lang: str) -> Result:
+    from .i18n_commands import match_global, match_items
+    if not norm(text):
+        return Result(False, "commande vide")
+    for category, pattern in _BLOCKED:  # mots interdits connus (français/anglais) : refus d'office
+        if re.search(pattern, norm(text)):
+            return Result(False, f"commande refusée ({category})", blocked=category)
+    g = match_global(lang, text)
+    if g:
+        s = history.edit()
+        if g == "original":
+            s.bypass = True; history.apply(s); return Result(True, "flux original affiché", True)
+        if g == "resume":
+            s.bypass = False; history.apply(s); return Result(True, "transformation réactivée", True)
+        if g == "undo":
+            ok = history.undo(); return Result(ok, "dernière modification annulée" if ok else "rien à annuler", ok)
+        if g == "reset":
+            history.apply(Scene()); return Result(True, "scène réinitialisée", True)
+        if g in ("stronger", "weaker"):
+            s.strength = min(5, s.strength + 1) if g == "stronger" else max(1, s.strength - 1)
+            history.apply(s); return Result(True, f"intensité {s.strength}/5", True)
+        if g == "variant":
+            s.seed = (s.seed * 1103515245 + 12345) % 2_147_483_647 or 1
+            s.bypass = False; history.apply(s); return Result(True, "nouvelle variante", True)
+    items = match_items(lang, text)
+    figure = find_public_figure(text)
+    if not items and not figure:
+        return Result(False, "commande non reconnue : choisis un personnage, un décor ou un style de la liste")
+    s = history.edit()
+    s.bypass = False
+    msgs = []
+    if figure:  # nom propre écrit en alphabet latin : caricature signalée, jamais photoréaliste
+        s.parody_of, s.character, s.character_free = figure, None, None
+        msgs.append(f"caricature : {figure}")
+    for cat, key in items:
+        field, catalog, word = _LABELS[cat]
+        if field == "character":
+            if figure:
+                continue
+            s.character, s.character_free, s.parody_of = key, None, None
+        elif field == "decor":
+            s.decor, s.decor_free = key, None
+        else:
+            s.style = key
+        msgs.append(f"{word} : {catalog[key]['label']}")
+    history.apply(s)
+    return Result(True, " ; ".join(msgs), True)

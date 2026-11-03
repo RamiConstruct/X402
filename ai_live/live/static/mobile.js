@@ -90,6 +90,8 @@ async function init() {
     const m = (st.catalog.modes || []).find((x) => x.key === $("#mode").value); $("#mode-hint").textContent = m ? m.hint : ""; };
   $("#mode").addEventListener("change", hint); hint();
   $("#face").checked = store.get("face") === "1";
+  const nav = (navigator.language || "fr").slice(0, 2);
+  $("#vlang").value = store.get("vlang") || ([...$("#vlang").options].some((o) => o.value === nav) ? nav : "fr");
   $("#refs").checked = store.get("refs") === "1";
   $("#format").value = store.get("format") || "horizontal";
   let saved = [];
@@ -112,6 +114,7 @@ $("#go").addEventListener("click", async () => {
   store.set("token", $("#token").value); store.set("format", $("#format").value); store.set("engine", $("#engine").value);
   store.set("mode", $("#mode").value);
   store.set("face", $("#face").checked ? "1" : "0");
+  store.set("vlang", $("#vlang").value);
   store.set("refs", $("#refs").checked ? "1" : "0");
   store.set("bc", $("#do-bc").checked ? "1" : "");
   store.set("dests", JSON.stringify(dests.map((d) => ({ platform: d.platform, server: d.server, key: remember ? d.key : "" }))));
@@ -262,7 +265,7 @@ $("#toggle").addEventListener("click", async () => {
   catch (e) { say(e.message); }
 });
 async function command(text) {
-  try { const r = await api(`/api/sessions/${st.session.id}/command`, { method: "POST", body: JSON.stringify({ text }) }); render(r.session); say((r.ok ? "✓ " : "✗ ") + r.message); }
+  try { const r = await api(`/api/sessions/${st.session.id}/command`, { method: "POST", body: JSON.stringify({ text, lang: $("#vlang").value }) }); render(r.session); say((r.ok ? "✓ " : "✗ ") + r.message); }
   catch (e) { say(e.message); }
 }
 
@@ -271,7 +274,8 @@ const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
 $("#mic").addEventListener("click", () => {
   if (!Rec) return say("Reconnaissance vocale indisponible sur ce navigateur (essaie Chrome).");
   if (st.listening) { st.listening = false; try { st.rec.stop(); } catch {} $("#mic").classList.remove("on"); return; }
-  st.rec = new Rec(); st.rec.lang = "fr-FR"; st.rec.continuous = true;
+  const vl = $("#vlang").value;
+  st.rec = new Rec(); st.rec.lang = ((st.catalog.voice_langs || []).find((x) => x.code === vl) || {}).speech || "fr-FR"; st.rec.continuous = true;
   st.rec.onresult = (e) => command(e.results[e.results.length - 1][0].transcript.trim());
   st.rec.onend = () => { if (st.listening) try { st.rec.start(); } catch {} };
   st.rec.start(); st.listening = true; $("#mic").classList.add("on"); say("Je t'écoute : « transforme-moi en chevalier »…");

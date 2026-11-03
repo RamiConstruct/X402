@@ -25,6 +25,7 @@ from .commands import apply_command, set_preset
 from .engine import DEFAULT_MODE, QUALITY_MODES, EngineConfig, EngineError, StreamEngine, resolve_mode
 from .gpu.catalog import MODELS
 from .gpu.manager import GpuError, GpuManager, Limits
+from .i18n_commands import SPEECH_LANG
 from .references import References
 from .scene import CHARACTERS, DECORS, STYLES, SceneHistory
 
@@ -123,6 +124,7 @@ def broadcast_url(b: dict) -> tuple[str, dict]:
 
 class Cmd(BaseModel):
     text: str
+    lang: str = "fr"  # langue de la commande vocale (15 langues du site)
 
 
 class Preset(BaseModel):
@@ -248,6 +250,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
                 "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
                              "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith("cloud:")],
+                "voice_langs": [{"code": k, "speech": v} for k, v in SPEECH_LANG.items()],
                 "modes": [{"key": k, "label": v["label"], "hint": v["hint"]} for k, v in QUALITY_MODES.items()],
                 "default_mode": DEFAULT_MODE,
                 "references": refs.counts(),
@@ -401,7 +404,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         state = lambda: (s.history.current.prompt(), s.history.current.t_index_list(),  # noqa: E731
                          s.history.current.bypass if s.broadcast else None)
         before = state()
-        r = apply_command(s.history, c.text)
+        r = apply_command(s.history, c.text, lang=c.lang)
         s.note(f"« {c.text[:80]} » → {r.message}")
         if r.changed and state() != before:
             push(s)
