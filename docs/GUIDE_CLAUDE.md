@@ -66,6 +66,7 @@ de `ai_live/live/static/rendu.js` ; la flotte en tête de `ai_live/live/gpu/flee
 | 3 nov. | Le fondateur n'aime pas Daydream → flotte de GPU à nous | Indépendance, qualité, coût ; plusieurs GPU moyens plutôt qu'un gros |
 | 3 nov. | Objectif 1440p / 90 i/s affichées / délai ressenti nul | Exigence produit ; atteint par IA 720p + agrandissement + images intermédiaires |
 | 3 nov. | Pas de compte GPU « pour l'instant » | Décision du fondateur : avancer sur le code sans dépense |
+| 3 nov. | Remise en question (`docs/REMISE_EN_QUESTION.md`) : tests GitHub automatiques, versions anti-cache automatiques ; à venir : fusion vers `main`, LiveKit, TypeScript, WebGPU, banc d'essai des modèles causaux (Causal Forcing, StreamDiffusionV2) | Nouveautés juin–nov. 2026 et faiblesses relevées |
 
 ## 5. Où on en est (vérifié le 3 nov. 2026, voir `docs/SAUVEGARDE.md`)
 **Fait et en ligne** : AI LIVE téléphone (voix 15 langues, personnages/décors/styles, modes + Auto, rendu
@@ -131,7 +132,7 @@ réelle vers une plateforme. Ne jamais présenter ces points comme « fonctionne
 - Tests Node lancés via `vm` : les tableaux viennent d'un autre contexte → comparer avec `[...x]`.
 
 ## 9. Idées en réserve (ne pas démarrer sans accord)
-Agrandissement par IA côté GPU ; images intermédiaires côté GPU ; MoQ/WebTransport (à surveiller) ; Burn/CubeCL
+Modèles vidéo causaux (Causal Forcing, StreamDiffusionV2) à comparer en phase 1 ; LiveKit (phase 2) ; Mojo pour nos noyaux GPU (phase 3–4) ; Agrandissement par IA côté GPU ; images intermédiaires côté GPU ; MoQ/WebTransport (à surveiller) ; Burn/CubeCL
 pour partager les petits modèles téléphone/serveur ; modules (LoRA) par personnage ; R2 + Wasabi pour les vidéos ;
 VPS Vultr Singapour ; essais ralentis et effets ; AI STUDIO : export vers les réseaux sociaux.
 
