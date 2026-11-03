@@ -5,13 +5,15 @@
   "mis_a_jour": "2026-11-02",
   "maintenant": {
     "focus": "Optimiser avant d'investir : flux vidéo allégé, mesures réseau, plan d'investissement de 1 000 $ prêt.",
-    "dernier_fait": "Commandes vocales dans les 15 langues du site (personnages, décors, styles et ordres courants) ; migration vers la machine Ampere préparée (tunnel dédié, démarrage automatique).",
+    "dernier_fait": "Interfaces d'AI Live et d'AI Studio traduites en 15 langues ; pages légales rédigées (à compléter) ; paiement Stripe prêt à brancher.",
     "prochaines_etapes_claude": [
       "Migrer sur la machine Ampere A1 (2 cœurs / 12 Go) dès qu'Oracle a de la place — la sentinelle retente toutes les 30 min",
       "Tester les options expérimentales (images de référence, visage) depuis la nouvelle machine",
       "Mesurer la fluidité réelle depuis ton téléphone"
     ],
     "en_attente_de_toi": [
+      "Pages légales : me donner nom/société, adresse, n° d'immatriculation, e-mail de contact, pays (droit applicable)",
+      "Stripe : ouvrir le compte puis suivre docs/ai_live_studio/ACTIVER_STRIPE.md (ou me donner les clés)",
       "Tester les options expérimentales (Images de référence, Garder mon visage) sur live.labotory.site/mobile.html",
       "Rendre public le paquet x402-live-worker : GitHub → ton profil → Packages → x402-live-worker → Package settings → Change visibility → Public",
       "Remplacer la clé SSH du serveur (elle a circulé dans une conversation)"
@@ -177,6 +179,10 @@
     }
   ],
   "journal": [
+    {
+      "date": "2026-11-03",
+      "texte": "AI Live et AI Studio traduits en 15 langues ; pages légales rédigées ; achat de crédits Stripe prêt (inactif sans clés)."
+    },
     {
       "date": "2026-11-03",
       "texte": "AI Live comprend les commandes vocales en 15 langues ; migration Ampere A1 prête, en attente de place chez Oracle."
