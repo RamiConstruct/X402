@@ -99,7 +99,7 @@ function blockSearch(prev, cur, n, g, r, init) {
 }
 
 // Même calcul en Rust compilé en WebAssembly (motion_rs/, ~9× plus rapide) ; blockFlow reste le secours.
-async function loadMotionWasm(url = "/motion.wasm?v=67084585") {
+async function loadMotionWasm(url = "/motion.wasm?v=eb0048a5") {
   try {
     const bytes = await (await fetch(url)).arrayBuffer();
     const { instance } = await WebAssembly.instantiate(bytes);
@@ -128,19 +128,23 @@ function quadMeans(flow, g = MOTION.G) {
 
 class MotionHistory {
   constructor(g = MOTION.G, keepMs = 1500) { this.g = g; this.keep = keepMs; this.items = []; this.V = new Float32Array(8); this.pos = []; }
-  push(ts, f) {
+  push(ts, f, bg = null) {
     const q = quadMeans(f.flow, this.g);
     for (let k = 0; k < 8; k++) this.V[k] += q[k];
-    this.items.push({ ts, flow: f.flow }); this.pos.push({ t: ts, v: Float32Array.from(this.V) });
+    this.items.push({ ts, flow: f.flow, bg }); this.pos.push({ t: ts, v: Float32Array.from(this.V) });
     while (this.items.length && this.items[0].ts < ts - this.keep) this.items.shift();
     while (this.pos.length > 2 && this.pos[0].t < ts - 4000) this.pos.shift();
   }
   get last() { return this.items.length ? this.items[this.items.length - 1].ts : 0; }
-  // Somme des mouvements des images prises dans ]from, to] — en pixels de l'image d'analyse.
+  // Somme des mouvements des images prises dans ]from, to] — en pixels de l'image d'analyse :
+  // champ complet (d) et mouvement du fond (bg, si la silhouette est connue).
   displacement(from, to) {
-    const d = new Float32Array(this.g * this.g * 2);
-    for (const it of this.items) if (it.ts > from && it.ts <= to) for (let k = 0; k < d.length; k++) d[k] += it.flow[k];
-    return d;
+    const d = new Float32Array(this.g * this.g * 2), bg = [0, 0];
+    for (const it of this.items) if (it.ts > from && it.ts <= to) {
+      for (let k = 0; k < d.length; k++) d[k] += it.flow[k];
+      if (it.bg) { bg[0] += it.bg[0]; bg[1] += it.bg[1]; }
+    }
+    return { d, bg };
   }
 }
 
@@ -189,6 +193,34 @@ function estimateLag(cam, ai, { maxLag = 900, step = 10, win = 120, span = 3000 
   return { lag: bestLag, conf: Math.max(0, Math.min(1, 1 - best / (sum / n || 1))) };
 }
 
+// Silhouette : masque de confiance du segmenteur (w×h, 0 = fond, 1 = personne) ramené à la grille
+// d'analyse n×n, élargi d'un pixel (max 3×3) puis adouci (moyenne 3×3) pour des bords sans à-coups.
+function maskToGrid(conf, w, h, n = MOTION.N) {
+  const g = new Float32Array(n * n), sx = w / n, sy = h / n;
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+    let s = 0, c = 0;
+    for (let yy = Math.floor(y * sy); yy < Math.floor((y + 1) * sy); yy++) for (let xx = Math.floor(x * sx); xx < Math.floor((x + 1) * sx); xx++) { s += conf[yy * w + xx]; c++; }
+    g[y * n + x] = c ? s / c : 0;
+  }
+  const pass = (src, f) => { const o = new Float32Array(n * n);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const v = [];
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const xx = x + i, yy = y + j; if (xx >= 0 && yy >= 0 && xx < n && yy < n) v.push(src[yy * n + xx]); }
+      o[y * n + x] = f(v); } return o; };
+  return pass(pass(g, (v) => Math.max(...v)), (v) => v.reduce((a, b) => a + b, 0) / v.length);
+}
+// Mouvement du fond (= mouvement de la caméra) : médiane des blocs où il n'y a presque pas de personne.
+// Trop peu de fond visible → médiane de tous les blocs.
+function backgroundMotion(flow, mask, g = MOTION.G, n = MOTION.N) {
+  const b = n / g, xs = [], ys = [], ax = [], ay = [];
+  for (let j = 0; j < g; j++) for (let i = 0; i < g; i++) {
+    let m = 0; for (let y = j * b; y < (j + 1) * b; y++) for (let x = i * b; x < (i + 1) * b; x++) m += mask[y * n + x];
+    const k = (j * g + i) * 2; ax.push(flow[k]); ay.push(flow[k + 1]);
+    if (m / (b * b) < 0.3) { xs.push(flow[k]); ys.push(flow[k + 1]); }
+  }
+  const med = (a) => { a.sort((p, q) => p - q); return a[a.length >> 1]; };
+  return xs.length >= 6 ? [med(xs), med(ys)] : [med(ax), med(ay)];
+}
+
 // Délai de secours tant qu'aucune mesure fiable : aller-retour réseau + tampon de lecture + calcul + images.
 function fallbackLag(net = {}) { return Math.min(900, (net.rtt ?? 150) + (net.bufferMs ?? 30) + 90); }
 
@@ -210,9 +242,9 @@ void main(){ v = vec2(p.x * 0.5 + 0.5, 0.5 - p.y * 0.5); gl_Position = vec4(p, 0
 const FS = `#version 300 es
 precision highp float;
 in vec2 v; out vec4 o;
-uniform sampler2D u_img, u_flow;
-uniform vec2 u_tex, u_scale, u_off;
-uniform float u_sharp, u_warp;
+uniform sampler2D u_img, u_flow, u_mask;
+uniform vec2 u_tex, u_scale, u_off, u_bg;
+uniform float u_sharp, u_warp, u_seg;
 vec3 px(vec2 uv){ return texture(u_img, uv).rgb; }
 // Bicubique Catmull-Rom en 9 lectures filtrées.
 vec3 bicubic(vec2 uv){
@@ -227,7 +259,9 @@ vec3 bicubic(vec2 uv){
 }
 void main(){
   vec2 uv = v * u_scale + u_off;
-  uv -= texture(u_flow, uv).xy * u_warp;                 // prédiction du mouvement
+  // Prédiction du mouvement : la personne suit son propre mouvement, le fond suit celui de la caméra.
+  float m = u_seg > 0.5 ? texture(u_mask, uv).r : 1.0;
+  uv -= mix(u_bg, texture(u_flow, uv).xy, m) * u_warp;
   uv = clamp(uv, u_tex * 0.5, 1.0 - u_tex * 0.5);
   vec3 c = clamp(bicubic(uv), 0.0, 1.0);
   // Renforcement adaptatif (type CAS) : fort sur les zones douces, faible sur les contours déjà nets.
@@ -260,8 +294,10 @@ class Rendu {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 255]));
     this.texFlow = tex(1);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, MOTION.G, MOTION.G, 0, gl.RG, gl.FLOAT, new Float32Array(MOTION.G * MOTION.G * 2));
-    this.u = {}; for (const n of ["u_img", "u_flow", "u_tex", "u_scale", "u_off", "u_sharp", "u_warp"]) this.u[n] = gl.getUniformLocation(pr, n);
-    gl.uniform1i(this.u.u_img, 0); gl.uniform1i(this.u.u_flow, 1);
+    this.texMask = tex(2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, MOTION.N, MOTION.N, 0, gl.RED, gl.UNSIGNED_BYTE, new Uint8Array(MOTION.N * MOTION.N).fill(255));
+    this.u = {}; for (const n of ["u_img", "u_flow", "u_mask", "u_tex", "u_scale", "u_off", "u_bg", "u_sharp", "u_warp", "u_seg"]) this.u[n] = gl.getUniformLocation(pr, n);
+    gl.uniform1i(this.u.u_img, 0); gl.uniform1i(this.u.u_flow, 1); gl.uniform1i(this.u.u_mask, 2);
     // Analyse du mouvement (image réduite 64×64 lue par le processeur).
     const mk = () => { const c = document.createElement("canvas"); c.width = c.height = MOTION.N; return c.getContext("2d", { willReadFrequently: true }); };
     this.camCtx = mk(); this.aiCtx = mk();
@@ -269,6 +305,9 @@ class Rendu {
     this.prevCam = null; this.prevAi = null;
     this.flowFn = blockFlow; this.engine = "js";
     loadMotionWasm().then((f) => { if (f) { this.flowFn = f; this.engine = "rust"; } });
+    this.mask = null; this.maskBytes = new Uint8Array(MOTION.N * MOTION.N); this.maskDirty = false;
+    this.segmenter = null; this.segTs = 0; this.segN = 0;
+    if (this.seg !== false) this._loadSeg();
     this.lag = null; this.lagConf = 0; this.net = {};
     this.aiTs = 0; this.newFrame = false; this.srcW = 512; this.srcH = 512;
     this.frameDt = []; this.target = 0; this.running = true;
@@ -286,8 +325,39 @@ class Rendu {
   get lagMs() { return Math.round(this.lag ?? fallbackLag(this.net)); }
   // Flux vidéo du rendu final (pour l'enregistrement d'essai en 1080p).
   stream(fps = 30) { if (!this._stream) this._stream = this.canvas.captureStream(fps); return this._stream; }
-  stop() { this.running = false; clearInterval(this._lagTimer); removeEventListener("resize", this._onResize); }
+  stop() { try { this.segmenter && this.segmenter.close(); } catch {} this.running = false; clearInterval(this._lagTimer); removeEventListener("resize", this._onResize); }
 
+  // Découpe de la silhouette (MediaPipe, sur l'appareil). Échec → prédiction sans silhouette, comme avant.
+  async _loadSeg() {
+    try {
+      const base = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1";
+      const { FilesetResolver, ImageSegmenter } = await import(base + "/vision_bundle.mjs");
+      const files = await FilesetResolver.forVisionTasks(base + "/wasm");
+      const make = (delegate) => ImageSegmenter.createFromOptions(files, {
+        baseOptions: { modelAssetPath: "/models/selfie_segmenter.tflite", delegate },
+        runningMode: "VIDEO", outputConfidenceMasks: true, outputCategoryMask: false });
+      this.segmenter = await make("GPU").catch(() => make("CPU"));
+      this.onInfo(this.info());
+    } catch (e) { console.warn("silhouette indisponible :", e && e.message); }
+  }
+  _segment(ts) {
+    // Une image caméra sur deux suffit : la silhouette bouge moins vite que les détails.
+    if (!this.segmenter || !this.running || (this.segN++ & 1)) return;
+    try {
+      this.segTs = Math.max(this.segTs + 1, Math.round(ts));
+      const r = this.segmenter.segmentForVideo(this.cam, this.segTs);
+      const m = r.confidenceMasks && r.confidenceMasks[0];
+      if (m) {
+        const g = maskToGrid(m.getAsFloat32Array(), m.width, m.height);
+        // Personne (presque) absente de l'image : pas de silhouette, prédiction sur toute l'image.
+        if (g.reduce((c, v) => c + (v > 0.5), 0) < 0.03 * g.length) { this.mask = null; r.close && r.close(); return; }
+        this.mask = g;
+        for (let k = 0; k < this.mask.length; k++) this.maskBytes[k] = Math.round(255 * Math.min(1, this.mask[k]));
+        this.maskDirty = true;
+      }
+      r.close && r.close();
+    } catch (e) { this.segmenter = null; console.warn("silhouette arrêtée :", e && e.message); }
+  }
   _watch(v, fn) {
     if (!v.requestVideoFrameCallback) { const id = setInterval(() => this.running ? fn(performance.now()) : clearInterval(id), 33); return; }
     const cb = (now) => { if (!this.running) return; fn(now); v.requestVideoFrameCallback(cb); };
@@ -300,7 +370,11 @@ class Rendu {
   }
   _camFrame(ts) {
     const cur = this._luma(this.camCtx, this.cam); if (!cur) return;
-    if (this.prevCam) this.camHist.push(ts, this.flowFn(this.prevCam, cur));
+    if (this.fluid) this._segment(ts);
+    if (this.prevCam) {
+      const f = this.flowFn(this.prevCam, cur);
+      this.camHist.push(ts, f, this.mask ? backgroundMotion(f.flow, this.mask) : null);
+    }
     this.prevCam = cur;
   }
   _aiFrame(ts) {
@@ -324,7 +398,7 @@ class Rendu {
     } else this.lagConf *= 0.97;
     this.onInfo(this.info());
   }
-  info() { return { w: this.canvas.width, h: this.canvas.height, short: Math.min(this.canvas.width, this.canvas.height), fluid: this.fluid, lagMs: this.lagMs, measured: this.lag != null, engine: this.engine }; }
+  info() { return { w: this.canvas.width, h: this.canvas.height, short: Math.min(this.canvas.width, this.canvas.height), fluid: this.fluid, lagMs: this.lagMs, measured: this.lag != null, engine: this.engine, seg: !!this.mask }; }
   _resize() {
     const r = this.canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
     const shortPx = Math.round(Math.min(screen.width, screen.height) * dpr);
@@ -366,7 +440,7 @@ class Rendu {
     const age = ts - this.aiTs;
     if (age > 500) return 0;
     const lag = this.lag ?? fallbackLag(this.net);
-    const d = this.camHist.displacement(this.aiTs - lag, this.camHist.last);
+    const { d, bg } = this.camHist.displacement(this.aiTs - lag, this.camHist.last);
     const lim = 0.06 * MOTION.N;                         // au plus 6 % de l'image : au-delà, la déformation se voit
     for (let k = 0; k < d.length; k += 2) {
       const m = Math.hypot(d[k], d[k + 1]), s = m > lim ? lim / m : 1;
@@ -375,6 +449,14 @@ class Rendu {
     const gl = this.gl;
     gl.activeTexture(gl.TEXTURE1);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, MOTION.G, MOTION.G, gl.RG, gl.FLOAT, this.disp);
+    const seg = !!this.mask;
+    if (seg && this.maskDirty) {
+      this.maskDirty = false; gl.activeTexture(gl.TEXTURE2);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, MOTION.N, MOTION.N, gl.RED, gl.UNSIGNED_BYTE, this.maskBytes);
+    }
+    const bm = Math.hypot(bg[0], bg[1]), bs = bm > lim ? lim / bm : 1;
+    gl.uniform2f(this.u.u_bg, bg[0] * bs / MOTION.N, bg[1] * bs / MOTION.N);
+    gl.uniform1f(this.u.u_seg, seg ? 1 : 0);
     const strength = this.lag != null ? 0.9 : 0.6;
     return strength * (age > 250 ? (500 - age) / 250 : 1);
   }

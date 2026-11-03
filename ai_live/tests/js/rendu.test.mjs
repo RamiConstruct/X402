@@ -6,8 +6,8 @@ import assert from "node:assert/strict";
 const ctx = { console, Math, Float32Array, Uint8Array, Int8Array, Map };
 vm.createContext(ctx);
 vm.runInContext(readFileSync(new URL("../../live/static/rendu.js", import.meta.url), "utf8") +
-  "\nthis.M={toLuma,half,blockSearch,blockFlow,MotionHistory,estimateLag,fallbackLag,renderTarget,canvasSize,MOTION};", ctx);
-const { blockFlow, MotionHistory, estimateLag, fallbackLag, renderTarget, canvasSize, MOTION } = ctx.M;
+  "\nthis.M={maskToGrid,backgroundMotion,toLuma,half,blockSearch,blockFlow,MotionHistory,estimateLag,fallbackLag,renderTarget,canvasSize,MOTION};", ctx);
+const { maskToGrid, backgroundMotion, blockFlow, MotionHistory, estimateLag, fallbackLag, renderTarget, canvasSize, MOTION } = ctx.M;
 const N = MOTION.N;
 
 // Image texturée déterministe, décalable de (dx, dy) pixels (contenu qui se déplace vers +dx, +dy).
@@ -50,7 +50,8 @@ assert.ok(Math.abs(at(6, 4)[1] + 2) < 0.4, `côté droit monte : ${at(6, 4)}`);
 const h = new MotionHistory();
 const one = { flow: new Float32Array(128).fill(1), gx: 1, gy: 1 };
 for (let t = 33; t <= 330; t += 33) h.push(t, one);
-assert.equal(h.displacement(100, 330)[0], 7);   // images à 132…330
+assert.equal(h.displacement(100, 330).d[0], 7);   // images à 132…330
+assert.deepEqual([...h.displacement(100, 330).bg], [0, 0]);   // pas de silhouette connue
 assert.equal(h.pos[h.pos.length - 1].v[0], 10);
 
 // Mesure du délai : l'IA reproduit le mouvement de la caméra avec 240 ms de retard
@@ -70,6 +71,21 @@ assert.ok(r2 && Math.abs(r2.lag - 240) <= 20, "rotation " + JSON.stringify(r2));
 // Caméra immobile : pas de mesure
 const still = (s) => s.map((p) => ({ t: p.t, v: new Float32Array(8) }));
 assert.equal(estimateLag(still(cam), still(ai)), null);
+
+// Silhouette : masque 256×256 (personne au centre) → grille 64×64 adoucie
+const conf = new Float32Array(256 * 256);
+for (let y = 64; y < 192; y++) for (let x = 96; x < 160; x++) conf[y * 256 + x] = 1;
+const gm = maskToGrid(conf, 256, 256);
+assert.ok(gm[32 * 64 + 32] > 0.99 && gm[2 * 64 + 2] === 0, "centre = personne, coin = fond");
+assert.ok(gm[32 * 64 + 23] > 0 && gm[32 * 64 + 23] < 1, "bord adouci");
+// Mouvement du fond : la caméra glisse de 2 px, la personne (au centre) lève la main de −3 px
+const fl = new Float32Array(128);
+for (let j = 0; j < 8; j++) for (let i = 0; i < 8; i++) { const k = (j * 8 + i) * 2, inP = i >= 3 && i <= 4 && j >= 2 && j <= 5;
+  fl[k] = 2; fl[k + 1] = inP ? -3 : 0; }
+assert.deepEqual([...backgroundMotion(fl, gm)], [2, 0]);
+// Historique avec mouvement du fond
+const h2 = new MotionHistory(); h2.push(10, one, [1, -1]); h2.push(20, one, [1, -1]);
+assert.deepEqual([...h2.displacement(0, 20).bg], [2, -2]);
 
 // Délai de secours
 assert.equal(fallbackLag({ rtt: 100, bufferMs: 20 }), 210);
