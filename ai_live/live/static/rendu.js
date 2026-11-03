@@ -1,6 +1,6 @@
 "use strict";
 // Rendu côté téléphone de l'image IA :
-//  1. agrandissement jusqu'en 1080p (interpolation bicubique + renforcement adaptatif des détails), calculé
+//  1. agrandissement jusqu'en 1440p (interpolation bicubique + renforcement adaptatif des détails), calculé
 //     par la carte graphique du téléphone (WebGL2), donc sans frais serveur ;
 //  2. « fluidité » : prédiction du mouvement. Le téléphone mesure en continu le mouvement de la caméra
 //     (champ de vecteurs 8×8 sur une image réduite 64×64) et déforme la dernière image IA reçue selon le
@@ -99,7 +99,7 @@ function blockSearch(prev, cur, n, g, r, init) {
 }
 
 // Même calcul en Rust compilé en WebAssembly (motion_rs/, ~9× plus rapide) ; blockFlow reste le secours.
-async function loadMotionWasm(url = "/motion.wasm?v=eb0048a5") {
+async function loadMotionWasm(url = "/motion.wasm?v=441ec12f") {
   try {
     const bytes = await (await fetch(url)).arrayBuffer();
     const { instance } = await WebAssembly.instantiate(bytes);
@@ -323,8 +323,8 @@ class Rendu {
   setFluid(on) { this.fluid = !!on; }
   setRes(r) { this.res = r; this._resize(); }
   get lagMs() { return Math.round(this.lag ?? fallbackLag(this.net)); }
-  // Flux vidéo du rendu final (pour l'enregistrement d'essai en 1080p).
-  stream(fps = 30) { if (!this._stream) this._stream = this.canvas.captureStream(fps); return this._stream; }
+  // Flux vidéo du rendu final (enregistrement d'essai : définition affichée, 60 i/s).
+  stream(fps = 60) { if (!this._stream) this._stream = this.canvas.captureStream(fps); return this._stream; }
   stop() { try { this.segmenter && this.segmenter.close(); } catch {} this.running = false; clearInterval(this._lagTimer); removeEventListener("resize", this._onResize); }
 
   // Découpe de la silhouette (MediaPipe, sur l'appareil). Échec → prédiction sans silhouette, comme avant.

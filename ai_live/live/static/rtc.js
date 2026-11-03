@@ -222,14 +222,14 @@ function makeRecorder(source, micTrack) {
     get recording() { return !!rec && rec.state === "recording"; },
     get seconds() { return rec ? Math.floor((Date.now() - t0) / 1000) : 0; },
     start() {
-      let v = null, hd = false;
-      if (typeof source === "function") { const r = source(); v = r && r.track; hd = !!(r && r.hd); }
+      let v = null, hd = false, qhd = false;
+      if (typeof source === "function") { const r = source(); v = r && r.track; hd = !!(r && r.hd); qhd = !!(r && r.qhd); }
       else { const src = source.srcObject; v = src && src.getVideoTracks()[0]; }
       if (!v) throw new Error("pas encore d'image IA à enregistrer");
       if (!window.MediaRecorder) throw new Error("enregistrement non pris en charge par ce navigateur");
       const tracks = [v, ...(micTrack ? [micTrack] : [])];
       const mime = pickMime();
-      rec = new MediaRecorder(new MediaStream(tracks), mime ? { mimeType: mime, videoBitsPerSecond: hd ? 8_000_000 : 4_000_000 } : undefined);
+      rec = new MediaRecorder(new MediaStream(tracks), mime ? { mimeType: mime, videoBitsPerSecond: qhd ? 16_000_000 : hd ? 10_000_000 : 4_000_000 } : undefined);
       chunks = []; t0 = Date.now();
       rec.ondataavailable = (e) => e.data && e.data.size && chunks.push(e.data);
       rec.start(1000);

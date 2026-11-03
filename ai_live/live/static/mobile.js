@@ -190,13 +190,13 @@ function startRendu() {
 function showRes(i) {
   const el = $("#resp"); if (!el) return;
   el.classList.remove("hidden");
-  const p = i.short >= 1000 ? "1080p" : i.short >= 700 ? "720p" : i.short >= 460 ? "480p" : i.short + "p";
+  const p = i.short >= 1400 ? "1440p" : i.short >= 1000 ? "1080p" : i.short >= 700 ? "720p" : i.short >= 460 ? "480p" : i.short + "p";
   el.textContent = p + (i.fluid ? ` · ${t("p_fluid")}` : "");
   el.title = i.fluid ? `${t("lag")} ${i.lagMs} ms${i.measured ? "" : " (estimé)"} · ${i.engine === "rust" ? "Rust/WebAssembly" : "JavaScript"}${i.seg ? " · silhouette" : ""}` : "";
 }
 // Enregistrement : l'image finale (agrandie et lissée) si le rendu tourne, sinon la vidéo IA brute.
 function recSource() {
-  if (st.rendu) { const tr = st.rendu.stream().getVideoTracks()[0]; return { track: tr, hd: st.rendu.info().short >= 1000 }; }
+  if (st.rendu) { const tr = st.rendu.stream().getVideoTracks()[0]; return { track: tr, hd: st.rendu.info().short >= 1000, qhd: st.rendu.info().short >= 1400 }; }
   const s = $("#ai").srcObject; return { track: s && s.getVideoTracks()[0] };
 }
 $("#resp").addEventListener("click", () => {

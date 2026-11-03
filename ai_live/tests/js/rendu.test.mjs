@@ -95,6 +95,8 @@ assert.equal(fallbackLag({}), 270);
 assert.equal(renderTarget("auto", { shortPx: 1170 }), 1080);
 assert.equal(renderTarget("auto", { shortPx: 1170, saveData: true }), 720);
 assert.equal(renderTarget("720", { shortPx: 1170 }), 720);
+assert.equal(renderTarget("1440", { shortPx: 1440 }), 1440);
+assert.equal(renderTarget("1440", { shortPx: 1170 }), 1170);       // écran 1170 px : plafonné
 assert.equal(renderTarget("1080", { shortPx: 750 }), 750);        // jamais plus que l'écran
 assert.deepEqual({ ...canvasSize(390, 844, 3, 1080) }, { w: 1080, h: 2337 });
 assert.deepEqual({ ...canvasSize(390, 844, 1, 1080) }, { w: 390, h: 844 }); // pas d'agrandissement inutile
