@@ -83,41 +83,41 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
 </div></nav>
 <!-- labnav:end -->
 <section id="setup">
-  <h1><span style="color:var(--accent-hi)">◆</span> AI Live <span style="color:var(--muted);font-weight:500">· téléphone</span></h1>
-  <p class="muted">Filme et transforme-toi par la voix.</p>
-  <div class="phase"><b>Phase de test</b> — la transformation s'affiche sur ton téléphone et tu peux enregistrer des essais. Rien n'est publié.</div>
+  <h1><span style="color:var(--accent-hi)">◆</span> AI Live <span style="color:var(--muted);font-weight:500">· <span data-t="sub">téléphone</span></span></h1>
+  <p class="muted" data-t="tagline">Filme et transforme-toi par la voix.</p>
+  <div class="phase" data-th="phase"><b>Phase de test</b> — la transformation s'affiche sur ton téléphone et tu peux enregistrer des essais. Rien n'est publié.</div>
 
-  <label>Mot de passe de la console <span style="opacity:.75">(pas la clé Daydream, déjà installée)</span></label><input id="token" type="password" autocomplete="current-password">
-  <label>Moteur</label><select id="engine"></select>
-  <label>Langue de ta voix</label><select id="vlang">
+  <label><span data-t="token">Mot de passe de la console</span> <span style="opacity:.75" data-t="token_hint">(pas la clé Daydream, déjà installée)</span></label><input id="token" type="password" autocomplete="current-password">
+  <label data-t="engine">Moteur</label><select id="engine"></select>
+  <label data-t="lang">Langue (voix et affichage)</label><select id="vlang">
     <option value="fr">Français</option><option value="en">English</option><option value="es">Español</option><option value="pt">Português</option>
     <option value="de">Deutsch</option><option value="it">Italiano</option><option value="nl">Nederlands</option><option value="ar">العربية</option>
     <option value="tr">Türkçe</option><option value="ru">Русский</option><option value="zh">中文</option><option value="ja">日本語</option>
     <option value="ko">한국어</option><option value="hi">हिन्दी</option><option value="id">Bahasa Indonesia</option></select>
-  <label>Qualité du rendu</label><select id="mode"></select>
+  <label data-t="mode">Qualité du rendu</label><select id="mode"></select>
   <p class="howto" id="mode-hint"></p>
 
   <details class="later">
-    <summary>Diffusion en direct sur des plateformes (après la phase de test)</summary>
-  <div class="check" style="margin-top:16px"><input type="checkbox" id="do-bc"><span style="color:var(--text);font-weight:600">Diffuser en direct sur des plateformes</span></div>
+    <summary data-t="bc_sum">Diffusion en direct sur des plateformes (après la phase de test)</summary>
+  <div class="check" style="margin-top:16px"><input type="checkbox" id="do-bc"><span style="color:var(--text);font-weight:600" data-t="bc_do">Diffuser en direct sur des plateformes</span></div>
   <div id="bc" class="hidden">
     <div id="dests"></div>
-    <button id="add" type="button" class="btn ghost">+ Ajouter une plateforme (3 max)</button>
-    <label>Format (commun à toutes les plateformes)</label>
+    <button id="add" type="button" class="btn ghost" data-t="add">+ Ajouter une plateforme (3 max)</button>
+    <label data-t="format">Format (commun à toutes les plateformes)</label>
     <select id="format"><option value="horizontal">Horizontal 16:9 (YouTube, Twitch, Kick, Facebook)</option><option value="vertical">Vertical 9:16 (Shorts, TikTok)</option><option value="carre">Carré</option></select>
-    <div class="check"><input type="checkbox" id="remember-key"><span>Mémoriser les clés sur ce téléphone</span></div>
+    <div class="check"><input type="checkbox" id="remember-key"><span data-t="remember">Mémoriser les clés sur ce téléphone</span></div>
   </div>
   </details>
 
-  <details class="later"><summary>Options expérimentales (en test)</summary>
-  <div class="check"><input type="checkbox" id="refs"><span>Images de référence <span style="opacity:.75">— l'IA s'inspire de photos du personnage choisi (Équilibré / Qualité)</span></span></div>
-  <div class="check"><input type="checkbox" id="face"><span>Garder mon visage <span style="opacity:.75">— l'IA change ta tenue mais garde tes traits (Équilibré / Qualité)</span></span></div>
-  <p class="howto">Si l'image IA n'apparaît pas au bout de 30 s avec ces options, arrête et relance sans elles.</p>
+  <details class="later"><summary data-t="exp_sum">Options expérimentales (en test)</summary>
+  <div class="check"><input type="checkbox" id="refs"><span><span data-t="refs">Images de référence</span> <span style="opacity:.75" data-t="refs_hint">— l'IA s'inspire de photos du personnage choisi (Équilibré / Qualité)</span></span></div>
+  <div class="check"><input type="checkbox" id="face"><span><span data-t="face">Garder mon visage</span> <span style="opacity:.75" data-t="face_hint">— l'IA change ta tenue mais garde tes traits (Équilibré / Qualité)</span></span></div>
+  <p class="howto" data-t="exp_note">Si l'image IA n'apparaît pas au bout de 30 s avec ces options, arrête et relance sans elles.</p>
   </details>
   <div class="row">
-    <div><label>Caméra</label><select id="facing"><option value="environment">Arrière (IRL)</option><option value="user">Avant (selfie)</option></select></div>
+    <div><label data-t="camera">Caméra</label><select id="facing"><option value="environment" data-t="cam_back">Arrière (IRL)</option><option value="user" data-t="cam_front">Avant (selfie)</option></select></div>
   </div>
-  <button id="go" class="btn">▶ Démarrer</button>
+  <button id="go" class="btn" data-t="start">▶ Démarrer</button>
   <p id="err" class="err"></p>
 </section>
 
@@ -129,13 +129,14 @@ input:focus-visible,select:focus-visible{outline:3px solid rgba(45,212,191,.35);
   <div id="msg" class="msg"></div>
   <div id="chips" class="chips"></div>
   <div class="bar">
-    <button id="mic" class="big">🎙 Voix</button>
+    <button id="mic" class="big" data-t="mic">🎙 Voix</button>
     <button id="toggle" class="big orig">⟲ ORIGINAL</button>
-    <button id="rec" class="big">⏺ Essai</button>
-    <button id="stop" class="big">■ Fin</button>
+    <button id="rec" class="big" data-t="rec">⏺ Essai</button>
+    <button id="stop" class="big" data-t="end">■ Fin</button>
   </div>
 </section>
-<script src="/rtc.js?v=1e5b82f1"></script>
-<script src="/mobile.js?v=1e5b82f1"></script>
+<script src="/i18n_ui.js?v=ed26edcd"></script>
+<script src="/rtc.js?v=ed26edcd"></script>
+<script src="/mobile.js?v=ed26edcd"></script>
 </body>
 </html>

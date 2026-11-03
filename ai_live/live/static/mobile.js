@@ -47,7 +47,7 @@ const OPTIONS = `<optgroup label="Sans minimum d'abonnés"><option value="youtub
 function destBlock(d, i) {
   const el = document.createElement("div");
   el.className = "dest";
-  el.innerHTML = `<div class="dest-head"><span>Plateforme ${i + 1}</span>${i ? '<button type="button" aria-label="Retirer">×</button>' : ""}</div>
+  el.innerHTML = `<div class="dest-head"><span>${t("platform", { n: i + 1 })}</span>${i ? '<button type="button" aria-label="Retirer">×</button>' : ""}</div>
     <select class="d-platform">${OPTIONS}</select><p class="howto"></p>
     <label>Adresse du serveur</label><input class="d-server" inputmode="url" autocapitalize="off" spellcheck="false">
     <label>Clé de stream</label><input class="d-key" type="password" autocapitalize="off" spellcheck="false">`;
@@ -62,7 +62,7 @@ function destBlock(d, i) {
   return el;
 }
 function renumber() {
-  document.querySelectorAll(".dest").forEach((el, i) => (el.querySelector(".dest-head span").textContent = `Plateforme ${i + 1}`));
+  document.querySelectorAll(".dest").forEach((el, i) => (el.querySelector(".dest-head span").textContent = t("platform", { n: i + 1 })));
   $("#add").classList.toggle("hidden", document.querySelectorAll(".dest").length >= 3);
 }
 function collect() {
@@ -75,6 +75,21 @@ $("#do-bc").addEventListener("change", () => {
   if ($("#do-bc").checked && !document.querySelector(".dest")) { $("#dests").appendChild(destBlock({}, 0)); renumber(); }
 });
 
+// Libellés traduits : modes, puces de personnages/décors (catalogue du serveur, noms par langue).
+function label(kind, c) { return ((st.catalog.labels || {})[LANG] || {})[kind]?.[c.key] || c.label; }
+function buildModes(selected) {
+  $("#mode").innerHTML = `<option value="auto">${esc(t("auto"))}</option>` +
+    (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}">${esc(t("m_" + m.key))}</option>`).join("");
+  $("#mode").value = selected || "auto";
+  modeHint();
+}
+function modeHint() { const v = $("#mode").value; $("#mode-hint").textContent = v === "auto" ? t("auto_hint") : t("h_" + v); }
+function buildChips() {
+  $("#chips").innerHTML = st.catalog.characters.slice(0, 8).map((c) => `<button class="chip" data-kind="character" data-key="${esc(c.key)}">${esc(label("characters", c))}</button>`).join("") +
+    st.catalog.decors.slice(0, 6).map((c) => `<button class="chip" data-kind="decor" data-key="${esc(c.key)}">${esc(label("decors", c))}</button>`).join("");
+  document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => preset(c)));
+}
+
 async function init() {
   st.catalog = await (await fetch("/api/catalog")).json();
   setIceServers(st.catalog.ice_servers);
@@ -82,13 +97,9 @@ async function init() {
     st.catalog.engines.map((e) => `<option value="${esc(e.key)}">${esc(e.name)}</option>`).join("");
   $("#token").value = store.get("token");
   $("#engine").value = store.get("engine") || $("#engine").value;
-  $("#mode").innerHTML = `<option value="auto">Auto (recommandé)</option>` +
-    (st.catalog.modes || []).map((m) => `<option value="${esc(m.key)}">${esc(m.label)}</option>`).join("");
-  $("#mode").value = store.get("mode") || "auto";
-  const hint = () => {
-    if ($("#mode").value === "auto") { $("#mode-hint").textContent = "s'adapte tout seul à ton réseau et à la fluidité de l'IA"; return; }
-    const m = (st.catalog.modes || []).find((x) => x.key === $("#mode").value); $("#mode-hint").textContent = m ? m.hint : ""; };
-  $("#mode").addEventListener("change", hint); hint();
+  const keep = store.get("mode") || "auto";
+  buildModes(keep);
+$("#mode").addEventListener("change", modeHint);
   $("#face").checked = store.get("face") === "1";
   const nav = (navigator.language || "fr").slice(0, 2);
   $("#vlang").value = store.get("vlang") || ([...$("#vlang").options].some((o) => o.value === nav) ? nav : "fr");
@@ -101,9 +112,9 @@ async function init() {
   $("#do-bc").checked = store.get("bc") === "1" && saved.length > 0;
   $("#bc").classList.toggle("hidden", !$("#do-bc").checked);
   renumber();
-  $("#chips").innerHTML = st.catalog.characters.slice(0, 8).map((c) => `<button class="chip" data-kind="character" data-key="${esc(c.key)}">${esc(c.label)}</button>`).join("") +
-    st.catalog.decors.slice(0, 6).map((c) => `<button class="chip" data-kind="decor" data-key="${esc(c.key)}">${esc(c.label)}</button>`).join("");
-  document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => preset(c)));
+  buildChips();
+  applyUI($("#vlang").value); modeHint();
+  $("#vlang").addEventListener("change", () => { applyUI($("#vlang").value); buildModes($("#mode").value); buildChips(); });
 }
 
 // ------------------------------------------------------------------ démarrage
@@ -137,17 +148,17 @@ $("#go").addEventListener("click", async () => {
     st.cam = cam; st.session = session;
     $("#setup").classList.add("hidden"); $("#live").classList.remove("hidden"); document.querySelector(".labnav")?.classList.add("hidden");
     $("#cam").srcObject = st.cam;
-    $("#state").textContent = "Connexion au moteur…";
+    $("#state").textContent = t("connecting");
     // Le micro ne part vers le moteur qu'en diffusion directe (inutile en mode essai : il reste pour l'enregistrement local).
     st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H(), { audio: !!platform });
-    $("#state").textContent = "Chargement de l'IA…";
-    $("#ai").addEventListener("playing", () => say(`IA prête en ${((Date.now() - tStart) / 1000).toFixed(1)} s — mode ${st.session.mode_label || ""}`), { once: true });
+    $("#state").textContent = t("loading");
+    $("#ai").addEventListener("playing", () => say(t("ready", { s: ((Date.now() - tStart) / 1000).toFixed(1), m: t("m_" + st.session.mode) })), { once: true });
     st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
-    $("#state").textContent = platform ? "● EN DIRECT" : "Test (non publié)";
+    $("#state").textContent = platform ? t("live_on") : t("test_state");
     $("#state").classList.toggle("rec", !!platform);
     st.t0 = Date.now();
     st.timers.push(setInterval(tick, 1000));
-    st.timers.push(fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} i/s`)));
+    st.timers.push(fpsMeter($("#ai"), (n) => ($("#fps").textContent = `${n} ${t("fps")}`)));
     st.tune = auto ? new AutoTune({ mode, allowModeSwitch: !platform }) : null;
     if ($("#face").checked) $("#ai").addEventListener("playing", () => setFace(true), { once: true });
     showMode();
@@ -155,9 +166,9 @@ $("#go").addEventListener("click", async () => {
     st.timers.push(setInterval(refresh, 5000));
     try { st.wake = await navigator.wakeLock.request("screen"); } catch {}
     st.recorder = makeRecorder($("#ai"), st.cam.getAudioTracks()[0]);
-    say(platform ? `Diffusion vers ${platform} lancée` : "Mode test : rien n'est publié. « ⏺ Essai » pour enregistrer.");
+    say(platform ? t("bc_started", { p: platform }) : t("test_started"));
   } catch (e) {
-    $("#err").textContent = "Échec : " + e.message; teardown(false);
+    $("#err").textContent = t("failed") + e.message; teardown(false);
   }
   $("#go").disabled = false;
 });
@@ -169,12 +180,12 @@ function startNet() {
     const g = netGrade(s), el = $("#net");
     if (g) {
       el.classList.remove("hidden"); el.dataset.g = g;
-      el.textContent = `Réseau ${g}${s.rtt != null ? ` · ${s.rtt} ms` : ""}`;
+      el.textContent = `${t("net")} ${t("g_" + g)}${s.rtt != null ? ` · ${s.rtt} ms` : ""}`;
       el.title = `envoi ${s.upFps ?? "—"} i/s ${s.res ?? ""} ${s.upKbps ?? "—"} kbit/s · réception ${s.downFps ?? "—"} i/s · pertes ${s.loss ?? 0} % · tampon ${s.bufferMs ?? "—"} ms${s.limit ? " · limité par " + s.limit : ""}`;
     }
     if (!st.tune || st.switching) return;
     for (const a of st.tune.feed(s)) {
-      if (a.type === "bitrate") { applyBitrate(st.pub, a.level); say(a.level === "eco" ? "Réseau faible : envoi allégé pour rester fluide" : "Réseau rétabli : qualité d'envoi normale"); }
+      if (a.type === "bitrate") { applyBitrate(st.pub, a.level); say(a.level === "eco" ? t("net_eco") : t("net_ok")); }
       if (a.type === "mode") switchMode(a.mode);
     }
   });
@@ -184,7 +195,7 @@ function startNet() {
 // Elle reste en mémoire sur le serveur et est effacée quand on désactive ou à la fin de la session.
 async function setFace(on) {
   if (!st.session) return;
-  if (st.session.mode === "rapide") { say("« Garder mon visage » n'est pas disponible en mode Rapide"); showFace(); return; }
+  if (st.session.mode === "rapide") { say(t("face_rapide")); showFace(); return; }
   try {
     let r;
     if (on) {
@@ -200,7 +211,7 @@ async function setFace(on) {
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.detail || r.status);
     st.session = d;
-    say(on ? "Visage gardé : l'IA change ta tenue en gardant tes traits" : "Visage libre : l'IA s'inspire des images du personnage");
+    say(on ? t("face_on") : t("face_off"));
   } catch (e) { say("Visage : " + e.message); }
   showFace();
 }
@@ -209,30 +220,30 @@ function showFace() {
   const b = $("#facep"); if (!b || !st.session) return;
   b.classList.remove("hidden");
   const on = !!st.session.face_locked;
-  b.textContent = on ? "🙂 Visage gardé" : "🎭 Visage libre";
+  b.textContent = on ? t("face_pill_on") : t("face_pill_off");
   b.style.borderColor = on ? "#2dd4bf" : "";
 }
 
 function showMode() {
   const el = $("#modep"); if (!el || !st.session) return;
   el.classList.remove("hidden");
-  el.textContent = (st.tune ? "Auto · " : "") + (st.session.mode_label || st.session.mode || "");
+  el.textContent = (st.tune ? "Auto · " : "") + t("m_" + st.session.mode);
 }
 
 // L'IA n'arrive pas à suivre : on recrée le flux dans un mode plus rapide (quelques secondes de coupure).
 async function switchMode(mode) {
   st.switching = true;
   try {
-    say("L'IA a du mal à suivre : passage à un mode plus fluide…");
+    say(t("struggle"));
     st.session = await api(`/api/sessions/${st.session.id}/mode`, { method: "POST", body: JSON.stringify({ mode, reason: "auto" }) });
     try { st.pub && st.pub.close(); st.view && st.view.close(); } catch {}
     st.pub = await whipPublish(`/api/sessions/${st.session.id}/whip`, st.cam, H(), { audio: false });
     st.view = await whepPlay(`/api/sessions/${st.session.id}/whep`, $("#ai"), H());
     showMode(); startNet();
-    say(`Mode ${st.session.mode_label} activé automatiquement` + (mode === "rapide" && st.session.face_locked === false ? " (visage gardé indisponible en Rapide)" : ""));
+    say(t("mode_auto", { m: t("m_" + st.session.mode) }));
     showFace();
   } catch (e) {
-    say("Changement de mode impossible : " + e.message);
+    say(t("mode_fail") + e.message);
     st.tune = null;  // on n'insiste pas
   }
   st.switching = false;
@@ -245,14 +256,14 @@ function tick() {
 function render(s) {
   st.session = s;
   const sc = s.scene;
-  $("#toggle").textContent = sc.bypass ? "✦ RÉACTIVER L'IA" : "⟲ ORIGINAL";
+  $("#toggle").textContent = sc.bypass ? t("resume") : t("original");
   $("#toggle").className = "big " + (sc.bypass ? "ia" : "orig");
   $("#parody").classList.toggle("hidden", !sc.parody || sc.bypass);
-  if (sc.parody_of) $("#parody").textContent = `Parodie IA · ce n'est pas ${sc.parody_of}`;
+  if (sc.parody_of) $("#parody").textContent = t("parody", { n: sc.parody_of });
   document.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", (c.dataset.kind === "character" ? sc.character : sc.decor) === c.dataset.key));
   if (s.estimated_cost_usd != null) { $("#cost").classList.remove("hidden"); $("#cost").textContent = `${s.estimated_cost_usd.toFixed(3)} $`; }
   showFace();
-  if (s.ended) { say("Session terminée : " + s.end_reason); teardown(true); }
+  if (s.ended) { say(t("ended") + s.end_reason); teardown(true); }
 }
 async function refresh() { try { render(await api(`/api/sessions/${st.session.id}`)); } catch {} }
 
@@ -265,20 +276,20 @@ $("#toggle").addEventListener("click", async () => {
   catch (e) { say(e.message); }
 });
 async function command(text) {
-  try { const r = await api(`/api/sessions/${st.session.id}/command`, { method: "POST", body: JSON.stringify({ text, lang: $("#vlang").value }) }); render(r.session); say((r.ok ? "✓ " : "✗ ") + r.message); }
+  try { const r = await api(`/api/sessions/${st.session.id}/command`, { method: "POST", body: JSON.stringify({ text, lang: $("#vlang").value }) }); render(r.session); say(r.ok ? (LANG === "fr" ? "✓ " + r.message : t("applied")) : t("refused") + r.message); }
   catch (e) { say(e.message); }
 }
 
 // ------------------------------------------------------------------ voix
 const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
 $("#mic").addEventListener("click", () => {
-  if (!Rec) return say("Reconnaissance vocale indisponible sur ce navigateur (essaie Chrome).");
+  if (!Rec) return say(t("no_speech"));
   if (st.listening) { st.listening = false; try { st.rec.stop(); } catch {} $("#mic").classList.remove("on"); return; }
   const vl = $("#vlang").value;
   st.rec = new Rec(); st.rec.lang = ((st.catalog.voice_langs || []).find((x) => x.code === vl) || {}).speech || "fr-FR"; st.rec.continuous = true;
   st.rec.onresult = (e) => command(e.results[e.results.length - 1][0].transcript.trim());
   st.rec.onend = () => { if (st.listening) try { st.rec.start(); } catch {} };
-  st.rec.start(); st.listening = true; $("#mic").classList.add("on"); say("Je t'écoute : « transforme-moi en chevalier »…");
+  st.rec.start(); st.listening = true; $("#mic").classList.add("on"); say(t("listening"));
 });
 
 // ------------------------------------------------------------------ enregistrement d'essai
@@ -287,14 +298,14 @@ $("#rec").addEventListener("click", async () => {
   if (st.recorder.recording) {
     clearInterval(st.recTimer);
     const r = await st.recorder.stop();
-    $("#rec").textContent = "⏺ Essai"; $("#rec").classList.remove("recording"); $("#recpill").classList.add("hidden");
-    if (r) say(`Essai enregistré : ${r.name} (${(r.size / 1e6).toFixed(1)} Mo)`);
+    $("#rec").textContent = t("rec"); $("#rec").classList.remove("recording"); $("#recpill").classList.add("hidden");
+    if (r) say(t("rec_saved", { n: r.name, s: (r.size / 1e6).toFixed(1) }));
     return;
   }
   try {
     st.recorder.start();
-    $("#rec").textContent = "■ Stop"; $("#rec").classList.add("recording"); $("#recpill").classList.remove("hidden");
-    st.recTimer = setInterval(() => { const s = st.recorder.seconds; $("#recpill").textContent = `● ENR ${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }, 500);
+    $("#rec").textContent = t("stop_rec"); $("#rec").classList.add("recording"); $("#recpill").classList.remove("hidden");
+    st.recTimer = setInterval(() => { const s = st.recorder.seconds; $("#recpill").textContent = `${t("rec_pill")} ${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }, 500);
   } catch (e) { say(e.message); }
 });
 
@@ -306,7 +317,7 @@ $("#stop").addEventListener("click", async () => {
 });
 function teardown(back) {
   if (st.recorder && st.recorder.recording) st.recorder.stop();
-  clearInterval(st.recTimer); $("#recpill")?.classList.add("hidden"); $("#rec").textContent = "⏺ Essai"; $("#rec").classList.remove("recording");
+  clearInterval(st.recTimer); $("#recpill")?.classList.add("hidden"); $("#rec").textContent = t("rec"); $("#rec").classList.remove("recording");
   st.timers.forEach((t) => clearInterval(t)); st.timers = [];
   clearInterval(st.netTimer); st.tune = null;
   try { st.pub && st.pub.close(); st.view && st.view.close(); } catch {}

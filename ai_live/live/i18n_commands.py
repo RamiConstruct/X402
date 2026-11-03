@@ -160,6 +160,12 @@ ITEMS: dict[str, dict[str, dict[str, list[str]]]] = {
 }
 
 
+def labels() -> dict:
+    """Nom affichable de chaque élément du catalogue, par langue (premier mot-clé, majuscule initiale)."""
+    return {lang: {cat: {k: (v[0][:1].upper() + v[0][1:]) for k, v in entries.items()} for cat, entries in ITEMS[lang].items()}
+            for lang in LANGS}
+
+
 def _pattern(lang: str, kw: str) -> re.Pattern:
     k = re.escape(norm(kw))
     if lang in SUBSTRING_LANGS:

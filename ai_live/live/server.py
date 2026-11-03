@@ -25,7 +25,7 @@ from .commands import apply_command, set_preset
 from .engine import DEFAULT_MODE, QUALITY_MODES, EngineConfig, EngineError, StreamEngine, resolve_mode
 from .gpu.catalog import MODELS
 from .gpu.manager import GpuError, GpuManager, Limits
-from .i18n_commands import SPEECH_LANG
+from .i18n_commands import SPEECH_LANG, labels as i18n_labels
 from .references import References
 from .scene import CHARACTERS, DECORS, STYLES, SceneHistory
 
@@ -250,6 +250,7 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
         return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
                 "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
                              "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith("cloud:")],
+                "labels": i18n_labels(),
                 "voice_langs": [{"code": k, "speech": v} for k, v in SPEECH_LANG.items()],
                 "modes": [{"key": k, "label": v["label"], "hint": v["hint"]} for k, v in QUALITY_MODES.items()],
                 "default_mode": DEFAULT_MODE,
