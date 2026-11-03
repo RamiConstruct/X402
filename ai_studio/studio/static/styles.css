@@ -99,3 +99,7 @@ details { font-size: 13px; color: var(--muted); }
 .engines { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
 .engine { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; font-size: 14px; }
 @media (max-width: 640px) { .topbar { position: static; padding: 12px; } main { padding: 12px; } .table { display: block; overflow-x: auto; } }
+/* Sélecteur de langue discret */
+.lang-pick { width: auto; margin: 0; padding: 4px 8px; font-size: 13px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.lang-pick:hover { color: var(--text); border-color: var(--accent); }
+.auth-card .brand { display: flex; align-items: center; }

@@ -10,17 +10,17 @@ async function api(path, opts = {}) {
   const headers = opts.body instanceof FormData ? {} : { "Content-Type": "application/json" };
   if (state.token) headers.Authorization = "Bearer " + state.token;
   const res = await fetch(path, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
-  if (res.status === 401 && path !== "/api/auth/login") { logout(); throw new Error("Session expirée"); }
+  if (res.status === 401 && path !== "/api/auth/login") { logout(); throw new Error(t("expired")); }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Erreur " + res.status);
   return data;
 }
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const fmtCredits = (c) => `${c} crédit${c > 1 ? "s" : ""}`;
+const fmtCredits = (c) => t("n_credits", { n: c });
 const fmtUsd = (micro) => (micro / 1e6).toLocaleString("fr-FR", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 4 });
 const fmtDate = (iso) => new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
-const STATUS = { queued: "En file", running: "En cours", succeeded: "Terminé", failed: "Échec · remboursé", canceled: "Annulé" };
+const STATUS = new Proxy({}, { get: (_, k) => (["queued", "running", "succeeded", "failed", "canceled"].includes(k) ? t("st_" + k) : undefined) });
 
 // ---------------------------------------------------------------- authentification
 function showAuth() { $("#auth").classList.remove("hidden"); $("#app").classList.add("hidden"); }
@@ -41,7 +41,7 @@ $("#logout").addEventListener("click", logout);
 
 async function refreshAccount() {
   state.account = await api("/api/me");
-  const held = state.account.credits_held ? ` · ${state.account.credits_held} réservés` : "";
+  const held = state.account.credits_held ? ` · ${t("held", { n: state.account.credits_held })}` : "";
   $("#balance").textContent = `${fmtCredits(state.account.credits_available)}${held}`;
   $("#dev-topup").classList.toggle("hidden", !state.account.dev_mode);
 }
@@ -64,7 +64,7 @@ async function loadProjects(selectRoot, selectAsset) {
   state.projects = await api("/api/projects");
   const ul = $("#projects");
   ul.innerHTML = state.projects.map((p) => `<li data-root="${esc(p.root_id)}"><span>${esc(p.title)}</span><span class="count">${p.versions.length} v.</span></li>`).join("")
-    || `<li class="muted small">Aucun projet</li>`;
+    || `<li class="muted small">${t("no_project")}</li>`;
   ul.querySelectorAll("li[data-root]").forEach((li) => li.addEventListener("click", () => selectProject(li.dataset.root)));
   if (selectRoot) selectProject(selectRoot, selectAsset);
 }
@@ -88,7 +88,7 @@ function selectAsset(asset) {
   updateRange();
   const versions = state.project.versions;
   $("#versions").innerHTML = versions.map((a, i) =>
-    `<li data-id="${esc(a.id)}" class="${a.id === asset.id ? "active" : ""}">${i === 0 ? "Original" : esc(a.label)} <span class="muted small">· ${fmtDate(a.created_at)}</span></li>`).join("");
+    `<li data-id="${esc(a.id)}" class="${a.id === asset.id ? "active" : ""}">${i === 0 ? t("original") : esc(a.label)} <span class="muted small">· ${fmtDate(a.created_at)}</span></li>`).join("");
   $("#versions").querySelectorAll("li").forEach((li) => li.addEventListener("click", () => selectAsset(versions.find((a) => a.id === li.dataset.id))));
   const parent = asset.parent_id && versions.find((a) => a.id === asset.parent_id);
   $("#compare").classList.toggle("hidden", !parent);
@@ -109,10 +109,10 @@ document.querySelectorAll("#compare button").forEach((b) => b.addEventListener("
 $("#file").addEventListener("change", async (e) => {
   const file = e.target.files[0]; if (!file) return;
   const fd = new FormData(); fd.append("file", file);
-  $("#upload-status").textContent = `Import de ${file.name}…`;
+  $("#upload-status").textContent = t("importing", { f: file.name });
   try {
     const asset = await api("/api/assets", { method: "POST", body: fd });
-    $("#upload-status").textContent = "Vidéo importée.";
+    $("#upload-status").textContent = t("imported");
     await loadProjects(asset.root_id, asset.id);
   } catch (err) { $("#upload-status").innerHTML = `<span class="error">${esc(err.message)}</span>`; }
   e.target.value = "";
@@ -130,7 +130,7 @@ function updateRange() {
 $("#mark-in").addEventListener("click", () => { $("#start").value = $("#player").currentTime.toFixed(1); updateRange(); });
 $("#mark-out").addEventListener("click", () => { $("#end").value = $("#player").currentTime.toFixed(1); updateRange(); });
 $("#whole").addEventListener("click", () => { $("#start").value = 0; $("#end").value = state.asset.duration_s.toFixed(1); updateRange(); });
-document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => { $("#prompt").value = c.textContent; $("#prompt").focus(); }));
+document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => { $("#prompt").value = c.dataset.prompt || c.textContent; $("#prompt").focus(); }));
 
 // ---------------------------------------------------------------- devis
 $("#get-quote").addEventListener("click", async () => {
@@ -165,7 +165,7 @@ function optionCard(o) {
     <ul>${steps}</ul>
     <span class="muted small">Durée estimée : ~${Math.ceil(o.eta_s)} s · débit au coût réel, plafonné à ce prix</span>
     ${excludedList(o.excluded)}
-    <button class="btn primary" data-option="${esc(o.id)}" ${enough ? "" : "disabled"}>${enough ? "Accepter et lancer" : "Crédits insuffisants"}</button>
+    <button class="btn primary" data-option="${esc(o.id)}" ${enough ? "" : "disabled"}>${enough ? t("accept") : t("insufficient")}</button>
   </div>`;
 }
 
@@ -192,7 +192,7 @@ function trackJob(jobId) {
     const j = await api(`/api/jobs/${jobId}`);
     const done = j.status === "succeeded" || j.status === "failed";
     const badge = j.status === "succeeded" ? "ok" : j.status === "failed" ? "err" : "";
-    el.innerHTML = `<div class="status"><strong>Traitement</strong><span class="badge ${badge}">${STATUS[j.status] || j.status}</span>${j.simulated ? `<span class="badge sim">Simulation</span>` : ""}</div>
+    el.innerHTML = `<div class="status"><strong>${t("processing")}</strong><span class="badge ${badge}">${STATUS[j.status] || j.status}</span>${j.simulated ? `<span class="badge sim">Simulation</span>` : ""}</div>
       ${done ? "" : `<div class="progress"><div></div></div>`}
       <ul class="events">${(j.events || []).map((e) => `<li class="${e.level === "error" ? "error" : ""}">${fmtDate(e.at)} — ${esc(e.message)}</li>`).join("")}</ul>
       ${done ? `<p class="small muted">Réservé ${fmtCredits(j.reserved_credits)} · débité ${fmtCredits(j.charged_credits)}</p>` : ""}`;
@@ -209,7 +209,7 @@ async function renderJobs() {
   const jobs = await api("/api/jobs");
   $("#jobs-body").innerHTML = jobs.map((j) => `<tr><td>${fmtDate(j.created_at)}</td><td>${STATUS[j.status] || j.status}${j.simulated ? ' <span class="badge sim">sim.</span>' : ""}</td>
     <td>${j.steps.map((s) => esc(s.label)).join(" → ")}</td><td>${j.reserved_credits}</td><td>${j.charged_credits}</td>
-    <td>${fmtUsd(j.actual_cost_micro)}</td><td class="small">${esc(j.error || "")}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">Aucune tâche</td></tr>`;
+    <td>${fmtUsd(j.actual_cost_micro)}</td><td class="small">${esc(j.error || "")}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">${t("no_jobs")}</td></tr>`;
 }
 async function renderLedger() {
   const rows = await api("/api/ledger");
@@ -239,3 +239,11 @@ async function boot() {
   if (state.projects.length) selectProject(state.projects[0].root_id);
 }
 boot();
+
+// Langue de l'interface : petit sélecteur discret (écran de connexion et barre du haut).
+document.querySelectorAll(".lang-slot").forEach((el) => { el.innerHTML = langPicker(); });
+document.querySelectorAll(".lang-pick").forEach((sel) => sel.addEventListener("change", () => {
+  applyUI(sel.value);
+  if (state.account) refreshAccount().catch(() => {});
+}));
+applyUI();
