@@ -1,0 +1,74 @@
+# One-way copy of Git refs from GitHub (source of truth) to GitLab.
+# Requires GitHub Actions variable GITLAB_REPO_URL and secret GITLAB_MIRROR_TOKEN.
+# No deletion, force-push, deploy, or reverse synchronization.
+name: Sync GitHub to GitLab
+
+on:
+  push:
+    branches:
+      - main
+      - claude/x402-service-discovery-workshop-xjjmjt
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */3 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gitlab-mirror
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Fetch complete GitHub repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Safely push all branches and tags to GitLab
+        env:
+          GITLAB_REPO_URL: ${{ vars.GITLAB_REPO_URL }}
+          GITLAB_MIRROR_TOKEN: ${{ secrets.GITLAB_MIRROR_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${GITLAB_REPO_URL}" || -z "${GITLAB_MIRROR_TOKEN}" ]]; then
+            echo "GitLab mirror inactive: configure GITLAB_REPO_URL and GITLAB_MIRROR_TOKEN." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [[ ! "${GITLAB_REPO_URL}" =~ ^https://gitlab\.com/[A-Za-z0-9._/-]+\.git$ ]]; then
+            echo "::error::GITLAB_REPO_URL must be an HTTPS gitlab.com .git repository URL without credentials."
+            exit 1
+          fi
+
+          # Credential stays in process environment, not in Git remote URLs or files.
+          auth_header="$(printf 'oauth2:%s' "$GITLAB_MIRROR_TOKEN" | base64 -w0)"
+          printf '::add-mask::%s\n' "$auth_header"
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0='http.https://gitlab.com/.extraheader'
+          export GIT_CONFIG_VALUE_0="Authorization: Basic $auth_header"
+
+          refspecs=()
+          while IFS= read -r ref; do
+            branch="${ref#refs/remotes/origin/}"
+            [[ "$branch" == HEAD ]] && continue
+            refspecs+=("$ref:refs/heads/$branch")
+          done < <(git for-each-ref --format='%(refname)' refs/remotes/origin/)
+          while IFS= read -r ref; do
+            refspecs+=("$ref:$ref")
+          done < <(git for-each-ref --format='%(refname)' refs/tags/)
+
+          if (( ${#refspecs[@]} == 0 )); then
+            echo "::error::No Git references found; refusing to report a successful sync."
+            exit 1
+          fi
+
+          # Atomic and non-forced: divergence fails instead of overwriting GitLab.
+          git push --atomic "$GITLAB_REPO_URL" "${refspecs[@]}"
+          echo "GitHub branches and tags synchronized with GitLab (no destructive updates)." >> "$GITHUB_STEP_SUMMARY"
