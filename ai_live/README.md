@@ -24,8 +24,8 @@ Voix (Chrome) ─▶ commandes ─▶ état de scène ─▶ PATCH du moteur (sa
 
 | Testé ici | Pas encore testé |
 |---|---|
-| 26 tests : commandes FR, contrat de l'API Daydream, contrats **Vast.ai** et **RunPod** (requêtes exactes), garde-fous de location (inactivité, durée max, reprise après redémarrage, arrêt non confirmé), **tunnel WebRTC complet**, parcours « louer → live → libérer » avec un vrai worker | **Appels réels à Daydream, Vast.ai et RunPod** (clés absentes, domaines bloqués ici) |
-| Parcours dans Chromium avec caméra simulée : démarrage, commandes, préréglages, page OBS, retour à l'original, arrêt — 0 erreur, 16 i/s avec le processeur de démonstration (CPU) | **Processeur StreamDiffusion sur GPU** (aucun GPU ici) |
+| 46 tests : chronométrage par étape, diffusion multiplateforme avec un seul encodage (plateforme refusée ou muette isolée, worker toujours réactif), chemin tenseur de StreamDiffusion (faux modèle, torch CPU ; ignoré si torch ou Pillow manquent), commandes FR, contrat de l'API Daydream, contrats **Vast.ai** et **RunPod** (requêtes exactes), garde-fous de location (inactivité, durée max, reprise après redémarrage, arrêt non confirmé), **tunnel WebRTC complet**, parcours « louer → live → libérer » avec un vrai worker | **Appels réels à Daydream, Vast.ai et RunPod** (clés absentes, domaines bloqués ici) |
+| Parcours dans Chromium avec caméra simulée : démarrage, commandes, préréglages, page OBS, retour à l'original, arrêt — 0 erreur, 16 i/s avec le processeur de démonstration (CPU) | **Processeur StreamDiffusion sur GPU** (aucun GPU ici), y compris `SD_TENSOR_IO=1` |
 | | Image Docker du worker GPU, relais TURN en conditions réelles |
 
 Le protocole Daydream a été repris du **SDK TypeScript officiel** et du **plugin
@@ -170,6 +170,38 @@ Contenus sexuels, violents ou haineux : refusés avant tout envoi au moteur.
 | `LIVE_CF_TURN_KEY_ID`, `LIVE_CF_TURN_API_TOKEN` | relais Cloudflare Realtime TURN (recommandé) |
 | `LIVE_TURN_SECRET`, `LIVE_TURN_URLS` | relais TURN du VPS (identifiants temporaires générés par la console) ; `LIVE_ICE_SERVERS` pour une liste statique |
 | `WORKER_PROCESSOR` (`demo` / `streamdiffusion`), `WORKER_TOKEN`, `WORKER_PUBLIC_URL`, `WORKER_WARMUP_PARAMS`, `WORKER_ICE_SERVERS`, `SD_ACCELERATION`, `SD_ENGINE_DIR` | worker |
+| `WORKER_STATS_LOG_S` (déf. 10, `0` = désactivé) | résumé périodique dans le journal du worker : images/s et durée moyenne/p95 de chaque étape |
+| `SD_TENSOR_IO` (déf. `0`) | `1` = l'image reste en tenseur sur le GPU autour du modèle (sans PIL) ; à comparer avec `0` sur ton GPU |
+| `WORKER_RTMP_SUBPROCESS` (déf. `auto`), `WORKER_RTMP_CODEC` | diffusion directe : `auto` = un processus `ffmpeg` par plateforme si `ffmpeg` est installé, `0` = envoi direct par PyAV ; codec vidéo forcé |
+
+## 7. Mesurer le worker (avant toute optimisation)
+
+Le worker chronomètre chaque étape d'une image et l'affiche dans son terminal toutes les
+`WORKER_STATS_LOG_S` secondes, par exemple :
+
+```
+i/s entrée 30.0, sortie 18.2, abandonnées 214 | to_rgb 1.1/1.6 ms | process 52.3/61.0 ms | sd_pre 3.9/4.4 ms | sd_model 45.0/53.2 ms | sd_post 2.8/3.1 ms | from_rgb 0.9/1.2 ms | rtmp_prep 6.2/7.0 ms | rtmp_encode 2.1/3.4 ms
+```
+
+(valeurs d'illustration). Les mêmes chiffres sont renvoyés par `GET /v1/streams/{id}`
+(champ `timings`, et `stats.frames_dropped`).
+
+| Étape | Ce qu'elle mesure |
+|---|---|
+| `to_rgb` / `from_rgb` | conversion de l'image reçue en tableau, puis retour en image vidéo (CPU) |
+| `process` | tout le traitement IA, attente d'un fil libre comprise |
+| `sd_pre` / `sd_model` / `sd_post` | StreamDiffusion : préparation de l'image, modèle, récupération du résultat |
+| `rtmp_prep` / `rtmp_encode` | diffusion directe : mise au format (bandes noires, YUV) et encodage H.264, **une seule fois** pour toutes les plateformes |
+
+« abandonnées » = images de la caméra arrivées pendant que le GPU travaillait (politique
+« dernière image ») : c'est normal quand le GPU est plus lent que la caméra.
+
+Essai sur ton Legion : lance le worker avec `SD_TENSOR_IO=0`, note la ligne au bout d'une
+minute, relance avec `SD_TENSOR_IO=1`, compare `sd_pre`, `sd_post` et les images/s de sortie.
+Garde `1` seulement si c'est mieux et que l'image est correcte.
+
+L'encodage vidéo vers OBS (WHEP) est fait par aiortc et n'apparaît pas dans ces étapes :
+surveille l'utilisation du processeur pendant le live pour l'estimer.
 
 ## Limites connues
 
@@ -177,3 +209,5 @@ Contenus sexuels, violents ou haineux : refusés avant tout envoi au moteur.
 - Le bandeau PARODIE est ajouté par la page de sortie (pas incrusté dans la vidéo du moteur).
 - StreamDiffusion transforme toute l'image : visage et identité peuvent varier d'une image à l'autre ; l'intensité basse et les ControlNets (profondeur, pose) limitent ce défaut.
 - Sessions en mémoire (un redémarrage de la console les perd) ; facturation non branchée (le grand livre de `ai_studio/` sera réutilisé).
+- Diffusion directe sans l'exécutable `ffmpeg` (repli PyAV) : une plateforme qui accepte la connexion puis ne répond plus fige tout le worker, car PyAV garde le verrou de Python pendant l'ouverture. Installe `ffmpeg` (déjà présent dans l'image Docker du worker ; sous Windows : `winget install ffmpeg`).
+- Une plateforme qui coupe n'est pas reconnectée automatiquement : relance la session.
