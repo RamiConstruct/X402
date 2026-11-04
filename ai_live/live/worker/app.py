@@ -24,8 +24,9 @@ from aiortc import MediaStreamTrack, RTCConfiguration, RTCIceServer, RTCPeerConn
 from aiortc.contrib.media import MediaRelay
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 
+from .metrics import StageTimer, timed
 from .processors import Processor, make_processor
-from .rtmp import RtmpPusher, mask_url
+from .rtmp import Broadcaster
 
 log = logging.getLogger("live.worker")
 
@@ -33,18 +34,29 @@ log = logging.getLogger("live.worker")
 class ProcessedTrack(MediaStreamTrack):
     kind = "video"
 
-    def __init__(self, source: MediaStreamTrack, processor: Processor, stats: dict) -> None:
+    def __init__(self, source: MediaStreamTrack, processor: Processor, stats: dict,
+                 timer: StageTimer | None = None) -> None:
         super().__init__()
         self.source, self.processor, self.stats = source, processor, stats
+        self.stats.setdefault("frames_dropped", 0)
+        self.timer = timer
+        if timer is not None:
+            processor.timer = timer  # le processeur détaille ses propres étapes (pré-traitement, modèle…)
         self.bypass = False   # True = l'image originale est renvoyée telle quelle (retour à l'original)
         self._latest: av.VideoFrame | None = None
         self._new = asyncio.Event()
+        self._log_every = float(os.environ.get("WORKER_STATS_LOG_S", "10"))  # 0 = pas de résumé dans le journal
+        self._last_log = time.monotonic()
+        self._last_counts = (0, 0)
         self._reader = asyncio.ensure_future(self._read())
 
     async def _read(self) -> None:
         try:
             while True:
-                self._latest = await self.source.recv()
+                frame = await self.source.recv()
+                if self._new.is_set():  # l'image précédente n'a pas été prise : elle est abandonnée
+                    self.stats["frames_dropped"] += 1
+                self._latest = frame
                 self.stats["frames_in"] += 1
                 self._new.set()
         except Exception:  # fin du flux source
@@ -58,15 +70,34 @@ class ProcessedTrack(MediaStreamTrack):
             raise asyncio.CancelledError
         if self.bypass:
             self.stats["frames_out"] += 1
+            self._maybe_log()
             return frame
         t0 = time.perf_counter()
-        rgb = frame.to_ndarray(format="rgb24")
-        out = await asyncio.get_running_loop().run_in_executor(None, self.processor.process, rgb)
-        new = av.VideoFrame.from_ndarray(out, format="rgb24")
+        with timed(self.timer, "to_rgb"):
+            rgb = frame.to_ndarray(format="rgb24")
+        with timed(self.timer, "process"):  # inclut l'attente d'un fil libre dans le pool
+            out = await asyncio.get_running_loop().run_in_executor(None, self.processor.process, rgb)
+        with timed(self.timer, "from_rgb"):
+            new = av.VideoFrame.from_ndarray(out, format="rgb24")
         new.pts, new.time_base = frame.pts, frame.time_base
         self.stats["frames_out"] += 1
         self.stats["last_ms"] = round((time.perf_counter() - t0) * 1000, 1)
+        self._maybe_log()
         return new
+
+    def _maybe_log(self) -> None:
+        """Toutes les WORKER_STATS_LOG_S secondes : débit d'images et durée moyenne/p95 de chaque étape."""
+        if self._log_every <= 0 or self.timer is None:
+            return
+        now = time.monotonic()
+        dt = now - self._last_log
+        if dt < self._log_every:
+            return
+        fi, fo = self.stats["frames_in"], self.stats["frames_out"]
+        li, lo = self._last_counts
+        log.info("i/s entrée %.1f, sortie %.1f, abandonnées %d | %s", (fi - li) / dt, (fo - lo) / dt,
+                 self.stats["frames_dropped"], self.timer.line())
+        self._last_log, self._last_counts = now, (fi, fo)
 
     def stop(self) -> None:
         self._reader.cancel()
@@ -81,12 +112,13 @@ class Stream:
     pcs: list = field(default_factory=list)
     output: ProcessedTrack | None = None
     relay: MediaRelay = field(default_factory=MediaRelay)
-    stats: dict = field(default_factory=lambda: {"frames_in": 0, "frames_out": 0, "last_ms": None})
+    stats: dict = field(default_factory=lambda: {"frames_in": 0, "frames_out": 0, "frames_dropped": 0, "last_ms": None})
+    timer: StageTimer = field(default_factory=StageTimer)
     created: float = field(default_factory=time.time)
     rtmp_urls: list = field(default_factory=list)  # diffusion directe (1re = output_rtmp_url de l'API Daydream ; jusqu'à 3)
     output_size: tuple[int, int] = (720, 1280)
     audio: MediaStreamTrack | None = None
-    pushers: list = field(default_factory=list)
+    broadcaster: Broadcaster | None = None
 
 
 def ice_config(raw: str | None) -> RTCConfiguration:
@@ -184,9 +216,9 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
     def get(sid: str, authorization: str = Header(default="")):
         auth(authorization)
         st = streams.get(sid) or _404()
-        out = {"id": sid, "params": st.params, "stats": st.stats}
-        if st.pushers:
-            out["broadcast"] = [{"target": mask_url(p.url), **p.stats} for p in st.pushers]
+        out = {"id": sid, "params": st.params, "stats": st.stats, "timings": st.timer.summary()}
+        if st.broadcaster is not None:
+            out["broadcast"] = st.broadcaster.view()
         return out
 
     @app.post("/v1/streams/{sid}/whip")
@@ -201,20 +233,20 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
         @pc.on("track")
         def on_track(track):
             if track.kind == "video" and st.output is None:
-                st.output = ProcessedTrack(track, st.processor, st.stats)
+                st.output = ProcessedTrack(track, st.processor, st.stats, st.timer)
                 got_video.set()
             elif track.kind == "audio" and st.audio is None:
                 st.audio = track
 
         await pc.setRemoteDescription(RTCSessionDescription(sdp=offer, type="offer"))
         await pc.setLocalDescription(await pc.createAnswer())
-        if st.rtmp_urls and st.output is not None and not st.pushers:
+        if st.rtmp_urls and st.output is not None and st.broadcaster is None:
             w, h = st.output_size
-            for url in st.rtmp_urls:  # un encodeur par plateforme : une plateforme en panne n'arrête pas les autres
-                pusher = RtmpPusher(url, width=w, height=h)
-                pusher.start(st.relay.subscribe(st.output, buffered=False),
-                             st.relay.subscribe(st.audio, buffered=False) if st.audio is not None else None)
-                st.pushers.append(pusher)
+            # Un seul encodage pour toutes les plateformes ; chaque plateforme a son propre fil d'envoi :
+            # une plateforme en panne ou bloquée n'arrête ni les autres ni le worker.
+            st.broadcaster = Broadcaster(st.rtmp_urls, width=w, height=h, timer=st.timer)
+            st.broadcaster.start(st.relay.subscribe(st.output, buffered=False),
+                                 st.relay.subscribe(st.audio, buffered=False) if st.audio is not None else None)
         return Response(pc.localDescription.sdp, media_type="application/sdp", status_code=201,
                         headers={"Livepeer-Playback-Url": f"{base(req)}/v1/streams/{sid}/whep",
                                  "Location": f"/v1/streams/{sid}/whip"})
@@ -236,8 +268,8 @@ def create_worker_app(token: str | None = None, public_url: str | None = None, w
         return Response(pc.localDescription.sdp, media_type="application/sdp", status_code=201)
 
     async def _close(st: Stream) -> None:
-        for pusher in st.pushers:
-            await pusher.stop()
+        if st.broadcaster is not None:
+            await st.broadcaster.stop()
         if st.output:
             st.output.stop()
         for pc in st.pcs:
