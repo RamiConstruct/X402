@@ -276,11 +276,31 @@ def create_app(engines: dict[str, EngineConfig] | None = None, engine_factory=St
             except EngineError:
                 pass  # encore trop tôt : on réessaiera au prochain changement ou à la prochaine lecture
 
+    # Un moteur « auto-hébergé » qui n'est que le programme de démonstration (sans IA, pour les tests
+    # techniques) ne doit pas s'afficher comme « Mon GPU » : on le demande à son /health (mis en cache 60 s).
+    probe_cache: dict[str, tuple[float, str | None]] = {}
+
+    def processor_of(c: EngineConfig) -> str | None:
+        if not c.supports_output_size or not c.base_url:
+            return None
+        t, v = probe_cache.get(c.base_url, (0.0, None))
+        if time.time() - t > 60:
+            try:
+                import httpx
+                v = httpx.get(f"{c.base_url.rstrip('/')}/health", timeout=1.5).json().get("processor")
+            except Exception:  # noqa: BLE001 - injoignable : on ne change pas le nom
+                v = None
+            probe_cache[c.base_url] = (time.time(), v)
+        return v
+
+    def engine_name(c: EngineConfig) -> str:
+        return "Démo technique (sans IA, test de connexion)" if processor_of(c) == "demo" else c.name
+
     @app.get("/api/catalog")
     def catalog():
         pick = lambda c: [{"key": k, "label": v["label"]} for k, v in c.items()]  # noqa: E731
         return {"characters": pick(CHARACTERS), "decors": pick(DECORS), "styles": pick(STYLES),
-                "engines": [{"key": k, "name": c.name, "model": c.model_id, "configured": bool(c.api_key),
+                "engines": [{"key": k, "name": engine_name(c), "model": c.model_id, "configured": bool(c.api_key),
                              "usd_per_minute": c.usd_per_minute} for k, c in configs.items() if not k.startswith(("cloud:", "node:"))],
                 "fleet": [{"key": f"flotte:{t.key}", "name": t.label} for t in fleet.tiers.values()] if fleet else [],
                 "labels": i18n_labels(),

@@ -4,6 +4,9 @@ const st = { catalog: null, session: null, cam: null, pubPc: null, viewPc: null,
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 function token() { return $("#token").value || ""; }
+// Le mot de passe est retenu sur cet ordinateur (comme sur le téléphone).
+const memo = { get() { try { return localStorage.getItem("ailive_token") || ""; } catch { return ""; } },
+               set(v) { try { v ? localStorage.setItem("ailive_token", v) : localStorage.removeItem("ailive_token"); } catch {} } };
 function headers(extra = {}) { return { "X-Live-Token": token(), ...extra }; }
 function say(text, err = false) { $("#msg").textContent = text; $("#msg").classList.toggle("err", err); }
 
@@ -19,6 +22,7 @@ async function loadCatalog() {
   st.catalog = await (await fetch("/api/catalog")).json();
   setIceServers(st.catalog.ice_servers);
   $("#token-field").hidden = !st.catalog.access_required;
+  if (!$("#token").value) $("#token").value = memo.get();
   $("#engine").innerHTML = (st.catalog.fleet || []).map((f) => `<option value="${esc(f.key)}">Flotte automatique — ${esc(f.name)}</option>`).join("") +
     (st.catalog.gpu_rental ? `<option value="cloud">Mon GPU loué (Vast.ai / RunPod)</option>` : "") +
     st.catalog.engines.map((e) =>
@@ -78,6 +82,12 @@ async function createSession(body) {
 
 // ------------------------------------------------------------ démarrage
 $("#start").addEventListener("click", async () => {
+  if (st.catalog && st.catalog.access_required && !token()) {
+    say("Entre d'abord le mot de passe de la console (le champ à gauche du bouton Démarrer).");
+    $("#token").focus();
+    return;
+  }
+  memo.set(token());
   say("Accès à la caméra…");
   try {
     st.cam = await navigator.mediaDevices.getUserMedia({ video: videoConstraints(), audio: false });
