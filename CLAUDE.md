@@ -21,7 +21,7 @@ Mémoire du projet pour Claude (sessions Claude Code et projet claude.ai). À li
   serveur, demander brièvement : « M'autorises-tu à le faire une fois ? »
 - Éthique : pas d'imitation photoréaliste de personnes réelles sans consentement ; parodie seulement en
   caricature avec le bandeau « PARODIE IA » ; contenus sexuels, violents et haineux bloqués.
-- Le fondateur **n'aime pas Daydream** : objectif = nos propres GPU (flotte automatique, `ai_live/live/gpu/fleet.py`).
+- **Daydream est hors service** (constaté le 15 nov. 2026 : création de flux acceptée mais passerelle vidéo en erreur, suppression en 502, son site affiche désormais un générateur de musique). Le fondateur ne l'aimait pas de toute façon : seule voie = nos propres GPU (flotte automatique, `ai_live/live/gpu/fleet.py`).
 - Objectif qualité : **1440p, 90 i/s affichées, délai ressenti nul** (voir `docs/ai_live_studio/OBJECTIF_1440P_90.md`).
 - Travailler sur la branche indiquée par la session ; pas de demande de fusion sans demande explicite.
 
