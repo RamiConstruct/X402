@@ -1,0 +1,7 @@
+# Lint Python du dépôt (lancé par `make lint`, version de ruff figée dans le Makefile).
+# Jeu de règles volontairement court : erreurs réelles (imports inutiles, noms
+# indéfinis, syntaxe), pas de style. Les skills tiers et les fixtures sont exclus.
+extend-exclude = [".claude", "fixtures"]
+
+[lint]
+select = ["E4", "E7", "E9", "F"]

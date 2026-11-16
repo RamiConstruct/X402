@@ -24,8 +24,7 @@ from atelier_x402.discovery.http_public import (
     resolve_within,
 )
 from atelier_x402.discovery.netguard import ValidatedTarget
-from atelier_x402.models import BillingUnit, Provenance, Source
-from atelier_x402.normalize import normalize_item
+from atelier_x402.models import BillingUnit
 from atelier_x402.redact import MASK, RedactingFilter, redact_text, redact_url
 from atelier_x402.report import comparison_report, coverage, result_to_dict, summary_markdown
 from atelier_x402.x402 import check_terms

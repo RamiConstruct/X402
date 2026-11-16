@@ -11,7 +11,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from labtrading import BANNER
-from labtrading.arbitrage import Params, evaluate
+from labtrading.arbitrage import Params
 from labtrading.book import Market, MessageError, OrderBook, parse_message, to_decimal
 from labtrading.cli import main
 from labtrading.events import EventError, available_at, load_events, surprise

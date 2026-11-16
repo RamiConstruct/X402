@@ -56,3 +56,33 @@ seulement les fichiers utiles au lieu de tout parcourir.
 - `CLAUDE.md` : dit à Claude d'interroger la carte avant de fouiller les fichiers.
 - Les 4 skills que l'installeur génère (debug-issue, explore-codebase,
   refactor-safely, review-changes) ont été retirés : ils doublaient Superpowers.
+
+## Contrôles qualité : `make check` et `make scan`
+
+Cinq outils GitHub, lancés par `uvx` à une version figée dans le `Makefile` :
+rien n'est installé dans le dépôt ni sur la machine, et ils marchent dans toute
+session où `uv` est présent.
+
+| Commande | Outil (version) | Rôle | Licence |
+|---|---|---|---|
+| `make lint` | astral-sh/ruff (0.17.5) | Erreurs Python réelles : imports inutiles, noms indéfinis, syntaxe (`ruff.toml`) | MIT |
+| `make shell` | koalaman/shellcheck (0.11.0, via shellcheck-py) | Erreurs dans les scripts shell, à partir du niveau « warning » | GPL-3.0 |
+| `make secrets` | Yelp/detect-secrets (1.5.0) | Bloque tout secret potentiel absent de `.secrets.baseline` (VISION.md, principe 5) | Apache-2.0 |
+| `make audit` | pypa/pip-audit (2.10.1) | Failles connues dans les dépendances de `ai_studio` et `ai_live` | Apache-2.0 |
+| `make semgrep` | semgrep/semgrep (1.185.0) | Analyse de sécurité du code, règles `p/python` et `p/secrets` ; c'est le binaire qu'attend le skill `semgrep` | LGPL-2.1 |
+
+- `make check` = lint + shell + secrets + tests. Rapide, à lancer avant chaque commit.
+- `make scan` = audit + semgrep. Plus lent et en ligne, à lancer avant une mise en production.
+- `.secrets.baseline` liste 27 faux positifs relus le 2026-11-16 (empreintes de
+  fixtures, identifiant de namespace KV, mots de passe d'exemple et de test).
+  Après une relecture : `uvx --from detect-secrets==1.5.0 detect-secrets scan --exclude-files '^\.claude/' > .secrets.baseline`.
+- Les skills tiers (`.claude/skills/`) et `fixtures/` sont exclus des contrôles.
+
+État au 2026-11-16 : `make check` et `make scan` passent, 222 tests, aucune faille
+connue, aucun résultat Semgrep. Seule correction de code : 6 imports inutilisés
+retirés dans des fichiers de test.
+
+Volontairement absents : **gitleaks** et **trivy** (binaires hors PyPI, même rôle
+que detect-secrets et pip-audit), **mypy** (le code n'est pas annoté pour, ce
+serait du bruit), **pre-commit** (un hook local ne suit pas les sessions cloud ;
+`make check` fait le même travail).

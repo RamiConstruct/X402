@@ -3,7 +3,7 @@ import json
 import unittest
 
 from atelier_x402.discovery import DiscoveryDisabled, HttpPolicy, PublicHttpDiscovery
-from atelier_x402.discovery.http_public import PartialResponse, RawResponse, ResponseTooLarge
+from atelier_x402.discovery.http_public import RawResponse, ResponseTooLarge
 from atelier_x402.discovery.netguard import DestinationRefused, validate_url
 from atelier_x402.models import Provenance
 from atelier_x402.redact import MASK
