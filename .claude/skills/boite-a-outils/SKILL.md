@@ -14,6 +14,10 @@ bash .claude/kit/outil.sh <outil> [arguments]
 Le premier appel d'un outil le télécharge dans le cache de `uvx` (de quelques
 secondes à une minute) ; les suivants sont immédiats.
 
+Dans une session cloud, les mêmes outils sont aussi installés directement
+(`scrapling`, `crwl`, `trafilatura`, `markitdown`, `yt-dlp`, `rapidocr`, `ast-grep`,
+`duckdb`) : si `command -v crwl` répond, appeler la commande sans passer par le script.
+
 ## Quel outil pour quel besoin
 
 | Besoin | Commande |

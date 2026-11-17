@@ -115,6 +115,14 @@ de RapidOCR n'ont pas été relevées). Chaque outil a été lancé avec succès
 - `trafilatura` ignore le certificat du proxy des sessions cloud et réessaie sans
   vérification TLS ; le résultat est correct, mais préférer `scrapling` pour une page sensible.
 
+**Installation permanente (sessions cloud)** : depuis le 2026-11-17, le script de
+démarrage de l'environnement cloud « Default » installe ces huit outils aux mêmes
+versions avec `uv tool install`. Les commandes `scrapling`, `crwl`, `trafilatura`,
+`markitdown`, `yt-dlp`, `rapidocr`, `ast-grep` et `duckdb` sont donc disponibles
+directement, dans toute session cloud, quel que soit le dépôt. `outil.sh` reste
+la voie qui marche partout ailleurs (ordinateur, autre environnement). En cas de
+changement de version, mettre à jour les deux endroits.
+
 Volontairement absents :
 
 - **NanmiCoder/MediaCrawler** (71 k, chinois) et **g1879/DrissionPage** (13 k, chinois) :
