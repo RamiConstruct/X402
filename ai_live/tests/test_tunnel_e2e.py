@@ -1,7 +1,6 @@
 """Tunnel complet avec du vrai WebRTC (aiortc) : caméra simulée → serveur console → worker
 (processeur « demo ») → sortie OBS. Valide le chemin auto-hébergé sans GPU."""
 import asyncio
-import fractions
 
 import av
 import httpx
